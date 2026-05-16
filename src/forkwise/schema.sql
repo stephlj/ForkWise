@@ -40,6 +40,6 @@ CREATE TABLE recipes(
 CREATE TABLE meals(
     id SERIAL PRIMARY KEY,
     date date NOT NULL,
-    recipe_id integer NOT NULL REFERENCES recipe(id),
+    recipe_id integer NOT NULL REFERENCES recipes(id),
     recipe_amt real NOT NULL
 );

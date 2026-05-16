@@ -21,9 +21,9 @@ Security: the database runs locally, nothing leaves your machine.
 One-time-only setup: initialize a new db:
 
 ```
-config_path = "./src/forkwise/config.yml"
-schema_path = "./src/forkwise/schema.sql"
-python dbcommons.init_db $config_path $schema_path
+config_path='./src/forkwise/config.yml'
+schema_path='./src/forkwise/schema.sql'
+python dbcommons.init_db <owner_pw> $config_path $schema_path
 ```
 
 ## Dev
