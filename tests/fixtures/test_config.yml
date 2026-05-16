@@ -1,0 +1,7 @@
+# ForkWise test configuration
+#
+# Copyright (c) 2026 Stephanie Johnson
+
+db:
+  db_name: test_fork_db
+  admin_name: test_fork_admin
