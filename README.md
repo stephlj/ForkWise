@@ -18,7 +18,13 @@ Security: the database runs locally, nothing leaves your machine.
 
 ## Getting started
 
-WIP
+One-time-only setup: initialize a new db:
+
+```
+config_path='./src/forkwise/config.yml'
+schema_path='./src/forkwise/schema.sql'
+python -m dbcommons.init_db '<owner_pw>' $config_path $schema_path
+```
 
 ## Dev
 
@@ -36,5 +42,10 @@ No solution found when resolving dependencies:
       unsatisfiable.
 ```
 you already have the package (e.g. it's a package that comes with all python installs). I love `uv` but its error messages can be quite unhelpful.
+
+To update to the latest version of the DBCommons repo, run:
+```
+uv pip install "git+https://github.com/stephlj/DBCommons"
+```
 
 Use `pytest` to run the tests. (For quick debugging: Add `-s` or `--capture=no` to print print statements to console.)
