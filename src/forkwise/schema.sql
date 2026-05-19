@@ -34,12 +34,13 @@ CREATE TABLE recipes(
     name text NOT NULL,
     ingredient_id integer NOT NULL REFERENCES ingredients(id),
     ingredient_amt real NOT NULL,
-    ingredient_units text NOT NULL
+    ingredient_units text NOT NULL,
+    servings integer NOT NULL
 );
 
 CREATE TABLE meals(
     id SERIAL PRIMARY KEY,
     date date NOT NULL,
     recipe_id integer NOT NULL REFERENCES recipes(id),
-    recipe_amt real NOT NULL
+    recipe_servings integer NOT NULL
 );

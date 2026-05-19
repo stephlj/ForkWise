@@ -13,5 +13,6 @@ from dbcommons.db_conn import DBConn
 class ForkDB(DBConn):
     # TODO defining logger format needs to go in main app entry point ...
     def __init__(self, user: str, pw: str, db_name: str):
+        # Use super() because I've now override base class init
         super().__init__(user=user, pw=pw, db_name=db_name)
         self._logger = logging.getLogger(__name__)
