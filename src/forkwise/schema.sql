@@ -25,8 +25,10 @@ CREATE TABLE ingredients(
     fat_grams real NOT NULL, /* per unitary_amount */
     protein_grams real NOT NULL, /* per unitary_amount */
     fiber_grams real NOT NULL, /* per unitary_amount */
-    sugar_grams real NOT NULL, /* per unitary_amount */
-    animal_grams real NOT NULL /* grams of animal-sourced products, per unitary_amount */
+    sugar_grams real NOT NULL, /* per unitary_amount. Includes white flour */
+    carb_grams real NOT NULL, /* per unitary_amount */
+    animal_grams real NOT NULL, /* grams of animal-sourced products, per unitary_amount */
+    UNIQUE (name, unitary_amount, units)
 );
 
 CREATE TABLE recipes(
