@@ -6,11 +6,32 @@
 
 ## Inputs
 
-User provides csv of meals eaten on particular dates. Format TBD.
+MVP: User provides csv of meals eaten on particular dates. Format TBD.
+
+v2: Extract recipes from URLs, get ingredient nutritional info from web search.
 
 Security: the database runs locally, nothing leaves your machine.
 
 ## Example usage
+
+### Add ingredients
+
+Ingredients are loaded from a csv. The csv must have columns:
+
+- `Name`: Item name, e.g. "black beans"
+- `Unitary amount`: Amount for which calories, etc are calculated
+- `Units`: Units for amount; e.g. `oz`
+- `Calories`: Calories in the unitary amount of this ingredient
+- `Fiber`: g of fiber in the unitary amount of this ingredient
+- `Sugar`: g of sugar; includes white flour
+- `Protien`: g
+- `Fat`: g
+- `Carbs`: g of carbohydrate, total (incl sugar and dietary fiber)
+- `Animal`: bool, is any part of the ingredient derived from animal products or not.
+
+E.g. for a can of black beans, `name` might be "black beans", `unitary amount` might be 24, `units` might be "oz". `Animal` would be True only if the beans were cooked in animal fat, for example.
+
+### Add recipe
 
 ### Add meals
 
