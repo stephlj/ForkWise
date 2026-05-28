@@ -9,6 +9,7 @@ Copyright (c) 2026 Stephanie Johnson
 import logging
 
 from dbcommons.db_conn import DBConn
+from forkwise.dataclasses import Ingredient
 
 class ForkDB(DBConn):
     # TODO defining logger format needs to go in main app entry point ...
@@ -21,21 +22,9 @@ class ForkDB(DBConn):
         # Don't need a staging table for this action
         # Will skip any row for which (name, unitary_amount, units) are already in the db.
 
-        # Would be better to move this to the BLL with some input handling, but since this is just for
-        # me and I have control over all the inputs, not bothering for now:
-        # TODO get this from schema instead of hard-coding, or create a dataclass like in fintrackr
-        ingr_col_defs = [("name", "text"),
-                         ("unitary_amount", "real"),
-                         ("units", "text"),
-                         ("cal", "real"),
-                         ("fat_grams", "real"),
-                         ("protein_grams", "real"),
-                         ("protein_grams", "real"),
-                         ("fiber_grams", "real"),
-                         ("sugar_grams", "real"),
-                         ("carb_grams", "real"),
-                         ("animal", "boolean")
-                         ]
+        # TODO add some input handling for this csv in BLL
+        ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Ingredient)]
+
         # TODO how does import_file handle dups that aren't allowed in the db? Does this throw an error?
         # Should probably wrap in a try-except
         r = self._import_file(csv_columns=ingr_col_defs, dest_table="ingredients", csv_path=path_to_ingr_csv)
