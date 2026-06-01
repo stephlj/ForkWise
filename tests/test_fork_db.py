@@ -7,9 +7,9 @@ import dbcommons.testing_utils as utils
 from forkwise.fork_db import ForkDB
 
 # TODO might be better to locate these by where the file is? Does this work with CI?
-TEST_CONFIG_PATH = os.path.join(os.getcwd(),"fixtures","test_config.yml")
-TEST_DATA_PATH = os.path.join(os.getcwd(),"fixtures")
-SCHEMA_PATH = os.path.join(os.path.split(os.getcwd())[0], "src", "forkwise", "schema.sql")
+TEST_CONFIG_PATH = os.path.join(os.getcwd(),"tests","fixtures","test_config.yml")
+TEST_DATA_PATH = os.path.join(os.getcwd(),"tests","fixtures")
+SCHEMA_PATH = os.path.join(os.getcwd(), "src", "forkwise", "schema.sql")
 
 class TestDBConn(unittest.TestCase):
     @classmethod
@@ -22,9 +22,11 @@ class TestDBConn(unittest.TestCase):
     def tearDownClass(cls):
         utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
     
-    def add_ingredients_from_csv(self):
+    def test_add_ingredients_from_csv(self):
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
 
-        rows_added = self.conn.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv)
-
-        self.assertEqual()
+        num_rows_added = self.conn.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv)
+        
+        # TODO use pandas instead of hard-coding number of lines
+        # Check for uploading partial duplicates
+        self.assertEqual(num_rows_added, 11, "Incorrect number of rows added to ingredients table")

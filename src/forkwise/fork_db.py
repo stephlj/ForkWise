@@ -34,15 +34,31 @@ class ForkDB(DBConn):
             return 0
         
         col_names = ", ".join(f'{a}' for a, _ in ingr_col_defs)
-        col_names_staging = ", ".join(f's.{a}' for a, _ in ingr_col_defs)
         
-        # CHECK not sure this works
-        # CHECk that this skips anything already in db (violation of unique constraint)
-        ingr_query = "INSERT INTO ingredients (%s) " \
-            "SELECT %s" \
-            "FROM staging AS s " \
-            "RETURNING *;"
-        rows_added = self.execute_query(ingr_query, (col_names,col_names_staging))
+        # This will throw a UniqueViolation if any rows in staging are already in the db ingredients table
+        # col_names_staging = ", ".join(f's.{a}' for a, _ in ingr_col_defs)
+        # ingr_query = f"""
+        #     INSERT INTO ingredients ({col_names})
+        #     SELECT {col_names_staging}
+        #     FROM staging AS s
+        #     RETURNING *;
+        # """   
+        
+        join_statements = " AND ".join(f'i.{a} = s.{a}' for a, _ in ingr_col_defs)
+        ingr_query = f"""
+            WITH joined AS (
+                SELECT s.*
+                FROM staging AS s
+                LEFT JOIN ingredients i ON
+                    {join_statements}
+                    WHERE i.id IS NULL
+                )
+            INSERT INTO ingredients ({col_names})
+            SELECT *
+            FROM joined
+            RETURNING *;
+        """ 
+        rows_added = self.execute_query(ingr_query)
         return len(rows_added)
 
     def add_recipe_from_staging(self) -> None:
