@@ -33,7 +33,7 @@ CREATE TABLE ingredients(
 
 CREATE TABLE recipes(
     id SERIAL PRIMARY KEY,
-    name text NOT NULL,
+    name text UNIQUE NOT NULL,
     ingredient_id integer NOT NULL REFERENCES ingredients(id),
     ingredient_amt real NOT NULL,
     ingredient_units text NOT NULL,

@@ -22,11 +22,16 @@ class TestDBConn(unittest.TestCase):
     def tearDownClass(cls):
         utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
     
-    def test_add_ingredients_from_csv(self):
+    def test_add_ingredients_via_staging(self):
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
 
         num_rows_added = self.conn.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv)
         
         # TODO use pandas instead of hard-coding number of lines
-        # Check for uploading partial duplicates
+        # Check for uploading partial duplicates by first uploading only part of the file
         self.assertEqual(num_rows_added, 11, "Incorrect number of rows added to ingredients table")
+
+        # TODO test dups
+
+    def test_add_recipe_via_staging(self):
+        pass

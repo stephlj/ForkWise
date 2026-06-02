@@ -11,7 +11,7 @@ import logging
 from dataclasses import fields
 
 from dbcommons.db_conn import DBConn
-from forkwise.dataclasses import Ingredient
+from forkwise.dataclasses import Ingredient, Recipe
 
 class ForkDB(DBConn):
     # TODO defining logger format needs to go in main app entry point ...
@@ -20,7 +20,7 @@ class ForkDB(DBConn):
         super().__init__(user=user, pw=pw, db_name=db_name)
         self._logger = logging.getLogger(__name__)
     
-    def add_ingredients_from_csv(self, path_to_ingr_csv: str) -> int:
+    def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
         # Will skip any row for which (name, unitary_amount, units) are already in the db.
         # Returns number of rows added to Ingredients table.
 
@@ -61,6 +61,51 @@ class ForkDB(DBConn):
         rows_added = self.execute_query(ingr_query)
         return len(rows_added)
 
-    def add_recipe_from_staging(self) -> None:
-        # This does go through a staging table first.
-        pass
+    def add_recipe_via_staging(self, path_to_recipe_csv: str, name: str, servings: int) -> None:
+        """
+        Add recipe from csv via a staging table.
+
+        Parameters
+        ----------
+        path_to_recipe_csv : str
+           Path to a recipe: each row is an ingredient (name, amount, units).
+           Name must already be an ingredient in the db.
+           Units don't have to match ingredient table units (will be converted or error).
+        name : str
+            Recipe name.
+        servings: int
+            How many servings do the amounts in this recipe make in total.
+        """
+    
+        # Servings and name are added separately! not in the csv. Don't include these in col def
+        recipe_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Recipe) if f.name!='name' and f.name!='servings']
+
+        rows_staged = self.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=recipe_col_defs)
+
+        if rows_staged == 0:
+            self._logger.info("No recipe loaded from source file to staging table, will not be added to db")
+            return 0
+        
+        # A recipe can only be added if all ingredients are already in the db.
+        # Check first, error with a list of missing ingredients: TODO or should I return this list?
+        check_ingr = f"""
+            WITH joined AS (
+                SELECT s.*
+                FROM staging AS s
+                LEFT JOIN ingredients i ON
+                    i.name = s.ingr_name
+                    WHERE i.id IS NULL
+            )
+            SELECT * 
+            FROM joined
+            RETURNING *;
+        """
+        ingr_missing = self.execute_query(check_ingr)
+
+        if len(ingr_missing) > 0:
+            missing_ingr_names = [a[0] for a in ingr_missing]
+            msg = f"Cannot load recipe: {name}. Ingredients missing from db: {missing_ingr_names}"
+            self._logger.error(msg)
+            raise ValueError(msg)
+
+        # Unit conversion ... 

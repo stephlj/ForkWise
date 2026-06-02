@@ -37,3 +37,18 @@ class Ingredient:
         yield self.sugar_grams
         yield self.carb_grams
         yield self.animal
+
+@dataclass
+class Recipe:
+    name: str = field(metadata={'sql_type':'text'})
+    ingr_name: str = field(metadata={'sql_type':'text'})
+    ingredient_amt: float = field(metadata={'sql_type':'real'})
+    ingredient_units: str = field(metadata={'sql_type':'text'})
+    servings: int = field(metadata={'sql_type':'integer'})
+
+    def __iter__(self):
+        yield self.name
+        yield self.ingr_name
+        yield self.ingredient_amt
+        yield self.ingredient_units
+        yield self.servings

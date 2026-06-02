@@ -6,7 +6,7 @@
 
 ## Inputs
 
-MVP: User provides csv of meals eaten on particular dates. Format TBD.
+MVP: All inputs via csv. User provides csv of meals eaten on particular dates, corresponding to recipes in the db; formats specified below.
 
 v2: Extract recipes from URLs, get ingredient nutritional info from web search.
 
@@ -16,7 +16,7 @@ Security: the database runs locally, nothing leaves your machine.
 
 ### Add ingredients
 
-Ingredients are loaded from a csv. The csv must have columns:
+Ingredients are loaded from a csv. The csv must have columns (in this order):
 
 - `Name`: Item name, e.g. "black beans"
 - `Unitary amount`: Amount for which calories, etc are calculated
@@ -31,7 +31,19 @@ Ingredients are loaded from a csv. The csv must have columns:
 
 E.g. for a can of black beans, `name` might be "black beans", `unitary amount` might be 24, `units` might be "oz". `Animal` would be True only if the beans were cooked in animal fat, for example.
 
+As many ingredients as you want can be added per csv, one per row.
+
 ### Add recipe
+
+A recipe can only be added if all ingredients are already in the db.
+
+Recipes are added from a csv. *One recipe per csv*. The csv must have the columns (in this order):
+
+- `Ingredient`: Name of an ingredient already in the db (exact match in v1).
+- `Amount`: Amount added to the recipe for all the servings (not per serving). 
+- `Units`: Units of the ingredient (Tbps, c etc)
+
+`Servings` (how many servings does this recipe make) and `name` (recipe name) must be specified separately on csv load.
 
 ### Add meals
 
