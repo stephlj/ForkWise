@@ -95,19 +95,19 @@ class ForkDB(DBConn):
         # A recipe can only be added if all ingredients are already in the db.
         # Check first, error with a list of missing ingredients: TODO or should I return this list?
         check_ingr = """
-            SELECT * FROM (
+            WITH joined AS (
                 SELECT s.*
                 FROM staging AS s
                 LEFT JOIN ingredients i ON
                     LOWER(i.name) = LOWER(s.ingr_name)
                     WHERE i.id IS NULL
-            );
+            )
+            SELECT ingr_name FROM joined;
         """
         ingr_missing = self.execute_query(check_ingr)
 
         if len(ingr_missing) > 0:
-            missing_ingr_names = [a[0] for a in ingr_missing]
-            msg = f"Cannot load recipe: {name}. Ingredients missing from db: {missing_ingr_names}"
+            msg = f"Cannot load recipe: {name}. Ingredients missing from db: {list(zip(*ingr_missing))}"
             self._logger.error(msg)
             raise ValueError(msg)
 
