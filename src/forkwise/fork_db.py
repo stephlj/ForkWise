@@ -44,7 +44,7 @@ class ForkDB(DBConn):
         #     RETURNING *;
         # """   
         
-        join_statements = " AND ".join(f'i.{a} = s.{a}' for a, _ in ingr_col_defs)
+        join_statements = " AND ".join(f'LOWER(i.{a}) = LOWER(s.{a})' for a, _ in ingr_col_defs)
         ingr_query = f"""
             WITH joined AS (
                 SELECT s.*
@@ -60,8 +60,10 @@ class ForkDB(DBConn):
         """ 
         rows_added = self.execute_query(ingr_query)
         return len(rows_added)
+    
+        # TODO drop staging? or let csv_to_staging handle that?
 
-    def add_recipe_via_staging(self, path_to_recipe_csv: str, name: str, servings: int) -> None:
+    def add_recipe_via_staging(self, path_to_recipe_csv: str, name: str, servings: int) -> int:
         """
         Add recipe from csv via a staging table.
 
@@ -75,6 +77,10 @@ class ForkDB(DBConn):
             Recipe name.
         servings: int
             How many servings do the amounts in this recipe make in total.
+
+        Returns
+        -------
+        1 for success, 0 for failure
         """
     
         # Servings and name are added separately! not in the csv. Don't include these in col def
@@ -88,17 +94,14 @@ class ForkDB(DBConn):
         
         # A recipe can only be added if all ingredients are already in the db.
         # Check first, error with a list of missing ingredients: TODO or should I return this list?
-        check_ingr = f"""
-            WITH joined AS (
+        check_ingr = """
+            SELECT * FROM (
                 SELECT s.*
                 FROM staging AS s
                 LEFT JOIN ingredients i ON
-                    i.name = s.ingr_name
+                    LOWER(i.name) = LOWER(s.ingr_name)
                     WHERE i.id IS NULL
-            )
-            SELECT * 
-            FROM joined
-            RETURNING *;
+            );
         """
         ingr_missing = self.execute_query(check_ingr)
 
@@ -108,4 +111,11 @@ class ForkDB(DBConn):
             self._logger.error(msg)
             raise ValueError(msg)
 
-        # Unit conversion ... 
+        # Next: insert, including linking to ingredients table
+        # TODO drop staging? or let csv_to_staging handle that?
+        recipe_query = f"""..."""
+        rows_added = self.execute_query(recipe_query)
+
+        if len(rows_added) != 1:
+            raise ValueError("something")
+        return 1

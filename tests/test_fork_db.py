@@ -34,4 +34,16 @@ class TestDBConn(unittest.TestCase):
         # TODO test dups
 
     def test_add_recipe_via_staging(self):
-        pass
+        path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe2.csv")
+
+        # Check that we can't add if not all ingredients are in db - 
+        # Even if test_add_ingredients_via_staging is run first, so the db has that list of ingredients,
+        # it'll be missing asparagus:
+        with self.assertRaises(ValueError):
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="grilled asparagus", servings=2)
+        
+        # Now add the missing ingredients (if test_add_ingredients_via_staging has run, olive oil will already be in there)
+        # Note there's a deliberate case mismatch between ingredient names here vs test_recipe2.csv
+        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients2.csv"))
+
+        self.assertEqual(self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="grilled asparagus", servings=2), 1, "Failed to add recipe")
