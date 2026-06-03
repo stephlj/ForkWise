@@ -44,7 +44,8 @@ class ForkDB(DBConn):
         #     RETURNING *;
         # """   
         
-        join_statements = " AND ".join(f'LOWER(i.{a}) = LOWER(s.{a})' for a, _ in ingr_col_defs)
+        # TODO to prevent duplicates due to case sensitivty on name, use LOWER somehow ... 
+        join_statements = " AND ".join(f'i.{a} = s.{a}' for a, _ in ingr_col_defs)
         ingr_query = f"""
             WITH joined AS (
                 SELECT s.*
@@ -111,11 +112,18 @@ class ForkDB(DBConn):
             self._logger.error(msg)
             raise ValueError(msg)
 
-        # Next: insert, including linking to ingredients table
-        # TODO drop staging? or let csv_to_staging handle that?
-        recipe_query = f"""..."""
-        rows_added = self.execute_query(recipe_query)
+        recipe_query = f"""
+            INSERT INTO recipes (name, ingredient_id, ingredient_amt, ingredient_units, servings)
+            SELECT %s, (select id from ingredients where name = s.ingr_name), s.ingredient_amt, s.ingredient_units, %s
+            FROM staging AS s
+            RETURNING *;
+        """
+        rows_added = self.execute_query(recipe_query, (name, servings))
 
         if len(rows_added) != 1:
-            raise ValueError("something")
+            msg = f"Attempted to add recipe: {name} from file: {path_to_recipe_csv} failed; rows added = {len(rows_added)} (should be 1 row added)"
+            self._logger.error(msg)
+            raise ValueError(msg)
+        
+        # TODO drop staging? or let csv_to_staging handle that?
         return 1
