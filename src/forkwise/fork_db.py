@@ -44,13 +44,13 @@ class ForkDB(DBConn):
         #     RETURNING *;
         # """   
         
-        # TODO to prevent duplicates due to case sensitivty on name, use LOWER somehow ... 
-        join_statements = " AND ".join(f'i.{a} = s.{a}' for a, _ in ingr_col_defs)
+        join_statements = " AND ".join(f'i.{a} = s.{a}' for a, _ in ingr_col_defs[1:])
         ingr_query = f"""
             WITH joined AS (
                 SELECT s.*
                 FROM staging AS s
                 LEFT JOIN ingredients i ON
+                    LOWER(i.name) = LOWER(s.name) AND
                     {join_statements}
                     WHERE i.id IS NULL
                 )
@@ -114,7 +114,7 @@ class ForkDB(DBConn):
 
         recipe_query = f"""
             INSERT INTO recipes (name, ingredient_id, ingredient_amt, ingredient_units, servings)
-            SELECT %s, (select id from ingredients where name = s.ingr_name), s.ingredient_amt, s.ingredient_units, %s
+            SELECT %s, (select id from ingredients where LOWER(name) = LOWER(s.ingr_name)), s.ingredient_amt, s.ingredient_units, %s
             FROM staging AS s
             RETURNING *;
         """
