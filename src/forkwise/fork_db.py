@@ -114,7 +114,7 @@ class ForkDB(DBConn):
 
         recipe_query = f"""
             INSERT INTO recipes (name, ingredient_id, ingredient_amt, ingredient_units, servings)
-            SELECT %s, (select id from ingredients where LOWER(name) = LOWER(s.ingr_name)), s.ingredient_amt, s.ingredient_units, %s
+            SELECT %s, (SELECT id FROM ingredients WHERE LOWER(name) = LOWER(s.ingr_name)), s.ingredient_amt, s.ingredient_units, %s
             FROM staging AS s
             RETURNING *;
         """

@@ -12,6 +12,7 @@ Copyright (c) 2026 Stephanie Johnson
 """
 
 from dataclasses import dataclass, field
+from typing import List
 
 @dataclass
 class Ingredient:
@@ -39,16 +40,25 @@ class Ingredient:
         yield self.animal
 
 @dataclass
-class Recipe:
-    name: str = field(metadata={'sql_type':'text'})
+class Component:
     ingr_name: str = field(metadata={'sql_type':'text'})
     ingredient_amt: float = field(metadata={'sql_type':'real'})
     ingredient_units: str = field(metadata={'sql_type':'text'})
+
+    def __iter__(self):
+        yield self.ingr_name
+        yield self.ingredient_amt
+        yield self.ingredient_units
+
+@dataclass
+class Recipe:
+    name: str = field(metadata={'sql_type':'text'})
+    components: List[Component]
     servings: int = field(metadata={'sql_type':'integer'})
 
     def __iter__(self):
         yield self.name
-        yield self.ingr_name
-        yield self.ingredient_amt
-        yield self.ingredient_units
+        yield self.components
         yield self.servings
+
+    
