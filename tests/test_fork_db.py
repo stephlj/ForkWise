@@ -25,11 +25,11 @@ class TestDBConn(unittest.TestCase):
     def test_add_ingredients_via_staging(self):
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
 
-        num_rows_added = self.conn.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv)
+        num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv)
         
         # TODO use pandas instead of hard-coding number of lines
         # Check for uploading partial duplicates by first uploading only part of the file
-        self.assertEqual(num_rows_added, 11, "Incorrect number of rows added to ingredients table")
+        self.assertEqual(num_rows_added, 10, "Incorrect number of rows added to ingredients table")
 
         # TODO test dups
 
@@ -46,4 +46,16 @@ class TestDBConn(unittest.TestCase):
         # Note there's a deliberate case mismatch between ingredient names here vs test_recipe2.csv
         self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients2.csv"))
 
-        self.assertEqual(self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="grilled asparagus", servings=2), 1, "Failed to add recipe")
+        # Note that add_recipe_via_staging returns number of rows added to components
+        self.assertEqual(
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="grilled asparagus", servings=2), 
+            2, 
+            "Failed to add recipe")
+        
+        # Test that we can't add a recipe of the same name
+        with self.assertRaises(ValueError):
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="grilled asparagus", servings=2)
+
+        # Test that we can't add the same set of components under a different recipe name
+        with self.assertRaises(ValueError):
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="other asparagus", servings=2)
