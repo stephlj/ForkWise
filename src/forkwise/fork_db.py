@@ -9,6 +9,7 @@ Copyright (c) 2026 Stephanie Johnson
 import logging
 
 from dataclasses import fields
+from psycopg import errors as psql_errors
 
 from dbcommons.db_conn import DBConn
 from forkwise.dataclasses import Ingredient, Recipe, Component
@@ -19,9 +20,6 @@ class ForkDB(DBConn):
         # Use super() because I've now override base class init
         super().__init__(user=user, pw=pw, db_name=db_name)
         self._logger = logging.getLogger(__name__)
-    
-    def get_recipe_id(self, name: str) -> int | None:
-        return self.execute_scalar("SELECT id FROM recipes WHERE name=%s", (name,))
     
     def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
         # Will skip any row for which (name, unitary_amount, units) are already in the db.
@@ -114,13 +112,8 @@ class ForkDB(DBConn):
             self._logger.error(msg)
             raise ValueError(msg)
 
-        # We also don't allow duplicate recipes. A duplicate is same name, or same ingredients+amounts for a single recipe_id
-        recipe_id = self.get_recipe_id(name)
-        if recipe_id is not None:
-            msg = f"A recipe with name {name} already exists in db; nothing will be added"
-            self._logger.error(msg)
-            raise ValueError(msg)
-
+        # We also don't allow duplicate recipes. A duplicate is same name, or same ingredients+amounts for a single recipe_id:
+        # Check the latter first:
         join_statements = " AND ".join(f'c.{a} = j.{a}' for a, _ in component_col_defs[1:])
         check_dup_components = f"""
             WITH joined1 AS (
@@ -141,14 +134,18 @@ class ForkDB(DBConn):
             SELECT recipe_id FROM joined2;
         """
         check_dups = self.execute_query(check_dup_components)
+        # TODO use groupby in SQL rather than set here
         if len(set([d[0] for d in check_dups])) == 1:
             msg = f"A recipe with components in csv {path_to_recipe_csv} already exists; nothing will be added"
             self._logger.error(msg)
             raise ValueError(msg)
         
-        # If all checks pass, add recipe:
-        # first add recipe name and servings to table:
-        recipe_id = self.execute_scalar("INSERT INTO recipes (name, servings) VALUES (%s,%s) RETURNING id;", (name,servings))
+        # Insert recipe name and servings into recipe table, unless a recipe by this name already exists:
+        try:
+            recipe_id = self.execute_scalar("INSERT INTO recipes (name, servings) VALUES (%s,%s) RETURNING id;", (name,servings))
+        except psql_errors.UniqueViolation as e:
+            self._logger.error(f"A recipe with name {name} already exists in db; nothing will be added")
+            raise
 
         # then insert into components table
         component_query = """
