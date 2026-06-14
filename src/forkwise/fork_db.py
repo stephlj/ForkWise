@@ -12,7 +12,7 @@ from dataclasses import fields
 from psycopg import errors as psql_errors
 
 from dbcommons.db_conn import DBConn
-from forkwise.dataclasses import Ingredient, Recipe, Component
+from forkwise.fork_dataclasses import Ingredient, Recipe, Component
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -62,7 +62,7 @@ class ForkDB(DBConn):
             RETURNING *;
         """ 
         rows_added = self.execute_query(ingr_query)
-        self._logger.info(f"Added len{rows_added} rows to ingredients table")
+        self._logger.info(f"Added {rows_added} to ingredients table")
         return len(rows_added)
     
         # TODO drop staging? or let csv_to_staging handle that?
@@ -165,7 +165,7 @@ class ForkDB(DBConn):
             RETURNING *;
         """
         rows_added = self.execute_query(component_query, (recipe_id,))
-        self._logger.info(f"Added len{rows_added} rows to components table and recipe {name} to recipe table")
+        self._logger.info(f"Added {rows_added} to components table and recipe {name} to recipe table")
         
         # TODO drop staging? or let csv_to_staging handle that?
         return len(rows_added)

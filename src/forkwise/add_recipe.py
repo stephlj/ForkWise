@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     db_conn = ForkDB(user=sys.argv[1], pw=sys.argv[2], db_name=db_name)
 
-    _ = db_conn.add_recipe_via_staging(path_to_ingr_csv=sys.argv[3], name=sys.argv[4], servings=sys.argv[5])
+    _ = db_conn.add_recipe_via_staging(path_to_recipe_csv=sys.argv[3], name=sys.argv[4], servings=sys.argv[5])
 
     db_conn.close()
     
