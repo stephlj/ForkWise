@@ -25,13 +25,22 @@ CREATE TABLE ingredients(
     fat_grams real NOT NULL, /* per unitary_amount */
     protein_grams real NOT NULL, /* per unitary_amount */
     fiber_grams real NOT NULL, /* per unitary_amount */
-    sugar_grams real NOT NULL, /* per unitary_amount */
-    animal_grams real NOT NULL /* grams of animal-sourced products, per unitary_amount */
+    sugar_grams real NOT NULL, /* per unitary_amount. Includes white flour */
+    carb_grams real NOT NULL, /* per unitary_amount */
+    animal boolean NOT NULL, /* is this an animal-derived product or not */
+    UNIQUE (name, unitary_amount, units)
 );
 
 CREATE TABLE recipes(
     id SERIAL PRIMARY KEY,
-    name text NOT NULL,
+    name text UNIQUE NOT NULL,
+    servings integer NOT NULL
+);
+
+CREATE TABLE components(
+    /* components of recipies, ie specific amounts of ingredients to add */
+    id SERIAL PRIMARY KEY,
+    recipe_id integer NOT NULL references recipes(id),
     ingredient_id integer NOT NULL REFERENCES ingredients(id),
     ingredient_amt real NOT NULL,
     ingredient_units text NOT NULL
@@ -41,5 +50,5 @@ CREATE TABLE meals(
     id SERIAL PRIMARY KEY,
     date date NOT NULL,
     recipe_id integer NOT NULL REFERENCES recipes(id),
-    recipe_amt real NOT NULL
+    recipe_servings integer NOT NULL
 );
