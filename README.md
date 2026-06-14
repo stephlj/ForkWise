@@ -54,7 +54,7 @@ Recipes are added from a csv. *One recipe per csv*. The csv must have the column
 In the terminal, run:
 
 ```
-python ./src/forkwise/add_ingredients.py <username> <user pw> <path_to_csv> <recipe_name> <servings>
+python ./src/forkwise/add_recipe.py <username> <user pw> <path_to_csv> <recipe_name> <servings>
 ```
 
 This will fail if a recipe by the same name already exists; or a recipe of a different name but the same exact ingredient list exists.
