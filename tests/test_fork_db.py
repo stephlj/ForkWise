@@ -3,6 +3,8 @@
 import unittest
 import os
 
+from psycopg import errors as psql_errors
+
 import dbcommons.testing_utils as utils
 from forkwise.fork_db import ForkDB
 
@@ -11,7 +13,7 @@ TEST_CONFIG_PATH = os.path.join(os.getcwd(),"tests","fixtures","test_config.yml"
 TEST_DATA_PATH = os.path.join(os.getcwd(),"tests","fixtures")
 SCHEMA_PATH = os.path.join(os.getcwd(), "src", "forkwise", "schema.sql")
 
-class TestDBConn(unittest.TestCase):
+class TestForkDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.params = utils.config_params(config_path=TEST_CONFIG_PATH)
@@ -53,9 +55,19 @@ class TestDBConn(unittest.TestCase):
             "Failed to add recipe")
         
         # Test that we can't add a recipe of the same name
-        with self.assertRaises(ValueError):
-            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="grilled asparagus", servings=2)
+        path_to_recipe_csv2 = os.path.join(TEST_DATA_PATH, "test_recipe3.csv")
+        with self.assertRaises(psql_errors.UniqueViolation):
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, name="grilled asparagus", servings=2)
 
         # Test that we can't add the same set of components under a different recipe name
         with self.assertRaises(ValueError):
             self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="other asparagus", servings=2)
+
+        # Test that we can add a recipe with an additional ingredient (but not the same name)
+        # should add 3 rows, 2 of them duplicates except for recipe_id, because we allow that
+        # Make sure ingredients from test_ingredients is in the db:
+        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients.csv"))
+        self.assertEqual(
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, name="onion asparagus", servings=1), 
+            3, 
+            "Failed to add recipe withe some duplicate components")

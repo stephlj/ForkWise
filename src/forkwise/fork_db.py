@@ -20,6 +20,9 @@ class ForkDB(DBConn):
         # Use super() because I've now override base class init
         super().__init__(user=user, pw=pw, db_name=db_name)
         self._logger = logging.getLogger(__name__)
+
+    def get_recipe_name(self, recipe_id: int) -> int | None:
+        return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
     
     def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
         # Will skip any row for which (name, unitary_amount, units) are already in the db.
@@ -106,44 +109,52 @@ class ForkDB(DBConn):
             SELECT ingr_name FROM joined;
         """
         ingr_missing = self.execute_query(check_ingr)
-
         if len(ingr_missing) > 0:
             msg = f"Cannot load recipe: {name}. Ingredients missing from db: {list(zip(*ingr_missing))}"
             self._logger.error(msg)
             raise ValueError(msg)
 
         # We also don't allow duplicate recipes. A duplicate is same name, or same ingredients+amounts for a single recipe_id:
-        # Check the latter first:
+        # Check the latter condition first. Join ingredients onto staging to get ingredient id; then ask whether the components table has
+        # the same combo of (ingredient id, ingredient amt, ingredient units) associated with a single recipe id already as what's in staging.
         join_statements = " AND ".join(f'c.{a} = j.{a}' for a, _ in component_col_defs[1:])
+        # Equivalent to: LEFT JOIN ingredients i ON ... WHERE i.id IS NOT NULL
         check_dup_components = f"""
             WITH joined1 AS (
                 SELECT s.*, i.id
                 FROM staging AS s
-                LEFT JOIN ingredients i ON
+                INNER JOIN ingredients i ON
                     LOWER(i.name) = LOWER(s.ingr_name)
-                    WHERE i.id IS NOT NULL
             ),
             joined2 AS (
                 SELECT j.*, c.recipe_id
                 FROM joined1 AS j
-                LEFT JOIN components c ON
+                INNER JOIN components c ON
                     c.ingredient_id = j.id AND
                     {join_statements}
-                    WHERE c.id IS NOT NULL
             )
-            SELECT recipe_id FROM joined2;
+            SELECT recipe_id, COUNT(*)
+            FROM joined2
+            GROUP BY recipe_id;
         """
         check_dups = self.execute_query(check_dup_components)
-        # TODO use groupby in SQL rather than set here
-        if len(set([d[0] for d in check_dups])) == 1:
-            msg = f"A recipe with components in csv {path_to_recipe_csv} already exists; nothing will be added"
-            self._logger.error(msg)
-            raise ValueError(msg)
+        if len(check_dups) > 0:
+            if len(check_dups) > 1: # This should not be possible because of this here check!
+                msg = f"Multiple recipe ids returned with these components; something has gone wrong with the db!"
+                self._logger.error(msg)
+                raise ValueError(msg)
+            recipe_id, num_comps = zip(*check_dups)
+            same_comps = sum([x==rows_staged for x in num_comps])
+            if same_comps>0:
+                recipe_name = self.get_recipe_name(recipe_id=recipe_id[0])
+                msg = f"A recipe with components in csv {path_to_recipe_csv} already exists (name: {recipe_name}); nothing will be added"
+                self._logger.error(msg)
+                raise ValueError(msg)
         
         # Insert recipe name and servings into recipe table, unless a recipe by this name already exists:
         try:
             recipe_id = self.execute_scalar("INSERT INTO recipes (name, servings) VALUES (%s,%s) RETURNING id;", (name,servings))
-        except psql_errors.UniqueViolation as e:
+        except psql_errors.UniqueViolation:
             self._logger.error(f"A recipe with name {name} already exists in db; nothing will be added")
             raise
 
