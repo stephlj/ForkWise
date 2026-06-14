@@ -15,7 +15,6 @@ from dbcommons.db_conn import DBConn
 from forkwise.dataclasses import Ingredient, Recipe, Component
 
 class ForkDB(DBConn):
-    # TODO defining logger format needs to go in main app entry point ...
     def __init__(self, user: str, pw: str, db_name: str):
         # Use super() because I've now override base class init
         super().__init__(user=user, pw=pw, db_name=db_name)
@@ -28,7 +27,6 @@ class ForkDB(DBConn):
         # Will skip any row for which (name, unitary_amount, units) are already in the db.
         # Returns number of rows added to Ingredients table.
 
-        # TODO add some input handling for this csv in BLL
         ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Ingredient)]
 
         rows_staged = self.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=ingr_col_defs)
@@ -64,6 +62,7 @@ class ForkDB(DBConn):
             RETURNING *;
         """ 
         rows_added = self.execute_query(ingr_query)
+        self._logger.info(f"Added len{rows_added} rows to ingredients table")
         return len(rows_added)
     
         # TODO drop staging? or let csv_to_staging handle that?
@@ -166,6 +165,7 @@ class ForkDB(DBConn):
             RETURNING *;
         """
         rows_added = self.execute_query(component_query, (recipe_id,))
+        self._logger.info(f"Added len{rows_added} rows to components table and recipe {name} to recipe table")
         
         # TODO drop staging? or let csv_to_staging handle that?
         return len(rows_added)

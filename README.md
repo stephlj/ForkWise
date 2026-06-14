@@ -16,7 +16,7 @@ Security: the database runs locally, nothing leaves your machine.
 
 ### Add ingredients
 
-Ingredients are loaded from a csv. The csv must have columns (in this order):
+Ingredients are loaded from a csv. The csv must have columns (in this order, no header):
 
 - `Name`: Item name, e.g. "black beans"
 - `Unitary amount`: Amount for which calories, etc are calculated
@@ -33,11 +33,17 @@ E.g. for a can of black beans, `name` might be "black beans", `unitary amount` m
 
 As many ingredients as you want can be added per csv, one per row.
 
+In the terminal, run:
+
+```
+python ./src/forkwise/add_ingredients.py <username> <user pw> <path_to_csv>
+```
+
 ### Add recipe
 
 A recipe can only be added if all ingredients are already in the db.
 
-Recipes are added from a csv. *One recipe per csv*. The csv must have the columns (in this order):
+Recipes are added from a csv. *One recipe per csv*. The csv must have the columns (in this order, no header):
 
 - `Ingredient`: Name of an ingredient already in the db (exact match in v1).
 - `Amount`: Amount added to the recipe for all the servings (not per serving). 
@@ -45,9 +51,21 @@ Recipes are added from a csv. *One recipe per csv*. The csv must have the column
 
 `Servings` (how many servings does this recipe make) and `name` (recipe name) must be specified separately on csv load.
 
+In the terminal, run:
+
+```
+python ./src/forkwise/add_ingredients.py <username> <user pw> <path_to_csv> <recipe_name> <servings>
+```
+
+This will fail if a recipe by the same name already exists; or a recipe of a different name but the same exact ingredient list exists.
+
 ### Add meals
 
+WIP
+
 ### View nutritional totals
+
+WIP
 
 ## Getting started
 
