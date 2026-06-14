@@ -25,15 +25,16 @@ class TestForkDB(unittest.TestCase):
         utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
     
     def test_add_ingredients_via_staging(self):
-        path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
+        path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
+        path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients_part.csv")
 
         num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv)
         
-        # TODO use pandas instead of hard-coding number of lines
-        # Check for uploading partial duplicates by first uploading only part of the file
-        self.assertEqual(num_rows_added, 10, "Incorrect number of rows added to ingredients table")
+        # TODO use pandas instead of hard-coding number of lines?
+        self.assertEqual(num_rows_added, 8, "Incorrect number of rows added to ingredients table")
 
-        # TODO test dups
+        num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_some_dups)
+        self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients")
 
     def test_add_recipe_via_staging(self):
         path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe2.csv")
