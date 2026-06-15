@@ -43,7 +43,13 @@ class TestForkDB(unittest.TestCase):
         # Even if test_add_ingredients_via_staging is run first, so the db has that list of ingredients,
         # it'll be missing asparagus:
         with self.assertRaises(ValueError):
-            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="grilled asparagus", servings=2)
+            self.conn.add_recipe_via_staging(
+                path_to_recipe_csv=path_to_recipe_csv, 
+                name="grilled asparagus", 
+                servings=2,
+                servings_amt=0.5,
+                servings_units='lbs'
+                )
         
         # Now add the missing ingredients (if test_add_ingredients_via_staging has run, olive oil will already be in there)
         # Note there's a deliberate case mismatch between ingredient names here vs test_recipe2.csv
@@ -51,24 +57,32 @@ class TestForkDB(unittest.TestCase):
 
         # Note that add_recipe_via_staging returns number of rows added to components
         self.assertEqual(
-            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="grilled asparagus", servings=2), 
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, 
+                                             name="grilled asparagus", 
+                                             servings=2,
+                                             servings_amt=0.5,
+                                             servings_units='lbs'), 
             2, 
             "Failed to add recipe")
         
         # Test that we can't add a recipe of the same name
         path_to_recipe_csv2 = os.path.join(TEST_DATA_PATH, "test_recipe3.csv")
         with self.assertRaises(psql_errors.UniqueViolation):
-            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, name="grilled asparagus", servings=2)
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, name="grilled asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
 
         # Test that we can't add the same set of components under a different recipe name
         with self.assertRaises(ValueError):
-            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="other asparagus", servings=2)
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="other asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
 
         # Test that we can add a recipe with an additional ingredient (but not the same name)
         # should add 3 rows, 2 of them duplicates except for recipe_id, because we allow that
         # Make sure ingredients from test_ingredients is in the db:
         self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients.csv"))
         self.assertEqual(
-            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, name="onion asparagus", servings=1), 
+            self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, 
+                                             name="onion asparagus", 
+                                             servings=1,
+                                             servings_amt=0.5, 
+                                             servings_units='lbs'), 
             3, 
-            "Failed to add recipe withe some duplicate components")
+            "Failed to add recipe with some duplicate components")

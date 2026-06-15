@@ -67,7 +67,12 @@ class ForkDB(DBConn):
     
         # TODO drop staging? or let csv_to_staging handle that?
 
-    def add_recipe_via_staging(self, path_to_recipe_csv: str, name: str, servings: int) -> int:
+    def add_recipe_via_staging(self, 
+                               path_to_recipe_csv: str, 
+                               name: str, 
+                               servings: int,
+                               servings_amt: float,
+                               servings_units: str) -> int:
         """
         Add recipe from csv via a staging table.
 
@@ -81,6 +86,10 @@ class ForkDB(DBConn):
             Recipe name.
         servings: int
             How many servings do the amounts in this recipe make in total.
+        servings_amt : float
+            Amount corresponding to one serving (e.g. 1, if 1 c is a serving)
+        servings_units : str
+            Units per serving amount, eg c if a serving is 1 c
 
         Returns
         -------
@@ -152,7 +161,10 @@ class ForkDB(DBConn):
         
         # Insert recipe name and servings into recipe table, unless a recipe by this name already exists:
         try:
-            recipe_id = self.execute_scalar("INSERT INTO recipes (name, servings) VALUES (%s,%s) RETURNING id;", (name,servings))
+            recipe_id = self.execute_scalar(
+                "INSERT INTO recipes (name, servings, servings_amt, servings_units) VALUES (%s,%s, %s, %s) RETURNING id;", 
+                (name,servings, servings_amt, servings_units)
+                )
         except psql_errors.UniqueViolation:
             self._logger.error(f"A recipe with name {name} already exists in db; nothing will be added")
             raise

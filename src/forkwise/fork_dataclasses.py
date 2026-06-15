@@ -55,10 +55,14 @@ class Recipe:
     name: str = field(metadata={'sql_type':'text'})
     components: List[Component]
     servings: int = field(metadata={'sql_type':'integer'})
+    servings_amt: float = field(metadata={'sql_type':'real'})
+    servings_units: str = field(metadata={'sql_type':'text'})
 
     def __iter__(self):
         yield self.name
         yield self.components
         yield self.servings
+        yield self.servings_amt
+        yield self.servings_units
 
     
