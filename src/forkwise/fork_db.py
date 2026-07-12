@@ -10,6 +10,7 @@ import logging
 
 from dataclasses import fields
 from psycopg import errors as psql_errors
+from typing import List
 
 from dbcommons.db_conn import DBConn
 from forkwise.fork_dataclasses import Ingredient, Recipe, Component
@@ -22,6 +23,11 @@ class ForkDB(DBConn):
 
     def get_recipe_name(self, recipe_id: int) -> int | None:
         return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
+    
+    def list_all_recipes(self) -> List[str]:
+        name_tuples = self.execute_query("SELECT name FROM recipes;")
+        return [a for a, _ in name_tuples]
+        # print("\n".join([a for a, _ in name_tuples]))
     
     def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
         # Will skip any row for which (name, unitary_amount, units) are already in the db.
@@ -181,3 +187,39 @@ class ForkDB(DBConn):
         
         # TODO drop staging? or let csv_to_staging handle that?
         return len(rows_added)
+    
+    def get_recipe_totals(self, recipe_name: str) -> Recipe:
+        """
+        Calculate nutritional totals for a recipe.
+
+        Parameters
+        ----------
+        recipe_name : str
+            A recipe name in the db
+
+        Returns:
+        --------
+        Recipe dataclass
+        """
+        
+        recipe_tuple = self.execute_query("SELECT id, servings, servings_amt, servings_units FROM recipes WHERE name=%s;", (recipe_name,))
+        if len(recipe_tuple)==0:
+            self._logger.error(f"Recipe {recipe_name} does not exist")
+            raise ValueError(f"Recipe {recipe_name} does not exist")
+
+        """
+        WITH joined AS (
+            SELECT *
+            FROM ingredients AS i
+            LEFT JOIN components c ON
+                c.ingredient_id = i.id
+                WHERE c.recipe_id=%s
+            LEFT JOIN unit_conversions u ON
+                i.units = u.unit_from AND
+                c.ingredient_units = u.unit_to
+        )
+        SELECT joined.name, 
+                (joined.cal / joined.unitary_amount) * joined.factor * joined.ingredient_amt AS cal,
+                (joined.fat_grams / joined.unitary_amount) * joined.factor * joined.ingredient_amt AS fat_grams,
+            FROM joined;
+        """

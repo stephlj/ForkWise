@@ -1,0 +1,16 @@
+lb,oz,16
+lbs,oz,16
+oz,lb,0.0625
+oz,lbs,0.0625
+Tbsp,c,0.0625
+c,Tbsp,16
+tsp,Tbsp,0.3333
+Tbsp,tsp,3
+pint,quart,0.5
+quart,pint,2
+pint,cup,2
+cup,pint,0.5
+quart,gallon,0.25
+gallon,quart,4
+pint,gallon,0.125
+gallon,pint,8
