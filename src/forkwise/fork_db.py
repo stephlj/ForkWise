@@ -55,7 +55,7 @@ class ForkDB(DBConn):
                     u.factor = s.factor
                     WHERE u.id IS NULL
                 )
-            INSERT INTO ingredients (unit_from, unit_to, factor)
+            INSERT INTO unit_conversions (unit_from, unit_to, factor)
             SELECT *
             FROM joined
             RETURNING *;
@@ -245,20 +245,46 @@ class ForkDB(DBConn):
         #TODO remove the need for factor=1 by joining with an IF statement?
         ingr_cols = [f.name for f in fields(Ingredient)]
         join_statements = ", ".join(f'(joined.{i} / joined.unitary_amount) * joined.factor * joined.ingredient_amt AS {i}' for i in ingr_cols[3:-1])
+        
         # The COALESCE clause will put a NULL for factor if there are missing values in the conversion table (units in ingredients table has no match
         # in unit_from and/or ingredient_units in components table has no match in unit_to, or ingredient_units and units aren't the same). This shouldn't
         # happen because I'm going to put checks on loading that any loaded units are in the conversions table; but I should check for null values after the
         # query anyway ... 
+        # query=f"""
+        #     WITH joined AS (
+        #         SELECT *,
+        #             COALESCE(u.factor, CASE WHEN i.units=c.ingredient_units THEN 1 ELSE NULL END) AS factor
+        #         FROM ingredients AS i
+        #         LEFT JOIN components c ON
+        #             c.ingredient_id = i.id
+        #         LEFT JOIN unit_conversions u ON
+        #             u.unit_from = i.units  AND
+        #             u.unit_to = c.ingredient_units
+        #         WHERE c.recipe_id=%s
+        #     ),
+        #     SELECT joined.name, 
+        #         {join_statements}
+        #     FROM joined;
+        #     """
+
         query=f"""
             WITH joined AS (
-                SELECT *,
-                    COALESCE(u.factor, CASE WHEN i.units=c.ingredient_units THEN 1 ELSE NULL END) AS factor
+                SELECT i.*,
+                    c.*,
+                    u.units_from,
+                    u.units_to,
+                    u.factor,
+                    COALESCE(u.factor, CASE WHEN LOWER(i.units)=LOWER(c.ingredient_units) THEN 1 ELSE NULL END) AS factor
                 FROM ingredients AS i
                 LEFT JOIN components c ON
                     c.ingredient_id = i.id
                 LEFT JOIN unit_conversions u ON
-                    u.unit_from = i.units  AND
-                    u.unit_to = c.ingredient_units
+                    LOWER(u.unit_from) = CASE
+                        WHEN LOWER(u.unit_from)=LOWER(i.units) AND LOWER(u.unit_to)=LOWER(c.ingredient_units) 
+                            THEN LOWER(u.unit_from)=LOWER(i.units) AND LOWER(u.unit_to)=LOWER(c.ingredient_units) AND u.factor AS factor
+                        WHEN LOWER(u.unit_from)=LOWER(c.ingredient_units) AND LOWER(u.unit_to)=LOWER(i.units) 
+                            THEN LOWER(u.unit_from)=LOWER(c.ingredient_units) AND LOWER(u.unit_to)=LOWER(i.units) AND 1/u.factor AS factor
+                    END
                 WHERE c.recipe_id=%s
             ),
             SELECT joined.name, 
