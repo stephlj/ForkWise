@@ -29,6 +29,41 @@ class ForkDB(DBConn):
         return [a for a, _ in name_tuples]
         # print("\n".join([a for a, _ in name_tuples]))
     
+    def add_conversions(self, path_to_conversions_csv: str) -> int:
+        # Add new unit conversions from a csv (mostly used during db init)
+        # In future versions of Forkwise this will be pulled from the internet
+        # Returns number of rows added to conversions table.
+
+        col_defs = [('unit_from','text'),('unit_to','text'),('factor','real')]
+        rows_staged = self.csv_to_staging(csv_path=path_to_conversions_csv, csv_columns=col_defs)
+
+        if rows_staged == 0:
+            msg=f"No unit conversions were staged from file {path_to_conversions_csv}; cannot load conversions"
+            self._logger.error(msg)
+            raise ValueError(msg)
+        
+        # This will throw a UniqueViolation if any row is already in the conversions table:
+        # conv_query = "INSERT INTO unit_conversions (unit_from, unit_to, factor) SELECT * FROM staging RETURNING *;"
+        # Instead, just don't add duplicates:
+        conv_query = f"""
+            WITH joined AS (
+                SELECT s.*
+                FROM staging AS s
+                LEFT JOIN unit_conversions u ON
+                    u.unit_from = s.unit_from AND
+                    u.unit_to = s.unit_to AND
+                    u.factor = s.factor
+                    WHERE u.id IS NULL
+                )
+            INSERT INTO ingredients (unit_from, unit_to, factor)
+            SELECT *
+            FROM joined
+            RETURNING *;
+        """ 
+        rows_added = self.execute_query(conv_query)
+        self._logger.info(f"Added {rows_added} to unit_conversions table")
+        return len(rows_added)
+    
     def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
         # Will skip any row for which (name, unitary_amount, units) are already in the db.
         # Returns number of rows added to Ingredients table.
@@ -206,20 +241,43 @@ class ForkDB(DBConn):
         if len(recipe_tuple)==0:
             self._logger.error(f"Recipe {recipe_name} does not exist")
             raise ValueError(f"Recipe {recipe_name} does not exist")
-
-        """
-        WITH joined AS (
-            SELECT *
-            FROM ingredients AS i
-            LEFT JOIN components c ON
-                c.ingredient_id = i.id
+        
+        #TODO remove the need for factor=1 by joining with an IF statement?
+        ingr_cols = [f.name for f in fields(Ingredient)]
+        join_statements = ", ".join(f'(joined.{i} / joined.unitary_amount) * joined.factor * joined.ingredient_amt AS {i}' for i in ingr_cols[3:-1])
+        # The COALESCE clause will put a NULL for factor if there are missing values in the conversion table (units in ingredients table has no match
+        # in unit_from and/or ingredient_units in components table has no match in unit_to, or ingredient_units and units aren't the same). This shouldn't
+        # happen because I'm going to put checks on loading that any loaded units are in the conversions table; but I should check for null values after the
+        # query anyway ... 
+        query=f"""
+            WITH joined AS (
+                SELECT *,
+                    COALESCE(u.factor, CASE WHEN i.units=c.ingredient_units THEN 1 ELSE NULL END) AS factor
+                FROM ingredients AS i
+                LEFT JOIN components c ON
+                    c.ingredient_id = i.id
+                LEFT JOIN unit_conversions u ON
+                    u.unit_from = i.units  AND
+                    u.unit_to = c.ingredient_units
                 WHERE c.recipe_id=%s
-            LEFT JOIN unit_conversions u ON
-                i.units = u.unit_from AND
-                c.ingredient_units = u.unit_to
-        )
-        SELECT joined.name, 
-                (joined.cal / joined.unitary_amount) * joined.factor * joined.ingredient_amt AS cal,
-                (joined.fat_grams / joined.unitary_amount) * joined.factor * joined.ingredient_amt AS fat_grams,
+            ),
+            SELECT joined.name, 
+                {join_statements}
             FROM joined;
-        """
+            """
+        
+        totals = self.execute_query(query,(recipe_tuple[0][0],))
+
+        #TODO fix when I know how totals returns
+        return Recipe(name=recipe_name, 
+                      cal=totals[0][1],
+                      fat_grams=totals[0][2],
+                      protein_grams=totals[0][3],
+                      fiber_grams=totals[0][4],
+                      sugar_grams= totals[0][5],
+                      carb_grams= totals[0][6],
+                      animal= totals[0][7],
+                      servings = recipe_tuple[0][1],
+                      servings_amt=recipe_tuple[0][2],
+                      servings_units=recipe_tuple[0][3]
+                      )

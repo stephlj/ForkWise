@@ -53,14 +53,26 @@ class Component:
 @dataclass
 class Recipe:
     name: str = field(metadata={'sql_type':'text'})
-    components: List[Component]
+    cal: float = field(metadata={'sql_type':'real'})
+    fat_grams: float = field(metadata={'sql_type':'real'})
+    protein_grams: float = field(metadata={'sql_type':'real'})
+    fiber_grams: float = field(metadata={'sql_type':'real'})
+    sugar_grams: float = field(metadata={'sql_type':'real'})
+    carb_grams: float = field(metadata={'sql_type':'real'})
+    animal: bool = field(metadata={'sql_type':'boolean'})
     servings: int = field(metadata={'sql_type':'integer'})
     servings_amt: float = field(metadata={'sql_type':'real'})
     servings_units: str = field(metadata={'sql_type':'text'})
 
     def __iter__(self):
         yield self.name
-        yield self.components
+        yield self.cal
+        yield self.fat_grams
+        yield self.protein_grams
+        yield self.fiber_grams
+        yield self.sugar_grams
+        yield self.carb_grams
+        yield self.animal
         yield self.servings
         yield self.servings_amt
         yield self.servings_units
