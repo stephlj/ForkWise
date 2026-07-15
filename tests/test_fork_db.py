@@ -13,6 +13,9 @@ TEST_CONFIG_PATH = os.path.join(os.getcwd(),"tests","fixtures","test_config.yml"
 TEST_DATA_PATH = os.path.join(os.getcwd(),"tests","fixtures")
 SCHEMA_PATH = os.path.join(os.getcwd(), "src", "forkwise", "schema.sql")
 
+# To connect to the testing db (if not running this automatically):
+# psql -U test_user -d test_fork_db
+
 class TestForkDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -108,4 +111,6 @@ class TestForkDB(unittest.TestCase):
 
         totals = self.conn.get_recipe_totals(recipe_name='grilled asparagus')
 
-        # Check Recipe totals got the right values, especially with unit conversions
+        self.assertEqual(totals.cal, 416)
+        self.assertFalse(totals.animal)
+        self.assertEqual(totals.servings_amt, 0.5)

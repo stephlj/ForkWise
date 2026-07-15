@@ -14,6 +14,15 @@ Security: the database runs locally, nothing leaves your machine.
 
 ## Example usage
 
+### A note about units
+
+Since I don't yet have a BLL that checks/fixes file format, the db will only accept:
+
+- lbs not lb as a unit of weight
+- c not cup
+
+But units are case insensitive.
+
 ### Add ingredients
 
 Ingredients are loaded from a csv. The csv must have columns (in this order, no header):

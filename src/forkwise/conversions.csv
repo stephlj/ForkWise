@@ -1,8 +1,9 @@
-lb,oz,16
-Tbsp,c,0.0625
-c,Tbsp,16
-tsp,Tbsp,0.3333
-pint,quart,0.5
-pint,c,2
-quart,gallon,0.25
-pint,gallon,0.125
+oz, 1
+lbs, 16
+tsp, 1
+Tbsp, 3
+c, 48
+pint, 96
+quart, 192
+gallon, 768
+unit, 1

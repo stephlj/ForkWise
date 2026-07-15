@@ -26,7 +26,7 @@ class ForkDB(DBConn):
     
     def list_all_recipes(self) -> List[str]:
         name_tuples = self.execute_query("SELECT name FROM recipes;")
-        return [a for a, _ in name_tuples]
+        return [a[0] for a in name_tuples]
         # print("\n".join([a for a, _ in name_tuples]))
     
     def add_conversions(self, path_to_conversions_csv: str) -> int:
@@ -34,7 +34,7 @@ class ForkDB(DBConn):
         # In future versions of Forkwise this will be pulled from the internet
         # Returns number of rows added to conversions table.
 
-        col_defs = [('unit_from','text'),('unit_to','text'),('factor','real')]
+        col_defs = [('unit','text'),('factor','real')]
         rows_staged = self.csv_to_staging(csv_path=path_to_conversions_csv, csv_columns=col_defs)
 
         if rows_staged == 0:
@@ -50,12 +50,11 @@ class ForkDB(DBConn):
                 SELECT s.*
                 FROM staging AS s
                 LEFT JOIN unit_conversions u ON
-                    u.unit_from = s.unit_from AND
-                    u.unit_to = s.unit_to AND
+                    u.unit = s.unit AND
                     u.factor = s.factor
                     WHERE u.id IS NULL
                 )
-            INSERT INTO unit_conversions (unit_from, unit_to, factor)
+            INSERT INTO unit_conversions (unit, factor)
             SELECT *
             FROM joined
             RETURNING *;
@@ -242,14 +241,7 @@ class ForkDB(DBConn):
             self._logger.error(f"Recipe {recipe_name} does not exist")
             raise ValueError(f"Recipe {recipe_name} does not exist")
         
-        #TODO remove the need for factor=1 by joining with an IF statement?
-        ingr_cols = [f.name for f in fields(Ingredient)]
-        join_statements = ", ".join(f'(joined.{i} / joined.unitary_amount) * joined.factor * joined.ingredient_amt AS {i}' for i in ingr_cols[3:-1])
-        
-        # The COALESCE clause will put a NULL for factor if there are missing values in the conversion table (units in ingredients table has no match
-        # in unit_from and/or ingredient_units in components table has no match in unit_to, or ingredient_units and units aren't the same). This shouldn't
-        # happen because I'm going to put checks on loading that any loaded units are in the conversions table; but I should check for null values after the
-        # query anyway ... 
+        # I eventually abandoned this approach but saving the COALESE for future reference:
         # query=f"""
         #     WITH joined AS (
         #         SELECT *,
@@ -267,42 +259,49 @@ class ForkDB(DBConn):
         #     FROM joined;
         #     """
 
+        # For query building: The aliaising of the columns in the SELECT statement is just for display,
+        # doesn't impact SQL execution:
+        # SELECT i.*, 
+        #        iu.unit AS i_unit, 
+        #        iu.factor AS bottom_factor, 
+        #        c.*, 
+        #        cu.unit AS cu_unit, 
+        #        cu.factor AS top_factor 
+        # FROM ingredients AS i 
+        # INNER JOIN unit_conversions AS iu ON 
+        #     iu.unit=i.units 
+        # INNER JOIN components AS c ON 
+        #     c.ingredient_id=i.id 
+        # INNER JOIN unit_conversions AS cu ON 
+        #     cu.unit=c.ingredient_units 
+        # WHERE c.recipe_id=1;
+
+        ingr_cols = [f.name for f in fields(Ingredient)]
+        select_statements = ", ".join(f'SUM(c.ingredient_amt * (i.{i} / i.unitary_amount) * (cu.factor / iu.factor))  AS total_{i}' for i in ingr_cols[3:-1])
+
         query=f"""
-            WITH joined AS (
-                SELECT i.*,
-                    c.*,
-                    u.units_from,
-                    u.units_to,
-                    u.factor,
-                    COALESCE(u.factor, CASE WHEN LOWER(i.units)=LOWER(c.ingredient_units) THEN 1 ELSE NULL END) AS factor
-                FROM ingredients AS i
-                LEFT JOIN components c ON
-                    c.ingredient_id = i.id
-                LEFT JOIN unit_conversions u ON
-                    LOWER(u.unit_from) = CASE
-                        WHEN LOWER(u.unit_from)=LOWER(i.units) AND LOWER(u.unit_to)=LOWER(c.ingredient_units) 
-                            THEN LOWER(u.unit_from)=LOWER(i.units) AND LOWER(u.unit_to)=LOWER(c.ingredient_units) AND u.factor AS factor
-                        WHEN LOWER(u.unit_from)=LOWER(c.ingredient_units) AND LOWER(u.unit_to)=LOWER(i.units) 
-                            THEN LOWER(u.unit_from)=LOWER(c.ingredient_units) AND LOWER(u.unit_to)=LOWER(i.units) AND 1/u.factor AS factor
-                    END
-                WHERE c.recipe_id=%s
-            ),
-            SELECT joined.name, 
-                {join_statements}
-            FROM joined;
+            SELECT {select_statements},
+                SUM(i.animal::int) AS animal
+            FROM ingredients AS i
+            INNER JOIN unit_conversions AS iu ON 
+                LOWER(iu.unit)=LOWER(i.units) 
+            INNER JOIN components AS c ON 
+                c.ingredient_id=i.id 
+            INNER JOIN unit_conversions AS cu ON 
+                LOWER(cu.unit)=LOWER(c.ingredient_units) 
+            WHERE c.recipe_id=%s;
             """
         
         totals = self.execute_query(query,(recipe_tuple[0][0],))
 
-        #TODO fix when I know how totals returns
         return Recipe(name=recipe_name, 
-                      cal=totals[0][1],
-                      fat_grams=totals[0][2],
-                      protein_grams=totals[0][3],
-                      fiber_grams=totals[0][4],
-                      sugar_grams= totals[0][5],
-                      carb_grams= totals[0][6],
-                      animal= totals[0][7],
+                      cal=totals[0][0],
+                      fat_grams=totals[0][1],
+                      protein_grams=totals[0][2],
+                      fiber_grams=totals[0][3],
+                      sugar_grams= totals[0][4],
+                      carb_grams= totals[0][5],
+                      animal= bool(totals[0][6]),
                       servings = recipe_tuple[0][1],
                       servings_amt=recipe_tuple[0][2],
                       servings_units=recipe_tuple[0][3]
