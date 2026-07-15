@@ -34,7 +34,7 @@ class ForkDB(DBConn):
         # In future versions of Forkwise this will be pulled from the internet
         # Returns number of rows added to conversions table.
 
-        col_defs = [('unit','text'),('factor','real')]
+        col_defs = [('unit','text'),('category','text'),('factor','real')]
         rows_staged = self.csv_to_staging(csv_path=path_to_conversions_csv, csv_columns=col_defs)
 
         if rows_staged == 0:
@@ -51,10 +51,11 @@ class ForkDB(DBConn):
                 FROM staging AS s
                 LEFT JOIN unit_conversions u ON
                     u.unit = s.unit AND
+                    u.category = s.category AND
                     u.factor = s.factor
                     WHERE u.id IS NULL
                 )
-            INSERT INTO unit_conversions (unit, factor)
+            INSERT INTO unit_conversions (unit, category, factor)
             SELECT *
             FROM joined
             RETURNING *;

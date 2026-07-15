@@ -8,6 +8,8 @@ Copyright (c) 2026 Stephanie Johnson
 
 */
 
+CREATE TYPE unit_category AS ENUM('weight','volume','unit'); /* 'unit' is unitary like one carrot */
+
 /* Unit conversion:
 For units that can be converted into each other,
 ie weight units vs volume units,
@@ -19,8 +21,9 @@ pick tsp as 1. Everything else is a multiple of tsp.
 CREATE TABLE unit_conversions(
     id SERIAL PRIMARY key,
     unit text NOT NULL,
+    category unit_category NOT NULL,
     factor real NOT NULL,
-    UNIQUE (unit, factor)
+    UNIQUE (unit, unit_category, factor)
 );
 
 CREATE TABLE ingredients(
