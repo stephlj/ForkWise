@@ -188,10 +188,6 @@ class ForkDB(DBConn):
         """
         check_dups = self.execute_query(check_dup_components)
         if len(check_dups) > 0:
-            if len(check_dups) > 1: # This should not be possible because of this here check!
-                msg = f"Multiple recipe ids returned with these components; something has gone wrong with the db!"
-                self._logger.error(msg)
-                raise ValueError(msg)
             recipe_id, num_comps = zip(*check_dups)
             same_comps = sum([x==rows_staged for x in num_comps])
             if same_comps>0:
