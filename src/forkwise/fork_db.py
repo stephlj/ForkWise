@@ -282,18 +282,36 @@ class ForkDB(DBConn):
 
         query=f"""
             SELECT {select_statements},
-                SUM(i.animal::int) AS animal
+                SUM(i.animal::int) AS animal,
+                COUNT(*)
             FROM ingredients AS i
             INNER JOIN unit_conversions AS iu ON 
                 LOWER(iu.unit)=LOWER(i.units) 
             INNER JOIN components AS c ON 
                 c.ingredient_id=i.id 
             INNER JOIN unit_conversions AS cu ON 
-                LOWER(cu.unit)=LOWER(c.ingredient_units) 
+                LOWER(cu.unit)=LOWER(c.ingredient_units) AND
+                cu.category=iu.category
             WHERE c.recipe_id=%s;
             """
-        
+
         totals = self.execute_query(query,(recipe_tuple[0][0],))
+
+        # Check that all units matched for conversions - otherwise the return from COUNT won't match
+        # the number of ingredients in the recipe:
+        check_query=f"""
+            SELECT COUNT(*)
+            FROM ingredients AS i
+            INNER JOIN components c ON
+                c.ingredient_id=i.id
+            WHERE c.recipe_id=%s;
+        """
+        correct_rows = self.execute_scalar(check_query,(recipe_tuple[0][0],))
+
+        if correct_rows != totals[0][7]:
+            msg = "Unit conversions failed in recipe totaling - some rows were dropped"
+            self._logger.error(msg)
+            raise ValueError(msg)
 
         return Recipe(name=recipe_name, 
                       cal=totals[0][0],

@@ -114,3 +114,12 @@ class TestForkDB(unittest.TestCase):
         self.assertEqual(totals.cal, 416)
         self.assertFalse(totals.animal)
         self.assertEqual(totals.servings_amt, 0.5)
+
+        # Test that unit conversion fails if units in Components vs Ingredients are mismatched types:
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrongunits.csv"),
+                                         name="wrong asparagus",
+                                         servings=2,
+                                         servings_amt=0.5,
+                                         servings_units="lbs")
+        with self.assertRaises(ValueError):
+            self.conn.get_recipe_totals(recipe_name="wrong asparagus")

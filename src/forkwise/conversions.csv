@@ -1,9 +1,9 @@
-oz, 'weight', 1
-lbs, 'weight', 16
-tsp, 'volume', 1
-Tbsp, 'volume', 3
-c, 'volume', 48
-pint, 'volume', 96
-quart, 'volume', 192
-gallon, 'volume', 768
-unit, 'unit', 1
+oz,weight, 1
+lbs,weight, 16
+tsp,volume, 1
+Tbsp,volume, 3
+c,volume, 48
+pint,volume, 96
+quart,volume, 192
+gallon,volume, 768
+unit,unit, 1
