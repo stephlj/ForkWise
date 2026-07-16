@@ -8,12 +8,20 @@ Copyright (c) 2026 Stephanie Johnson
 
 */
 
+/* Unit conversion:
+For units that can be converted into each other,
+ie weight units vs volume units,
+pick one to normalize to: e.g., for lbs and oz, 
+pick oz as normalized (=1). Then lbs factor = 16.
+For tsp, Tbsp, cups, pints, quarts, and gallons: 
+pick tsp as 1. Everything else is a multiple of tsp.
+*/
 CREATE TABLE unit_conversions(
     id SERIAL PRIMARY key,
-    unit_from text NOT NULL,
-    unit_to text NOT NULL,
+    unit text NOT NULL,
+    category text NOT NULL CHECK (category IN ('weight','volume','unit')), /* 'unit' is unitary like one carrot */
     factor real NOT NULL,
-    UNIQUE (unit_from, unit_to, factor)
+    UNIQUE (unit, category, factor)
 );
 
 CREATE TABLE ingredients(
@@ -34,7 +42,9 @@ CREATE TABLE ingredients(
 CREATE TABLE recipes(
     id SERIAL PRIMARY KEY,
     name text UNIQUE NOT NULL,
-    servings integer NOT NULL
+    servings integer NOT NULL,
+    servings_amt real NOT NULL,
+    servings_units text NOT NULL
 );
 
 CREATE TABLE components(

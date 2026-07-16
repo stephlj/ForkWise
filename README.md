@@ -14,6 +14,15 @@ Security: the database runs locally, nothing leaves your machine.
 
 ## Example usage
 
+### A note about units
+
+Since I don't yet have a BLL that checks/fixes file format, the db will only accept:
+
+- lbs not lb as a unit of weight
+- c not cup
+
+But units are case insensitive.
+
 ### Add ingredients
 
 Ingredients are loaded from a csv. The csv must have columns (in this order, no header):
@@ -49,12 +58,12 @@ Recipes are added from a csv. *One recipe per csv*. The csv must have the column
 - `Amount`: Amount added to the recipe for all the servings (not per serving). 
 - `Units`: Units of the ingredient (Tbps, c etc)
 
-`Servings` (how many servings does this recipe make) and `name` (recipe name) must be specified separately on csv load.
+`Servings` (how many servings does this recipe make), `servings_amt` (amount one serving corresponds to, e.g. 1 if a serving is 1 cup), `servings_units` ('c' if a serving is 1 cup) and `name` (recipe name) must be specified separately on csv load.
 
 In the terminal, run:
 
 ```
-python ./src/forkwise/add_recipe.py <username> <user pw> <path_to_csv> <recipe_name> <servings>
+python ./src/forkwise/add_recipe.py <username> <user pw> <path_to_csv> <recipe_name> <servings> <servings_amt> <servings_units>
 ```
 
 This will fail if a recipe by the same name already exists; or a recipe of a different name but the same exact ingredient list exists.
