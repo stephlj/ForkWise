@@ -91,6 +91,35 @@ class TestForkDB(unittest.TestCase):
             3, 
             "Failed to add recipe with some duplicate components")
         
+    def test_add_meals_via_staging(self):
+        path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals.csv")
+
+        # Add everything we need:
+        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_meals_ingr.csv"))
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe.csv"),
+                                            name="burger", 
+                                            servings=4,
+                                            servings_amt=0.4,
+                                            servings_units='lbs')
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH,"test_meals_recipe2.csv"), 
+                                             name="steamed broccoli", 
+                                             servings=2,
+                                             servings_amt=0.5, 
+                                             servings_units='lbs')
+        # Test that we can't add meals if one recipe isn't in the db:
+        with self.assertRaises(ValueError):
+            self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv)
+
+        # Add missing recipe:
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe3.csv"),
+                                         name="lemonade",
+                                         servings=6,
+                                         servings_amt=1,
+                                         servings_units='pint'
+                                         )
+        # Now adding meals should run:
+        self.assertEqual(self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv),3)
+    
     # def test_get_recipe_totals(self):
     #     # Make sure we have what we need in the db already:
     #     self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients2.csv"))
@@ -117,41 +146,3 @@ class TestForkDB(unittest.TestCase):
     #                                      servings_units="lbs")
     #     with self.assertRaises(ValueError):
     #         self.conn.get_recipe_totals(recipe_name="wrong asparagus")
-
-    # def test_add_meals_via_staging(self):
-    #     path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals.csv")
-
-    #     # Make sure we have what we need in the db already, except for a missing recipe we'll test against:
-    #     self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients2.csv"))
-    #     try: 
-    #         self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe2.csv"),
-    #                                         name="grilled asparagus", 
-    #                                         servings=2,
-    #                                         servings_amt=0.5,
-    #                                         servings_units='lbs')
-    #     except ValueError:
-    #         pass
-    #     self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients.csv"))
-    #     try:
-    #         self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH,"test_recipe3.csv"), 
-    #                                          name="onion asparagus", 
-    #                                          servings=1,
-    #                                          servings_amt=0.5, 
-    #                                          servings_units='lbs')
-    #     except ValueError:
-    #         pass
-
-
-    #     # Test that we can't add meals if one recipe isn't in the db:
-    #     with self.assertRaises(ValueError):
-    #         self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv)
-
-    #     # Add missing recipe:
-    #     self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe.csv"),
-    #                                      name="Veggie Burger",
-    #                                      servings=6,
-    #                                      servings_amt=1,
-    #                                      servings_units='unit'
-    #                                      )
-    #     # Now adding meals should run:
-    #     self.assertEqual(self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv),3)
