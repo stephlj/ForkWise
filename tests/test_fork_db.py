@@ -26,13 +26,9 @@ class TestForkDB(unittest.TestCase):
         #TODO in next PR: put this in db init. Temporary hack!
         cls.conn.add_conversions(path_to_conversions_csv=os.path.join(os.getcwd(), "src", "forkwise", "conversions.csv"))
 
-    @classmethod
-    def tearDownClass(cls):
-        utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
-    
-    def test_add_conversions(self):
-        # TODO
-        pass
+    # @classmethod
+    # def tearDownClass(cls):
+    #     utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
     
     def test_add_ingredients_via_staging(self):
         path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
@@ -123,3 +119,20 @@ class TestForkDB(unittest.TestCase):
                                          servings_units="lbs")
         with self.assertRaises(ValueError):
             self.conn.get_recipe_totals(recipe_name="wrong asparagus")
+
+    def test_add_meals_via_staging(self):
+        path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals.csv")
+
+        # Test that we can't add meals if some recipes aren't in the db:
+        with self.assertRaises(ValueError):
+            self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv)
+
+        # Add missing recipe:
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe.csv"),
+                                         name="Veggie Burger",
+                                         servings=6,
+                                         servings_amt=1,
+                                         servings_units='unit'
+                                         )
+        
+        self.assertEqual(self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv),3)

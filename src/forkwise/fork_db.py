@@ -135,7 +135,7 @@ class ForkDB(DBConn):
 
         Returns
         -------
-        int, number of rows added to compontents table
+        int, number of rows added to compontents table (NOT recipes table!)
         """
     
         component_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Component)]
@@ -235,7 +235,7 @@ class ForkDB(DBConn):
         int, number of rows added to meals table
         """
         
-        meal_col_defs = [('date','date'), ('recipe_name','str'), ('servings','real')]
+        meal_col_defs = [('date','date'), ('recipe_name','text'), ('servings','real')]
         rows_staged = self.csv_to_staging(csv_path=path_to_meals_csv, csv_columns=meal_col_defs)
 
         if rows_staged == 0:
@@ -248,7 +248,7 @@ class ForkDB(DBConn):
             SELECT s.recipe_name
             FROM staging AS s
             LEFT JOIN recipes r ON
-                r.name = s.recipe_name
+                LOWER(r.name) = LOWER(s.recipe_name)
             WHERE r.id IS NULL;
         """
         recipe_missing = self.execute_query(check_rec)
@@ -271,7 +271,8 @@ class ForkDB(DBConn):
     
     def get_recipe_totals(self, recipe_name: str) -> Recipe:
         """
-        Calculate nutritional totals for a recipe.
+        Calculate nutritional totals for a recipe. Note that the totals
+        are for however many servings the recipe is for - NOT per serving!
 
         Parameters
         ----------
@@ -372,5 +373,8 @@ class ForkDB(DBConn):
                       servings_units=recipe_tuple[0][3]
                       )
     
-    def get_recipes_per_meal(self, date_range: List[date]) -> List[Recipe]:
+    def get_totals_in_dates(self, date_range: List[date]) -> List[Recipe]:
+        # TODO do I want this to be totals or recipes?
+        # REMEMBER: Recipe totals are per recipe, not per serving - if a recipe makes 2 servings,
+        # get_recipe_totals will return totals for 2 servings. If a meal is 1 serving - need to do some math
         pass

@@ -74,7 +74,7 @@ Meals can only be added for recipes already in the db.
 
 Meals are added from a csv. A meals csv must have the columns (in this order, no header):
 
-- `date`: date recipe was eaten. Format: TBD. TODO in BLL convert to datetime.date.
+- `date`: date recipe was eaten. Format: mm/dd/yyyy
 - `recipe name`: must match a recipe in the db
 - `servings`: how many servings of this recipe were eaten on this date.
 
