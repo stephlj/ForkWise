@@ -70,7 +70,17 @@ This will fail if a recipe by the same name already exists; or a recipe of a dif
 
 ### Add meals
 
-WIP
+Meals can only be added for recipes already in the db.
+
+Meals are added from a csv. A meals csv must have the columns (in this order, no header):
+
+- `date`: date recipe was eaten. Format: TBD. TODO in BLL convert to datetime.date.
+- `recipe name`: must match a recipe in the db
+- `servings`: how many servings of this recipe were eaten on this date.
+
+A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated). One row per recipe eaten,
+but multiple rows for the same date are fine (and multiple dates fine).
+
 
 ### View nutritional totals
 

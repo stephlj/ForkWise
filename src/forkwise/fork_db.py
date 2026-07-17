@@ -9,6 +9,7 @@ Copyright (c) 2026 Stephanie Johnson
 import logging
 
 from dataclasses import fields
+from datetime import date
 from psycopg import errors as psql_errors
 from typing import List
 
@@ -111,7 +112,7 @@ class ForkDB(DBConn):
     def add_recipe_via_staging(self, 
                                path_to_recipe_csv: str, 
                                name: str, 
-                               servings: int,
+                               servings: float,
                                servings_amt: float,
                                servings_units: str) -> int:
         """
@@ -125,7 +126,7 @@ class ForkDB(DBConn):
            Units don't have to match ingredient table units (can be converted later).
         name : str
             Recipe name.
-        servings: int
+        servings: float
             How many servings do the amounts in this recipe make in total.
         servings_amt : float
             Amount corresponding to one serving (e.g. 1, if 1 c is a serving)
@@ -142,7 +143,7 @@ class ForkDB(DBConn):
         rows_staged = self.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=component_col_defs)
 
         if rows_staged == 0:
-            self._logger.info("No recipe loaded from source file to staging table, will not be added to db")
+            self._logger.info(f"No recipe loaded from source file {path_to_recipe_csv} to staging table, will not be added to db")
             return 0
         
         # A recipe can only be added if all ingredients are already in the db.
@@ -215,6 +216,55 @@ class ForkDB(DBConn):
         """
         rows_added = self.execute_query(component_query, (recipe_id,))
         self._logger.info(f"Added {rows_added} to components table and recipe {name} to recipe table")
+        
+        # TODO drop staging? or let csv_to_staging handle that?
+        return len(rows_added)
+    
+    def add_meals_via_staging(self, path_to_meals_csv: str)->int:
+        """
+        Add meals from csv via a staging table.
+
+        Parameters
+        ----------
+        path_to_meals_csv : str
+           Path to a list of meals csvs. Each row is one recipe eaten on a date.
+           Columns (no header) are: date, recipe name, servings.
+
+        Returns
+        -------
+        int, number of rows added to meals table
+        """
+        
+        meal_col_defs = [('date','date'), ('recipe_name','str'), ('servings','real')]
+        rows_staged = self.csv_to_staging(csv_path=path_to_meals_csv, csv_columns=meal_col_defs)
+
+        if rows_staged == 0:
+            self._logger.info(f"No meals loaded from source file {path_to_meals_csv} to staging table, will not be added to db")
+            return 0
+        
+        # Meals can only be added if all recipes are already in the db.
+        # Check first, error with a list of missing recipes:
+        check_rec = """
+            SELECT s.recipe_name
+            FROM staging AS s
+            LEFT JOIN recipes r ON
+                r.name = s.recipe_name
+            WHERE r.id IS NULL;
+        """
+        recipe_missing = self.execute_query(check_rec)
+        if len(recipe_missing) > 0:
+            msg = f"Cannot load meals from {path_to_meals_csv}. Recipes missing from db: {list(zip(*recipe_missing))}"
+            self._logger.error(msg)
+            raise ValueError(msg)
+        
+        add_query = """
+            INSERT INTO meals (date, recipe_id, recipe_servings)
+            SELECT s.date, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.servings
+            FROM staging AS s
+            RETURNING *;
+        """
+        rows_added = self.execute_query(add_query)
+        self._logger.info(f"Added {rows_added} to meals table")
         
         # TODO drop staging? or let csv_to_staging handle that?
         return len(rows_added)
@@ -321,3 +371,6 @@ class ForkDB(DBConn):
                       servings_amt=recipe_tuple[0][2],
                       servings_units=recipe_tuple[0][3]
                       )
+    
+    def get_recipes_per_meal(self, date_range: List[date]) -> List[Recipe]:
+        pass
