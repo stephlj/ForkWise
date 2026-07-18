@@ -32,11 +32,12 @@ Ingredients are loaded from a csv. The csv must have columns (in this order, no 
 - `Units`: Units for amount; e.g. `oz`
 - `Calories`: Calories in the unitary amount of this ingredient
 - `Fiber`: g of fiber in the unitary amount of this ingredient
-- `Sugar`: g of sugar; includes white flour
-- `Protien`: g
-- `Fat`: g
+- `Sugar`: g of sugar
+- `Protien`: g of protein
+- `Fat`: g of fat
 - `Carbs`: g of carbohydrate, total (incl sugar and dietary fiber)
 - `Animal`: bool, is any part of the ingredient derived from animal products or not.
+- `White flour`: g of white flour (for a white flour product, eg a piece of bread, the total g per unit)
 
 E.g. for a can of black beans, `name` might be "black beans", `unitary amount` might be 24, `units` might be "oz". `Animal` would be True only if the beans were cooked in animal fat, for example.
 
