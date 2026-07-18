@@ -82,6 +82,11 @@ Meals are added from a csv. A meals csv must have the columns (in this order, no
 A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated). One row per recipe eaten,
 but multiple rows for the same date are fine (and multiple dates fine).
 
+In the terminal, run:
+
+```
+python ./src/forkwise/add_meals.py <username> <user pw> <path_to_csv>
+```
 
 ### View nutritional totals
 
