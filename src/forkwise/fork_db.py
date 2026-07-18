@@ -355,7 +355,7 @@ class ForkDB(DBConn):
         """
         correct_rows = self.execute_scalar(check_query,(recipe_tuple[0][0],))
 
-        if correct_rows != totals[0][7]:
+        if correct_rows != totals[0][-1]:
             msg = "Unit conversions failed in recipe totaling - some rows were dropped"
             self._logger.error(msg)
             raise ValueError(msg)
@@ -367,7 +367,8 @@ class ForkDB(DBConn):
                       fiber_grams=totals[0][3],
                       sugar_grams= totals[0][4],
                       carb_grams= totals[0][5],
-                      animal= bool(totals[0][6]),
+                      white_flour= totals[0][6],
+                      animal= bool(totals[0][7]),
                       servings = recipe_tuple[0][1],
                       servings_amt=recipe_tuple[0][2],
                       servings_units=recipe_tuple[0][3]
