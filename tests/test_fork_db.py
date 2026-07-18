@@ -30,10 +30,6 @@ class TestForkDB(unittest.TestCase):
     def tearDownClass(cls):
         utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
     
-    def test_add_conversions(self):
-        # TODO
-        pass
-    
     def test_add_ingredients_via_staging(self):
         path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients_part.csv")
@@ -47,11 +43,9 @@ class TestForkDB(unittest.TestCase):
         self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients")
 
     def test_add_recipe_via_staging(self):
-        path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe2.csv")
+        path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe.csv")
 
-        # Check that we can't add if not all ingredients are in db - 
-        # Even if test_add_ingredients_via_staging is run first, so the db has that list of ingredients,
-        # it'll be missing asparagus:
+        # Check that we can't add if not all ingredients are in db:
         with self.assertRaises(ValueError):
             self.conn.add_recipe_via_staging(
                 path_to_recipe_csv=path_to_recipe_csv, 
@@ -61,9 +55,9 @@ class TestForkDB(unittest.TestCase):
                 servings_units='lbs'
                 )
         
-        # Now add the missing ingredients (if test_add_ingredients_via_staging has run, olive oil will already be in there)
-        # Note there's a deliberate case mismatch between ingredient names here vs test_recipe2.csv
-        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients2.csv"))
+        # Now add the missing ingredients:
+        # Note there's a deliberate case mismatch between ingredient names here vs test_recipe.csv
+        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr.csv"))
 
         # Note that add_recipe_via_staging returns number of rows added to components
         self.assertEqual(
@@ -76,7 +70,9 @@ class TestForkDB(unittest.TestCase):
             "Failed to add recipe")
         
         # Test that we can't add a recipe of the same name
-        path_to_recipe_csv2 = os.path.join(TEST_DATA_PATH, "test_recipe3.csv")
+        # First add extra ingredient in test_recipe2:
+        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr2.csv"))
+        path_to_recipe_csv2 = os.path.join(TEST_DATA_PATH, "test_recipe2.csv")
         with self.assertRaises(psql_errors.UniqueViolation):
             self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, name="grilled asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
 
@@ -84,10 +80,8 @@ class TestForkDB(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="other asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
 
-        # Test that we can add a recipe with an additional ingredient (but not the same name)
+        # Test that we can add a recipe with the additional ingredient (but not the same recipe name)
         # should add 3 rows, 2 of them duplicates except for recipe_id, because we allow that
-        # Make sure ingredients from test_ingredients is in the db:
-        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients.csv"))
         self.assertEqual(
             self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, 
                                              name="onion asparagus", 
@@ -97,29 +91,55 @@ class TestForkDB(unittest.TestCase):
             3, 
             "Failed to add recipe with some duplicate components")
         
-    def test_get_recipe_totals(self):
-        # Make sure we have what we need in the db already:
-        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients2.csv"))
-        try: 
-            self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe2.csv"),
-                                            name="grilled asparagus", 
-                                            servings=2,
-                                            servings_amt=0.5,
+    def test_add_meals_via_staging(self):
+        path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals.csv")
+
+        # Add everything we need:
+        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_meals_ingr.csv"))
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe.csv"),
+                                            name="burger", 
+                                            servings=4,
+                                            servings_amt=0.4,
                                             servings_units='lbs')
-        except ValueError:
-            pass
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH,"test_meals_recipe2.csv"), 
+                                             name="steamed broccoli", 
+                                             servings=2,
+                                             servings_amt=0.5, 
+                                             servings_units='lbs')
+        # Test that we can't add meals if one recipe isn't in the db:
+        with self.assertRaises(ValueError):
+            self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv)
 
-        totals = self.conn.get_recipe_totals(recipe_name='grilled asparagus')
+        # Add missing recipe:
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe3.csv"),
+                                         name="lemonade",
+                                         servings=6,
+                                         servings_amt=1,
+                                         servings_units='pint'
+                                         )
+        # Now adding meals should run:
+        self.assertEqual(self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv),3)
+    
+    def test_get_recipe_totals(self):
+        # Add what we need in the db:
+        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_totals_ingr.csv"))
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_recipe.csv"),
+                                            name="hot cocoa", 
+                                            servings=2,
+                                            servings_amt=1,
+                                            servings_units='c')
 
-        self.assertEqual(totals.cal, 416)
-        self.assertFalse(totals.animal)
-        self.assertEqual(totals.servings_amt, 0.5)
+        totals = self.conn.get_recipe_totals(recipe_name='hot cocoa')
+
+        self.assertEqual(totals.cal, 314)
+        self.assertTrue(totals.animal)
+        self.assertEqual(totals.servings_amt, 1)
 
         # Test that unit conversion fails if units in Components vs Ingredients are mismatched types:
-        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrongunits.csv"),
-                                         name="wrong asparagus",
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
+                                         name="wrong cocoa",
                                          servings=2,
-                                         servings_amt=0.5,
-                                         servings_units="lbs")
+                                         servings_amt=1,
+                                         servings_units="c")
         with self.assertRaises(ValueError):
-            self.conn.get_recipe_totals(recipe_name="wrong asparagus")
+            self.conn.get_recipe_totals(recipe_name="wrong cocoa")
