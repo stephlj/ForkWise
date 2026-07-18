@@ -97,10 +97,16 @@ WIP
 One-time-only setup: initialize a new db:
 
 ```
-config_path='./src/forkwise/config.yml'
-schema_path='./src/forkwise/schema.sql'
-python -m dbcommons.init_db '<owner_pw>' $config_path $schema_path
+python ./src/forkwise/fork_init.py <admin_pw>
 ```
+
+where `admin_pw` is the pw to set for `admin_name` account (see config file for name of admin account).
+
+Add new users:
+```
+python ./src/forkwise/add_fork_user.py <new_user_name> <new_user> <admin_pw>
+```
+
 
 ## Dev
 
