@@ -120,29 +120,26 @@ class TestForkDB(unittest.TestCase):
         # Now adding meals should run:
         self.assertEqual(self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv),3)
     
-    # def test_get_recipe_totals(self):
-    #     # Make sure we have what we need in the db already:
-    #     self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_ingredients2.csv"))
-    #     try: 
-    #         self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe2.csv"),
-    #                                         name="grilled asparagus", 
-    #                                         servings=2,
-    #                                         servings_amt=0.5,
-    #                                         servings_units='lbs')
-    #     except ValueError:
-    #         pass
+    def test_get_recipe_totals(self):
+        # Add what we need in the db:
+        self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_totals_ingr.csv"))
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_recipe.csv"),
+                                            name="hot cocoa", 
+                                            servings=2,
+                                            servings_amt=1,
+                                            servings_units='c')
 
-    #     totals = self.conn.get_recipe_totals(recipe_name='grilled asparagus')
+        totals = self.conn.get_recipe_totals(recipe_name='hot cocoa')
 
-    #     self.assertEqual(totals.cal, 416)
-    #     self.assertFalse(totals.animal)
-    #     self.assertEqual(totals.servings_amt, 0.5)
+        self.assertEqual(totals.cal, 314)
+        self.assertTrue(totals.animal)
+        self.assertEqual(totals.servings_amt, 1)
 
-    #     # Test that unit conversion fails if units in Components vs Ingredients are mismatched types:
-    #     self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrongunits.csv"),
-    #                                      name="wrong asparagus",
-    #                                      servings=2,
-    #                                      servings_amt=0.5,
-    #                                      servings_units="lbs")
-    #     with self.assertRaises(ValueError):
-    #         self.conn.get_recipe_totals(recipe_name="wrong asparagus")
+        # Test that unit conversion fails if units in Components vs Ingredients are mismatched types:
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
+                                         name="wrong cocoa",
+                                         servings=2,
+                                         servings_amt=1,
+                                         servings_units="c")
+        with self.assertRaises(ValueError):
+            self.conn.get_recipe_totals(recipe_name="wrong cocoa")
