@@ -25,6 +25,7 @@ class Ingredient:
     fiber_grams: float = field(metadata={'sql_type':'real'})
     sugar_grams: float = field(metadata={'sql_type':'real'})
     carb_grams: float = field(metadata={'sql_type':'real'})
+    white_flour: float = field(metadata={'sql_type':'real'})
     animal: bool = field(metadata={'sql_type':'boolean'})
 
     def __iter__(self):
@@ -37,6 +38,7 @@ class Ingredient:
         yield self.fiber_grams
         yield self.sugar_grams
         yield self.carb_grams
+        yield self.white_flour
         yield self.animal
 
 @dataclass
@@ -59,6 +61,7 @@ class Recipe:
     fiber_grams: float = field(metadata={'sql_type':'real'})
     sugar_grams: float = field(metadata={'sql_type':'real'})
     carb_grams: float = field(metadata={'sql_type':'real'})
+    white_flour: float = field(metadata={'sql_type':'real'})
     animal: bool = field(metadata={'sql_type':'boolean'})
     servings: int = field(metadata={'sql_type':'integer'})
     servings_amt: float = field(metadata={'sql_type':'real'})
@@ -72,6 +75,7 @@ class Recipe:
         yield self.fiber_grams
         yield self.sugar_grams
         yield self.carb_grams
+        yield self.white_flour
         yield self.animal
         yield self.servings
         yield self.servings_amt

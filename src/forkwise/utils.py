@@ -11,3 +11,4 @@ DEFAULT_LOGGING_FORMAT = (
 )
 
 CONFIG_PATH = os.path.join(os.getcwd(),"src","forkwise","config.yml")
+SCHEMA_PATH = os.path.join(os.getcwd(),"src","forkwise","schema.sql")

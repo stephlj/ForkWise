@@ -32,10 +32,11 @@ Ingredients are loaded from a csv. The csv must have columns (in this order, no 
 - `Units`: Units for amount; e.g. `oz`
 - `Calories`: Calories in the unitary amount of this ingredient
 - `Fiber`: g of fiber in the unitary amount of this ingredient
-- `Sugar`: g of sugar; includes white flour
-- `Protien`: g
-- `Fat`: g
+- `Sugar`: g of sugar
+- `Protien`: g of protein
+- `Fat`: g of fat
 - `Carbs`: g of carbohydrate, total (incl sugar and dietary fiber)
+- `White flour`: g of white flour (for a white flour product, eg a piece of bread, the total g per unit)
 - `Animal`: bool, is any part of the ingredient derived from animal products or not.
 
 E.g. for a can of black beans, `name` might be "black beans", `unitary amount` might be 24, `units` might be "oz". `Animal` would be True only if the beans were cooked in animal fat, for example.
@@ -81,6 +82,11 @@ Meals are added from a csv. A meals csv must have the columns (in this order, no
 A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated). One row per recipe eaten,
 but multiple rows for the same date are fine (and multiple dates fine).
 
+In the terminal, run:
+
+```
+python ./src/forkwise/add_meals.py <username> <user pw> <path_to_csv>
+```
 
 ### View nutritional totals
 
@@ -91,10 +97,21 @@ WIP
 One-time-only setup: initialize a new db:
 
 ```
-config_path='./src/forkwise/config.yml'
-schema_path='./src/forkwise/schema.sql'
-python -m dbcommons.init_db '<owner_pw>' $config_path $schema_path
+python ./src/forkwise/fork_init.py <admin_pw>
 ```
+
+where `admin_pw` is the pw to set for `admin_name` account (see config file for name of admin account).
+
+Add new users:
+```
+python ./src/forkwise/add_fork_user.py <new_user_name> <new_user> <admin_pw>
+```
+
+To connect directly to the db via the terminal: TODO why don't I need to pass a pw ... 
+```
+psql -U <user_name> -d fork_db
+```
+
 
 ## Dev
 
@@ -119,3 +136,8 @@ uv pip install "git+https://github.com/stephlj/DBCommons"
 ```
 
 Use `pytest` to run the tests. (For quick debugging: Add `-s` or `--capture=no` to print print statements to console.)
+
+If you comment out the teardown, you can connect to the test db for debugging via the terminal:
+```
+psql -U test_fork_user -d test_fork_db
+```

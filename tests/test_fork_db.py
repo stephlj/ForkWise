@@ -6,6 +6,8 @@ import os
 from psycopg import errors as psql_errors
 
 import dbcommons.testing_utils as utils
+from forkwise.fork_init import fork_init
+from forkwise.add_fork_user import add_fork_user
 from forkwise.fork_db import ForkDB
 
 # TODO might be better to locate these by where the file is? Does this work with CI?
@@ -13,18 +15,22 @@ TEST_CONFIG_PATH = os.path.join(os.getcwd(),"tests","fixtures","test_config.yml"
 TEST_DATA_PATH = os.path.join(os.getcwd(),"tests","fixtures")
 SCHEMA_PATH = os.path.join(os.getcwd(), "src", "forkwise", "schema.sql")
 
-# To connect to the testing db (if not running this automatically):
-# psql -U test_user -d test_fork_db
-
 class TestForkDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.params = utils.config_params(config_path=TEST_CONFIG_PATH)
-        utils.set_up_test_DB(params=cls.params, path_to_schema=SCHEMA_PATH)
-        cls.conn = ForkDB(user=cls.params["user"], pw=cls.params["user_pw"], db_name=cls.params["test_db_name"])
+        cls.params["user"] = "test_fork_user"
 
-        #TODO in next PR: put this in db init. Temporary hack!
-        cls.conn.add_conversions(path_to_conversions_csv=os.path.join(os.getcwd(), "src", "forkwise", "conversions.csv"))
+        # Can't use this anymore because forkwise now has its own init process:
+        # utils.set_up_test_DB(params=cls.params, path_to_schema=SCHEMA_PATH)
+
+        fork_init(admin_pw=cls.params["owner_pw"], path_to_config=cls.params["config_path"])
+        add_fork_user(new_user_name=cls.params["user"], new_user_pw=cls.params["user_pw"], admin_pw=cls.params["owner_pw"], path_to_config=cls.params["config_path"])
+
+        cls.conn = ForkDB(user=cls.params["user"], pw=cls.params["user_pw"], db_name=cls.params["test_db_name"])
+        
+        # TEMP HACK - goes with the line above I can't use anymore
+        # cls.conn.add_conversions(path_to_conversions_csv=os.path.join(os.getcwd(), "src", "forkwise", "conversions.csv"))
 
     @classmethod
     def tearDownClass(cls):
