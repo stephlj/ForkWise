@@ -22,12 +22,15 @@ class TestForkDB(unittest.TestCase):
         # cls.params["user"] = "test_fork_user"
 
         # Can't use this anymore because forkwise now has its own init process:
-        utils.set_up_test_DB(params=cls.params, path_to_schema=SCHEMA_PATH)
+        # utils.set_up_test_DB(params=cls.params, path_to_schema=SCHEMA_PATH)
 
-        # fork_init(admin_pw=cls.params["owner_pw"], path_to_config=cls.params["config_path"])
-        # add_fork_user(new_user_name=cls.params["user"], new_user_pw=cls.params["user_pw"], admin_pw=cls.params["owner_pw"], path_to_config=cls.params["config_path"])
-        
+        fork_init(admin_pw=cls.params["owner_pw"], path_to_config=cls.params["config_path"])
+        add_fork_user(new_user_name=cls.params["user"], new_user_pw=cls.params["user_pw"], admin_pw=cls.params["owner_pw"], path_to_config=cls.params["config_path"])
+
         cls.conn = ForkDB(user=cls.params["user"], pw=cls.params["user_pw"], db_name=cls.params["test_db_name"])
+        
+        # TEMP HACK - goes with the line above I can't use anymore
+        # cls.conn.add_conversions(path_to_conversions_csv=os.path.join(os.getcwd(), "src", "forkwise", "conversions.csv"))
 
     @classmethod
     def tearDownClass(cls):
