@@ -2,9 +2,8 @@
 #
 # Copyright (c) 2026 Stephanie Johnson
 
-import sys, os
+import sys
 import logging
-import yaml
 
 from dbcommons.add_user import add_user
 

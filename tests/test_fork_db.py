@@ -15,19 +15,17 @@ TEST_CONFIG_PATH = os.path.join(os.getcwd(),"tests","fixtures","test_config.yml"
 TEST_DATA_PATH = os.path.join(os.getcwd(),"tests","fixtures")
 SCHEMA_PATH = os.path.join(os.getcwd(), "src", "forkwise", "schema.sql")
 
-# To connect to the testing db (if not running this automatically):
-# psql -U test_user -d test_fork_db
-
 class TestForkDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.params = utils.config_params(config_path=TEST_CONFIG_PATH)
+        # cls.params["user"] = "test_fork_user"
 
         # Can't use this anymore because forkwise now has its own init process:
-        # utils.set_up_test_DB(params=cls.params, path_to_schema=SCHEMA_PATH)
+        utils.set_up_test_DB(params=cls.params, path_to_schema=SCHEMA_PATH)
 
-        fork_init(admin_pw=cls.params["owner_pw"], path_to_config=TEST_CONFIG_PATH)
-        add_fork_user(new_user_name=cls.params["user"], new_user_pw=cls.params["user_pw"], admin_pw=cls.params["owner_pw"], path_to_config=TEST_CONFIG_PATH)
+        # fork_init(admin_pw=cls.params["owner_pw"], path_to_config=cls.params["config_path"])
+        # add_fork_user(new_user_name=cls.params["user"], new_user_pw=cls.params["user_pw"], admin_pw=cls.params["owner_pw"], path_to_config=cls.params["config_path"])
         
         cls.conn = ForkDB(user=cls.params["user"], pw=cls.params["user_pw"], db_name=cls.params["test_db_name"])
 

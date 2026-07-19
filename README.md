@@ -107,6 +107,11 @@ Add new users:
 python ./src/forkwise/add_fork_user.py <new_user_name> <new_user> <admin_pw>
 ```
 
+To connect directly to the db via the terminal: TODO why don't I need to pass a pw ... 
+```
+psql -U <user_name> -d fork_db
+```
+
 
 ## Dev
 
@@ -131,3 +136,8 @@ uv pip install "git+https://github.com/stephlj/DBCommons"
 ```
 
 Use `pytest` to run the tests. (For quick debugging: Add `-s` or `--capture=no` to print print statements to console.)
+
+If you comment out the teardown, you can connect to the test db for debugging via the terminal:
+```
+psql -U test_fork_user -d test_fork_db
+```
