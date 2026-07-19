@@ -19,7 +19,7 @@ class TestForkDB(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.params = utils.config_params(config_path=TEST_CONFIG_PATH)
-        # cls.params["user"] = "test_fork_user"
+        cls.params["user"] = "test_fork_user"
 
         # Can't use this anymore because forkwise now has its own init process:
         # utils.set_up_test_DB(params=cls.params, path_to_schema=SCHEMA_PATH)
