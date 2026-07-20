@@ -35,7 +35,7 @@ CREATE TABLE ingredients(
     fiber_grams real NOT NULL, /* per unitary_amount */
     sugar_grams real NOT NULL, /* per unitary_amount */
     carb_grams real NOT NULL, /* per unitary_amount */
-    white_flour real NOT NULL, /* if a white flour product, total g per unitary_amount */
+    white_flour boolean NOT NULL, /* if a white flour product, total g per unitary_amount */
     animal boolean NOT NULL, /* is this an animal-derived product or not */
     UNIQUE (name, unitary_amount, units)
 );

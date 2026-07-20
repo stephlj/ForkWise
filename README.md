@@ -36,8 +36,8 @@ Ingredients are loaded from a csv. The csv must have columns (in this order, no 
 - `Protien`: g of protein
 - `Fat`: g of fat
 - `Carbs`: g of carbohydrate, total (incl sugar and dietary fiber)
-- `White flour`: g of white flour (for a white flour product, eg a piece of bread, the total g per unit)
-- `Animal`: bool, is any part of the ingredient derived from animal products or not.
+- `White flour`: bool, true if the ingredient is predominantly white flour (eg 1 for an english muffin)
+- `Animal`: bool, true if any part of the ingredient is derived from animal products.
 
 E.g. for a can of black beans, `name` might be "black beans", `unitary amount` might be 24, `units` might be "oz". `Animal` would be True only if the beans were cooked in animal fat, for example.
 

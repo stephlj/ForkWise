@@ -325,10 +325,11 @@ class ForkDB(DBConn):
         # WHERE c.recipe_id=1;
 
         ingr_cols = [f.name for f in fields(Ingredient)]
-        select_statements = ", ".join(f'SUM(c.ingredient_amt * (i.{i} / i.unitary_amount) * (cu.factor / iu.factor))  AS total_{i}' for i in ingr_cols[3:-1])
+        select_statements = ", ".join(f'SUM(c.ingredient_amt * (i.{i} / i.unitary_amount) * (cu.factor / iu.factor))  AS total_{i}' for i in ingr_cols if i not in {'name','unitary_amount','units','white_flour','animal'})
 
         query=f"""
             SELECT {select_statements},
+                SUM(i.white_flour::int) AS white_flour,
                 SUM(i.animal::int) AS animal,
                 COUNT(*)
             FROM ingredients AS i
@@ -367,7 +368,7 @@ class ForkDB(DBConn):
                       fiber_grams=totals[0][3],
                       sugar_grams= totals[0][4],
                       carb_grams= totals[0][5],
-                      white_flour= totals[0][6],
+                      white_flour= bool(totals[0][6]),
                       animal= bool(totals[0][7]),
                       servings = recipe_tuple[0][1],
                       servings_amt=recipe_tuple[0][2],
