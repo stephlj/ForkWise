@@ -375,8 +375,9 @@ class ForkDB(DBConn):
                       servings_units=recipe_tuple[0][3]
                       )
     
-    def get_totals_in_dates(self, date_range: List[date]) -> List[Recipe]:
-        # TODO do I want this to be totals or recipes?
+    def get_recipes_in_dates(self, date_range: List[date]) -> List[Recipe]:
+        # TODO do I want this to be totals or recipes? I think Recipes
         # REMEMBER: Recipe totals are per recipe, not per serving - if a recipe makes 2 servings,
         # get_recipe_totals will return totals for 2 servings. If a meal is 1 serving - need to do some math
+        # (Calc meal or within date totals - need to normalize recipe totals per serving! (And then multiply servings in meals))
         pass
