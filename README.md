@@ -92,6 +92,8 @@ python ./src/forkwise/add_meals.py <username> <user pw> <path_to_csv>
 
 WIP
 
+Use bools for `white flour` and `animal` to calculate, for ex, percent protein from animal sources, percent carbs from white flour.
+
 ## Getting started
 
 One-time-only setup: initialize a new db:
