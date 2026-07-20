@@ -24,7 +24,7 @@ CREATE TABLE unit_conversions(
     UNIQUE (unit, category, factor)
 );
 
-CREATE TABLE ingredients(
+CREATE TABLE pantry_items(
     id SERIAL PRIMARY KEY,
     name text NOT NULL,
     unitary_amt real NOT NULL, /* Basic unit of measure for this ingredient, e.g. 28 for one 28 oz can */
@@ -48,11 +48,11 @@ CREATE TABLE recipes(
     servings_units text NOT NULL
 );
 
-CREATE TABLE components(
+CREATE TABLE ingredients(
     /* components of recipies, ie specific amounts of ingredients to add */
     id SERIAL PRIMARY KEY,
     recipe_id integer NOT NULL references recipes(id),
-    ingredient_id integer NOT NULL REFERENCES ingredients(id),
+    ingredient_id integer NOT NULL REFERENCES pantry_items(id),
     ingredient_amt real NOT NULL,
     ingredient_units text NOT NULL
 );

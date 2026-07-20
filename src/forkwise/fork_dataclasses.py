@@ -12,10 +12,9 @@ Copyright (c) 2026 Stephanie Johnson
 """
 
 from dataclasses import dataclass, field
-from typing import List
 
 @dataclass
-class Ingredient:
+class PantryItem:
     name: str = field(metadata={'sql_type':'text'})
     unitary_amt: float = field(metadata={'sql_type':'real'})
     units: str = field(metadata={'sql_type':'text'})
@@ -42,7 +41,7 @@ class Ingredient:
         yield self.animal
 
 @dataclass
-class Component:
+class Ingredient:
     ingr_name: str = field(metadata={'sql_type':'text'})
     ingredient_amt: float = field(metadata={'sql_type':'real'})
     ingredient_units: str = field(metadata={'sql_type':'text'})
