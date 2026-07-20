@@ -17,7 +17,7 @@ from typing import List
 @dataclass
 class Ingredient:
     name: str = field(metadata={'sql_type':'text'})
-    unitary_amount: float = field(metadata={'sql_type':'real'})
+    unitary_amt: float = field(metadata={'sql_type':'real'})
     units: str = field(metadata={'sql_type':'text'})
     cal: float = field(metadata={'sql_type':'real'})
     fat_grams: float = field(metadata={'sql_type':'real'})
@@ -30,7 +30,7 @@ class Ingredient:
 
     def __iter__(self):
         yield self.name
-        yield self.unitary_amount
+        yield self.unitary_amt
         yield self.units
         yield self.cal
         yield self.fat_grams

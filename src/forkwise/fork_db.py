@@ -66,7 +66,7 @@ class ForkDB(DBConn):
         return len(rows_added)
     
     def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
-        # Will skip any row for which (name, unitary_amount, units) are already in the db.
+        # Will skip any row for which (name, unitary_amt, units) are already in the db.
         # Returns number of rows added to Ingredients table.
 
         ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Ingredient)]
@@ -325,7 +325,7 @@ class ForkDB(DBConn):
         # WHERE c.recipe_id=1;
 
         ingr_cols = [f.name for f in fields(Ingredient)]
-        select_statements = ", ".join(f'SUM(c.ingredient_amt * (i.{i} / i.unitary_amount) * (cu.factor / iu.factor))  AS total_{i}' for i in ingr_cols if i not in {'name','unitary_amount','units','white_flour','animal'})
+        select_statements = ", ".join(f'SUM(c.ingredient_amt * (i.{i} / i.unitary_amt) * (cu.factor / iu.factor))  AS total_{i}' for i in ingr_cols if i not in {'name','unitary_amt','units','white_flour','animal'})
 
         query=f"""
             SELECT {select_statements},
