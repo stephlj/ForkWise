@@ -14,7 +14,7 @@ from psycopg import errors as psql_errors
 from typing import List
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import PantryItem, Ingredient, Recipe
+from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -69,7 +69,8 @@ class ForkDB(DBConn):
         # Will skip any row for which (name, unitary_amt, units) are already in the db.
         # Returns number of rows added to pantry_items table.
 
-        ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(PantryItem)]
+        # TODO is there a way to avoid having to know PantryItem props needs to be special cased?
+        ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(PantryItem) if f.name not in ["props"]] + [(f.name, f.metadata['sql_type']) for f in fields(FoodProps)]
 
         rows_staged = self.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=ingr_col_defs)
 
@@ -325,7 +326,7 @@ class ForkDB(DBConn):
         #     iu.unit=i.ingredient_units 
         # WHERE i.recipe_id=1;
 
-        ingr_cols = [f.name for f in fields(PantryItem)]
+        ingr_cols = [f.name for f in fields(PantryItem) if f.name not in ["props"]] + [(f.name, f.metadata['sql_type']) for f in fields(FoodProps)]
         select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in ingr_cols if c not in {'name','unitary_amt','units','white_flour','animal'})
 
         query=f"""
@@ -362,18 +363,21 @@ class ForkDB(DBConn):
             self._logger.error(msg)
             raise ValueError(msg)
 
-        return Recipe(name=recipe_name, 
-                      cal=totals[0][0],
+        ingr_props = FoodProps(cal=totals[0][0],
                       fat_grams=totals[0][1],
                       protein_grams=totals[0][2],
                       fiber_grams=totals[0][3],
                       sugar_grams= totals[0][4],
                       carb_grams= totals[0][5],
                       white_flour= bool(totals[0][6]),
-                      animal= bool(totals[0][7]),
+                      animal= bool(totals[0][7])
+                      )
+
+        return Recipe(name=recipe_name, 
                       servings = recipe_tuple[0][1],
                       servings_amt=recipe_tuple[0][2],
-                      servings_units=recipe_tuple[0][3]
+                      servings_units=recipe_tuple[0][3],
+                      props = ingr_props
                       )
     
     def get_recipes_in_dates(self, date_range: List[date]) -> List[Recipe]:
