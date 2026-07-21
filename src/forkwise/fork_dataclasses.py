@@ -12,12 +12,11 @@ Copyright (c) 2026 Stephanie Johnson
 """
 
 from dataclasses import dataclass, field
+from typing import List
+from datetime import date
 
 @dataclass
-class PantryItem:
-    name: str = field(metadata={'sql_type':'text'})
-    unitary_amt: float = field(metadata={'sql_type':'real'})
-    units: str = field(metadata={'sql_type':'text'})
+class FoodProps:
     cal: float = field(metadata={'sql_type':'real'})
     fat_grams: float = field(metadata={'sql_type':'real'})
     protein_grams: float = field(metadata={'sql_type':'real'})
@@ -28,9 +27,6 @@ class PantryItem:
     animal: bool = field(metadata={'sql_type':'boolean'})
 
     def __iter__(self):
-        yield self.name
-        yield self.unitary_amt
-        yield self.units
         yield self.cal
         yield self.fat_grams
         yield self.protein_grams
@@ -39,6 +35,20 @@ class PantryItem:
         yield self.carb_grams
         yield self.white_flour
         yield self.animal
+
+
+@dataclass
+class PantryItem:
+    name: str = field(metadata={'sql_type':'text'})
+    unitary_amt: float = field(metadata={'sql_type':'real'})
+    units: str = field(metadata={'sql_type':'text'})
+    props: FoodProps
+
+    def __iter__(self):
+        yield self.name
+        yield self.unitary_amt
+        yield self.units
+        yield self.props
 
 @dataclass
 class Ingredient:
@@ -54,30 +64,22 @@ class Ingredient:
 @dataclass
 class Recipe:
     name: str = field(metadata={'sql_type':'text'})
-    cal: float = field(metadata={'sql_type':'real'})
-    fat_grams: float = field(metadata={'sql_type':'real'})
-    protein_grams: float = field(metadata={'sql_type':'real'})
-    fiber_grams: float = field(metadata={'sql_type':'real'})
-    sugar_grams: float = field(metadata={'sql_type':'real'})
-    carb_grams: float = field(metadata={'sql_type':'real'})
-    white_flour: bool = field(metadata={'sql_type':'boolean'})
-    animal: bool = field(metadata={'sql_type':'boolean'})
     servings: int = field(metadata={'sql_type':'integer'})
     servings_amt: float = field(metadata={'sql_type':'real'})
     servings_units: str = field(metadata={'sql_type':'text'})
+    props: FoodProps
 
     def __iter__(self):
         yield self.name
-        yield self.cal
-        yield self.fat_grams
-        yield self.protein_grams
-        yield self.fiber_grams
-        yield self.sugar_grams
-        yield self.carb_grams
-        yield self.white_flour
-        yield self.animal
         yield self.servings
         yield self.servings_amt
         yield self.servings_units
+        yield self.props
+
+@dataclass
+class Meal:
+    recipes: List[Recipe]
+    servings_eaten: List[int]
+    date: date
 
     
