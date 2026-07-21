@@ -137,8 +137,8 @@ class TestForkDB(unittest.TestCase):
 
         totals = self.conn.get_recipe_totals(recipe_name='hot cocoa')
 
-        self.assertEqual(totals.cal, 314)
-        self.assertTrue(totals.animal)
+        self.assertEqual(totals.props.cal, 314)
+        self.assertTrue(totals.props.animal)
         self.assertEqual(totals.servings_amt, 1)
 
         # Test that unit conversion fails if units in ingredients vs pantry_items are mismatched types:

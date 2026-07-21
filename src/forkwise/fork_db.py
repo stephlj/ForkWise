@@ -326,7 +326,7 @@ class ForkDB(DBConn):
         #     iu.unit=i.ingredient_units 
         # WHERE i.recipe_id=1;
 
-        ingr_cols = [f.name for f in fields(PantryItem) if f.name not in ["props"]] + [(f.name, f.metadata['sql_type']) for f in fields(FoodProps)]
+        ingr_cols = [f.name for f in fields(PantryItem) if f.name not in ["props"]] + [f.name for f in fields(FoodProps)]
         select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in ingr_cols if c not in {'name','unitary_amt','units','white_flour','animal'})
 
         query=f"""
