@@ -42,10 +42,10 @@ def display_recipe_info(recipe_name: str, username: str, pw: str, path_to_config
     totals = calc_totals_per_serving(recipe=recipe)
 
     print(f"Nutritional values for recipe {recipe_name}, serving size {recipe.servings_amt} {recipe.servings_units}:")
-    print(f"Calories per serving: {totals.cal}")
-    print(f"Grams of fat per serving: {totals.fat_grams}")
-    print(f"Grams of protein per serving: {totals.protein_grams}")
-    print(f"Grams of total carbs per serving: {totals.carb_grams}, including {totals.fiber_grams} of fiber and {totals.sugar_grams} of sugar")
+    print(f"Calories per serving: {round(totals.cal,1)}")
+    print(f"Grams of fat per serving: {round(totals.fat_grams,1)}")
+    print(f"Grams of protein per serving: {round(totals.protein_grams,1)}")
+    print(f"Grams of total carbs per serving: {round(totals.carb_grams,1)}, including {round(totals.fiber_grams,1)} of fiber and {round(totals.sugar_grams,1)} of sugar")
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
@@ -55,4 +55,4 @@ if __name__ == "__main__":
     
     logging.basicConfig(level="INFO", format=DEFAULT_LOGGING_FORMAT)
     
-    display_recipe_info(recipe_name=sys.argv[3], username=sys.arvg[1], pw=sys.argv[2])
+    display_recipe_info(recipe_name=sys.argv[3], username=sys.argv[1], pw=sys.argv[2])
