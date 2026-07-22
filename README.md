@@ -90,9 +90,13 @@ python ./src/forkwise/add_meals.py <username> <user pw> <path_to_csv>
 
 ### View nutritional totals
 
-WIP
+To view nutritional content of a recipe logged in the database:
+```
+python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
+```
 
-Use bools for `white flour` and `animal` to calculate, for ex, percent protein from animal sources, percent carbs from white flour.
+To view nutritial totals for meals in a date range: WIP
+Note to self, use bools for `white flour` and `animal` to calculate, for ex, percent protein from animal sources, percent carbs from white flour.
 
 ## Getting started
 

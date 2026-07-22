@@ -41,7 +41,11 @@ def display_recipe_info(recipe_name: str, username: str, pw: str, path_to_config
 
     totals = calc_totals_per_serving(recipe=recipe)
 
-    # print info ... 
+    print(f"Nutritional values for recipe {recipe_name}, serving size {recipe.servings_amt} {recipe.servings_units}:")
+    print(f"Calories per serving: {totals.cal}")
+    print(f"Grams of fat per serving: {totals.fat_grams}")
+    print(f"Grams of protein per serving: {totals.protein_grams}")
+    print(f"Grams of total carbs per serving: {totals.carb_grams}, including {totals.fiber_grams} of fiber and {totals.sugar_grams} of sugar")
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
