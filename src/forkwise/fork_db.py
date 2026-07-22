@@ -14,7 +14,7 @@ from psycopg import errors as psql_errors
 from typing import List
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import Ingredient, Recipe, Component
+from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -66,10 +66,11 @@ class ForkDB(DBConn):
         return len(rows_added)
     
     def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
-        # Will skip any row for which (name, unitary_amount, units) are already in the db.
-        # Returns number of rows added to Ingredients table.
+        # Will skip any row for which (name, unitary_amt, units) are already in the db.
+        # Returns number of rows added to pantry_items table.
 
-        ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Ingredient)]
+        # TODO is there a way to avoid having to know PantryItem props needs to be special cased?
+        ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(PantryItem) if f.name not in ["props"]] + [(f.name, f.metadata['sql_type']) for f in fields(FoodProps)]
 
         rows_staged = self.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=ingr_col_defs)
 
@@ -79,32 +80,32 @@ class ForkDB(DBConn):
         
         col_names = ", ".join(f'{a}' for a, _ in ingr_col_defs)
         
-        # This will throw a UniqueViolation if any rows in staging are already in the db ingredients table
+        # This will throw a UniqueViolation if any rows in staging are already in the db pantry_items table
         # col_names_staging = ", ".join(f's.{a}' for a, _ in ingr_col_defs)
         # ingr_query = f"""
-        #     INSERT INTO ingredients ({col_names})
+        #     INSERT INTO pantry_items ({col_names})
         #     SELECT {col_names_staging}
         #     FROM staging AS s
         #     RETURNING *;
         # """   
         
-        join_statements = " AND ".join(f'i.{a} = s.{a}' for a, _ in ingr_col_defs[1:])
+        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in ingr_col_defs[1:])
         ingr_query = f"""
             WITH joined AS (
                 SELECT s.*
                 FROM staging AS s
-                LEFT JOIN ingredients i ON
-                    LOWER(i.name) = LOWER(s.name) AND
+                LEFT JOIN pantry_items p ON
+                    LOWER(p.name) = LOWER(s.name) AND
                     {join_statements}
-                    WHERE i.id IS NULL
+                    WHERE p.id IS NULL
                 )
-            INSERT INTO ingredients ({col_names})
+            INSERT INTO pantry_items ({col_names})
             SELECT *
             FROM joined
             RETURNING *;
         """ 
         rows_added = self.execute_query(ingr_query)
-        self._logger.info(f"Added {rows_added} to ingredients table")
+        self._logger.info(f"Added {rows_added} to pantry_items table")
         return len(rows_added)
     
         # TODO drop staging? or let csv_to_staging handle that?
@@ -122,8 +123,9 @@ class ForkDB(DBConn):
         ----------
         path_to_recipe_csv : str
            Path to a recipe: each row is an ingredient (name, amount, units).
-           Name must already be an ingredient in the db.
-           Units don't have to match ingredient table units (can be converted later).
+           Name must already be an ingredient in the db in pantry_items table.
+           Units don't have to match pantry_items table units (can be converted later)-
+           but must match unit type (weight, vol etc).
         name : str
             Recipe name.
         servings: float
@@ -135,12 +137,12 @@ class ForkDB(DBConn):
 
         Returns
         -------
-        int, number of rows added to compontents table (NOT recipes table!)
+        int, number of rows added to ingredients table (NOT recipes table!)
         """
     
-        component_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Component)]
+        ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Ingredient)]
 
-        rows_staged = self.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=component_col_defs)
+        rows_staged = self.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=ingr_col_defs)
 
         if rows_staged == 0:
             self._logger.info(f"No recipe loaded from source file {path_to_recipe_csv} to staging table, will not be added to db")
@@ -152,9 +154,9 @@ class ForkDB(DBConn):
             WITH joined AS (
                 SELECT s.*
                 FROM staging AS s
-                LEFT JOIN ingredients i ON
-                    LOWER(i.name) = LOWER(s.ingr_name)
-                    WHERE i.id IS NULL
+                LEFT JOIN pantry_items p ON
+                    LOWER(p.name) = LOWER(s.ingr_name)
+                    WHERE p.id IS NULL
             )
             SELECT ingr_name FROM joined;
         """
@@ -165,35 +167,35 @@ class ForkDB(DBConn):
             raise ValueError(msg)
 
         # We also don't allow duplicate recipes. A duplicate is same name, or same ingredients+amounts for a single recipe_id:
-        # Check the latter condition first. Join ingredients onto staging to get ingredient id; then ask whether the components table has
+        # Check the latter condition first. Join pantry_items onto staging to get pantry_item id; then ask whether the ingredients table has
         # the same combo of (ingredient id, ingredient amt, ingredient units) associated with a single recipe id already as what's in staging.
-        join_statements = " AND ".join(f'c.{a} = j.{a}' for a, _ in component_col_defs[1:])
-        # Equivalent to: LEFT JOIN ingredients i ON ... WHERE i.id IS NOT NULL
-        check_dup_components = f"""
+        join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in ingr_col_defs[1:])
+        # Equivalent to: LEFT JOIN pantry_items p ON ... WHERE p.id IS NOT NULL
+        check_dup_ingredients = f"""
             WITH joined1 AS (
-                SELECT s.*, i.id
+                SELECT s.*, p.id
                 FROM staging AS s
-                INNER JOIN ingredients i ON
-                    LOWER(i.name) = LOWER(s.ingr_name)
+                INNER JOIN pantry_items p ON
+                    LOWER(p.name) = LOWER(s.ingr_name)
             ),
             joined2 AS (
-                SELECT j.*, c.recipe_id
+                SELECT j.*, i.recipe_id
                 FROM joined1 AS j
-                INNER JOIN components c ON
-                    c.ingredient_id = j.id AND
+                INNER JOIN ingredients i ON
+                    i.ingredient_id = j.id AND
                     {join_statements}
             )
             SELECT recipe_id, COUNT(*)
             FROM joined2
             GROUP BY recipe_id;
         """
-        check_dups = self.execute_query(check_dup_components)
+        check_dups = self.execute_query(check_dup_ingredients)
         if len(check_dups) > 0:
             recipe_id, num_comps = zip(*check_dups)
             same_comps = sum([x==rows_staged for x in num_comps])
             if same_comps>0:
                 recipe_name = self.get_recipe_name(recipe_id=recipe_id[0])
-                msg = f"A recipe with components in csv {path_to_recipe_csv} already exists (name: {recipe_name}); nothing will be added"
+                msg = f"A recipe with ingredients in csv {path_to_recipe_csv} already exists (name: {recipe_name}); nothing will be added"
                 self._logger.error(msg)
                 raise ValueError(msg)
         
@@ -207,15 +209,15 @@ class ForkDB(DBConn):
             self._logger.error(f"A recipe with name {name} already exists in db; nothing will be added")
             raise
 
-        # then insert into components table
-        component_query = """
-            INSERT INTO components (recipe_id, ingredient_id, ingredient_amt, ingredient_units)
-            SELECT %s, (SELECT id FROM ingredients WHERE LOWER(name) = LOWER(s.ingr_name)), s.ingredient_amt, s.ingredient_units
+        # then insert into ingreidents table
+        ingredient_query = """
+            INSERT INTO ingredients (recipe_id, ingredient_id, ingredient_amt, ingredient_units)
+            SELECT %s, (SELECT id FROM pantry_items WHERE LOWER(name) = LOWER(s.ingr_name)), s.ingredient_amt, s.ingredient_units
             FROM staging AS s
             RETURNING *;
         """
-        rows_added = self.execute_query(component_query, (recipe_id,))
-        self._logger.info(f"Added {rows_added} to components table and recipe {name} to recipe table")
+        rows_added = self.execute_query(ingredient_query, (recipe_id,))
+        self._logger.info(f"Added {rows_added} to ingredients table and recipe {name} to recipe table")
         
         # TODO drop staging? or let csv_to_staging handle that?
         return len(rows_added)
@@ -293,14 +295,14 @@ class ForkDB(DBConn):
         # query=f"""
         #     WITH joined AS (
         #         SELECT *,
-        #             COALESCE(u.factor, CASE WHEN i.units=c.ingredient_units THEN 1 ELSE NULL END) AS factor
-        #         FROM ingredients AS i
-        #         LEFT JOIN components c ON
-        #             c.ingredient_id = i.id
+        #             COALESCE(u.factor, CASE WHEN p.units=i.ingredient_units THEN 1 ELSE NULL END) AS factor
+        #         FROM pantry_items AS p
+        #         LEFT JOIN ingredients i ON
+        #             i.ingredient_id = p.id
         #         LEFT JOIN unit_conversions u ON
-        #             u.unit_from = i.units  AND
-        #             u.unit_to = c.ingredient_units
-        #         WHERE c.recipe_id=%s
+        #             u.unit_from = p.units  AND
+        #             u.unit_to = i.ingredient_units
+        #         WHERE i.recipe_id=%s
         #     ),
         #     SELECT joined.name, 
         #         {join_statements}
@@ -309,37 +311,38 @@ class ForkDB(DBConn):
 
         # For query building: The aliaising of the columns in the SELECT statement is just for display,
         # doesn't impact SQL execution:
-        # SELECT i.*, 
-        #        iu.unit AS i_unit, 
-        #        iu.factor AS bottom_factor, 
-        #        c.*, 
-        #        cu.unit AS cu_unit, 
-        #        cu.factor AS top_factor 
-        # FROM ingredients AS i 
+        # SELECT p.*, 
+        #        pu.unit AS p_unit, 
+        #        pu.factor AS bottom_factor, 
+        #        i.*, 
+        #        iu.unit AS iu_unit, 
+        #        iu.factor AS top_factor 
+        # FROM pantry_items AS p 
+        # INNER JOIN unit_conversions AS pu ON 
+        #     pu.unit=p.units 
+        # INNER JOIN ingredients AS i ON 
+        #     i.ingredient_id=p.id 
         # INNER JOIN unit_conversions AS iu ON 
-        #     iu.unit=i.units 
-        # INNER JOIN components AS c ON 
-        #     c.ingredient_id=i.id 
-        # INNER JOIN unit_conversions AS cu ON 
-        #     cu.unit=c.ingredient_units 
-        # WHERE c.recipe_id=1;
+        #     iu.unit=i.ingredient_units 
+        # WHERE i.recipe_id=1;
 
-        ingr_cols = [f.name for f in fields(Ingredient)]
-        select_statements = ", ".join(f'SUM(c.ingredient_amt * (i.{i} / i.unitary_amount) * (cu.factor / iu.factor))  AS total_{i}' for i in ingr_cols[3:-1])
+        ingr_cols = [f.name for f in fields(PantryItem) if f.name not in ["props"]] + [f.name for f in fields(FoodProps)]
+        select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in ingr_cols if c not in {'name','unitary_amt','units','white_flour','animal'})
 
         query=f"""
             SELECT {select_statements},
-                SUM(i.animal::int) AS animal,
+                SUM(p.white_flour::int) AS white_flour,
+                SUM(p.animal::int) AS animal,
                 COUNT(*)
-            FROM ingredients AS i
+            FROM pantry_items AS p
+            INNER JOIN unit_conversions AS pu ON 
+                LOWER(pu.unit)=LOWER(p.units) 
+            INNER JOIN ingredients AS i ON 
+                i.ingredient_id=p.id 
             INNER JOIN unit_conversions AS iu ON 
-                LOWER(iu.unit)=LOWER(i.units) 
-            INNER JOIN components AS c ON 
-                c.ingredient_id=i.id 
-            INNER JOIN unit_conversions AS cu ON 
-                LOWER(cu.unit)=LOWER(c.ingredient_units) AND
-                cu.category=iu.category
-            WHERE c.recipe_id=%s;
+                LOWER(iu.unit)=LOWER(i.ingredient_units) AND
+                iu.category=pu.category
+            WHERE i.recipe_id=%s;
             """
 
         totals = self.execute_query(query,(recipe_tuple[0][0],))
@@ -348,10 +351,10 @@ class ForkDB(DBConn):
         # the number of ingredients in the recipe:
         check_query=f"""
             SELECT COUNT(*)
-            FROM ingredients AS i
-            INNER JOIN components c ON
-                c.ingredient_id=i.id
-            WHERE c.recipe_id=%s;
+            FROM pantry_items AS p
+            INNER JOIN ingredients i ON
+                i.ingredient_id=p.id
+            WHERE i.recipe_id=%s;
         """
         correct_rows = self.execute_scalar(check_query,(recipe_tuple[0][0],))
 
@@ -360,22 +363,26 @@ class ForkDB(DBConn):
             self._logger.error(msg)
             raise ValueError(msg)
 
-        return Recipe(name=recipe_name, 
-                      cal=totals[0][0],
+        ingr_props = FoodProps(cal=totals[0][0],
                       fat_grams=totals[0][1],
                       protein_grams=totals[0][2],
                       fiber_grams=totals[0][3],
                       sugar_grams= totals[0][4],
                       carb_grams= totals[0][5],
-                      white_flour= totals[0][6],
-                      animal= bool(totals[0][7]),
+                      white_flour= bool(totals[0][6]),
+                      animal= bool(totals[0][7])
+                      )
+
+        return Recipe(name=recipe_name, 
                       servings = recipe_tuple[0][1],
                       servings_amt=recipe_tuple[0][2],
-                      servings_units=recipe_tuple[0][3]
+                      servings_units=recipe_tuple[0][3],
+                      props = ingr_props
                       )
     
-    def get_totals_in_dates(self, date_range: List[date]) -> List[Recipe]:
-        # TODO do I want this to be totals or recipes?
+    def get_recipes_in_dates(self, date_range: List[date]) -> List[Recipe]:
+        # TODO do I want this to be totals or recipes? I think Recipes
         # REMEMBER: Recipe totals are per recipe, not per serving - if a recipe makes 2 servings,
         # get_recipe_totals will return totals for 2 servings. If a meal is 1 serving - need to do some math
+        # (Calc meal or within date totals - need to normalize recipe totals per serving! (And then multiply servings in meals))
         pass

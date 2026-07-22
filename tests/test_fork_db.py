@@ -65,7 +65,7 @@ class TestForkDB(unittest.TestCase):
         # Note there's a deliberate case mismatch between ingredient names here vs test_recipe.csv
         self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr.csv"))
 
-        # Note that add_recipe_via_staging returns number of rows added to components
+        # Note that add_recipe_via_staging returns number of rows added to ingredients table
         self.assertEqual(
             self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, 
                                              name="grilled asparagus", 
@@ -82,7 +82,7 @@ class TestForkDB(unittest.TestCase):
         with self.assertRaises(psql_errors.UniqueViolation):
             self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, name="grilled asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
 
-        # Test that we can't add the same set of components under a different recipe name
+        # Test that we can't add the same set of ingredients under a different recipe name
         with self.assertRaises(ValueError):
             self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="other asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
 
@@ -95,7 +95,7 @@ class TestForkDB(unittest.TestCase):
                                              servings_amt=0.5, 
                                              servings_units='lbs'), 
             3, 
-            "Failed to add recipe with some duplicate components")
+            "Failed to add recipe with some duplicate ingredients")
         
     def test_add_meals_via_staging(self):
         path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals.csv")
@@ -137,11 +137,11 @@ class TestForkDB(unittest.TestCase):
 
         totals = self.conn.get_recipe_totals(recipe_name='hot cocoa')
 
-        self.assertEqual(totals.cal, 314)
-        self.assertTrue(totals.animal)
+        self.assertEqual(totals.props.cal, 314)
+        self.assertTrue(totals.props.animal)
         self.assertEqual(totals.servings_amt, 1)
 
-        # Test that unit conversion fails if units in Components vs Ingredients are mismatched types:
+        # Test that unit conversion fails if units in ingredients vs pantry_items are mismatched types:
         self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
                                          name="wrong cocoa",
                                          servings=2,

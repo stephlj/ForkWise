@@ -36,8 +36,8 @@ Ingredients are loaded from a csv. The csv must have columns (in this order, no 
 - `Protien`: g of protein
 - `Fat`: g of fat
 - `Carbs`: g of carbohydrate, total (incl sugar and dietary fiber)
-- `White flour`: g of white flour (for a white flour product, eg a piece of bread, the total g per unit)
-- `Animal`: bool, is any part of the ingredient derived from animal products or not.
+- `White flour`: bool, true if the ingredient is predominantly white flour (eg 1 for an english muffin)
+- `Animal`: bool, true if any part of the ingredient is derived from animal products.
 
 E.g. for a can of black beans, `name` might be "black beans", `unitary amount` might be 24, `units` might be "oz". `Animal` would be True only if the beans were cooked in animal fat, for example.
 
@@ -90,7 +90,13 @@ python ./src/forkwise/add_meals.py <username> <user pw> <path_to_csv>
 
 ### View nutritional totals
 
-WIP
+To view nutritional content of a recipe logged in the database:
+```
+python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
+```
+
+To view nutritial totals for meals in a date range: WIP
+Note to self, use bools for `white flour` and `animal` to calculate, for ex, percent protein from animal sources, percent carbs from white flour.
 
 ## Getting started
 
