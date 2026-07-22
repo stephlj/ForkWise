@@ -64,7 +64,7 @@ class Ingredient:
 @dataclass
 class Recipe:
     name: str = field(metadata={'sql_type':'text'})
-    servings: int = field(metadata={'sql_type':'integer'})
+    servings: float = field(metadata={'sql_type':'real'})
     servings_amt: float = field(metadata={'sql_type':'real'})
     servings_units: str = field(metadata={'sql_type':'text'})
     props: FoodProps
@@ -79,7 +79,7 @@ class Recipe:
 @dataclass
 class Meal:
     recipes: List[Recipe]
-    servings_eaten: List[int]
+    servings_eaten: List[float]
     date: date
 
     

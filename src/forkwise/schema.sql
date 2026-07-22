@@ -43,7 +43,7 @@ CREATE TABLE pantry_items(
 CREATE TABLE recipes(
     id SERIAL PRIMARY KEY,
     name text UNIQUE NOT NULL,
-    servings integer NOT NULL,
+    servings real NOT NULL,
     servings_amt real NOT NULL,
     servings_units text NOT NULL
 );
