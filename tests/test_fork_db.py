@@ -37,16 +37,20 @@ class TestForkDB(unittest.TestCase):
         utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
     
     def test_add_ingredients_via_staging(self):
-        path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients_part.csv")
+        path_to_ingr_csv_wrong_units = os.path.join(TEST_DATA_PATH, "test_ingredients_wrong_units.csv")
+        path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
 
         num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv)
         
         # TODO use pandas instead of hard-coding number of lines?
         self.assertEqual(num_rows_added, 8, "Incorrect number of rows added to ingredients table")
 
+        num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_wrong_units)
+        self.assertEqual(num_rows_added, 1, "Failed to properly add only non-duplicate ingredients with correct units")
+        
         num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_some_dups)
-        self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients")
+        self.assertEqual(num_rows_added, 1, "Failed to properly add only non-duplicate ingredients")
 
     def test_add_recipe_via_staging(self):
         path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe.csv")

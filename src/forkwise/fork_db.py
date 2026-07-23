@@ -97,7 +97,9 @@ class ForkDB(DBConn):
                 LEFT JOIN pantry_items p ON
                     LOWER(p.name) = LOWER(s.name) AND
                     {join_statements}
-                    WHERE p.id IS NULL
+                INNER JOIN unit_conversions u ON
+                    LOWER(s.units) = LOWER(u.unit)
+                WHERE p.id IS NULL
                 )
             INSERT INTO pantry_items ({col_names})
             SELECT *
@@ -106,6 +108,23 @@ class ForkDB(DBConn):
         """ 
         rows_added = self.execute_query(ingr_query)
         self._logger.info(f"Added {rows_added} to pantry_items table")
+
+        if len(rows_added) != rows_staged:
+            # This can be for two reasons: There were duplicates, which we ignore;
+            # or units didn't match anything in unit_conversions.
+            # Flag the latter:
+            q = """
+                SELECT s.name, s.units
+                FROM staging AS s
+                LEFT JOIN unit_conversions u ON
+                    LOWER(s.units) = LOWER(u.unit)
+                WHERE u.unit IS NULL;
+            """
+            unmatched_units = self.execute_query(q)
+            if len(unmatched_units) > 0:
+                msg = f"The following ingredients have units that aren't in the db and were skipped on load: {unmatched_units}"
+                self._logger.warning(msg)
+
         return len(rows_added)
     
         # TODO drop staging? or let csv_to_staging handle that?
