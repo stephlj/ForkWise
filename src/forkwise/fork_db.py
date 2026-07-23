@@ -167,21 +167,23 @@ class ForkDB(DBConn):
             self._logger.info(f"No recipe loaded from source file {path_to_recipe_csv} to staging table, will not be added to db")
             return 0
         
-        # A recipe can only be added if all ingredients are already in the db.
-        # Check first, error with a list of missing ingredients: TODO or should I return this list?
+        # A recipe can only be added if all ingredients are already in the db, with units in categories that match pantry_items.
+        # Check first, error with a list of missing ingredients:
         check_ingr = """
-            WITH joined AS (
-                SELECT s.*
-                FROM staging AS s
-                LEFT JOIN pantry_items p ON
-                    LOWER(p.name) = LOWER(s.ingr_name)
-                    WHERE p.id IS NULL
-            )
-            SELECT ingr_name FROM joined;
+            SELECT s.ingr_name, s.ingredient_units, p.units
+            FROM staging AS s
+            LEFT JOIN unit_conversions AS su ON
+                LOWER(su.unit) = LOWER(s.ingredient_units)
+            LEFT JOIN pantry_items p ON
+                LOWER(p.name) = LOWER(s.ingr_name)
+            LEFT JOIN unit_conversions AS pu ON
+                LOWER(pu.unit) = LOWER(p.units) AND
+                pu.category = su.category
+            WHERE p.id IS NULL OR pu.id IS NULL;
         """
         ingr_missing = self.execute_query(check_ingr)
         if len(ingr_missing) > 0:
-            msg = f"Cannot load recipe: {name}. Ingredients missing from db: {list(zip(*ingr_missing))}"
+            msg = f"Cannot load recipe: {name}. Ingredients missing from db and/or units aren't in db and/or unit category mismatch: (name, recipe units, db units) {ingr_missing}"
             self._logger.error(msg)
             raise ValueError(msg)
 
@@ -367,7 +369,7 @@ class ForkDB(DBConn):
         totals = self.execute_query(query,(recipe_tuple[0][0],))
 
         # Check that all units matched for conversions - otherwise the return from COUNT won't match
-        # the number of ingredients in the recipe:
+        # the number of ingredients in the recipe: (note this should be checked on recipe load regardless)
         check_query=f"""
             SELECT COUNT(*)
             FROM pantry_items AS p

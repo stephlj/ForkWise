@@ -69,6 +69,17 @@ class TestForkDB(unittest.TestCase):
         # Note there's a deliberate case mismatch between ingredient names here vs test_recipe.csv
         self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr.csv"))
 
+        # Test that we still can't add the recipe if there's a unit category mismatch:
+        path_to_recipe_csv_wrong_units = os.path.join(TEST_DATA_PATH, "test_recipe_wrong_units.csv")
+        with self.assertRaises(ValueError):
+            self.conn.add_recipe_via_staging(
+                path_to_recipe_csv=path_to_recipe_csv_wrong_units, 
+                name="grilled asparagus", 
+                servings=2,
+                servings_amt=0.5,
+                servings_units='lbs'
+                )
+
         # Note that add_recipe_via_staging returns number of rows added to ingredients table
         self.assertEqual(
             self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, 
@@ -146,10 +157,11 @@ class TestForkDB(unittest.TestCase):
         self.assertEqual(totals.servings_amt, 1)
 
         # Test that unit conversion fails if units in ingredients vs pantry_items are mismatched types:
-        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
-                                         name="wrong cocoa",
-                                         servings=2,
-                                         servings_amt=1,
-                                         servings_units="c")
-        with self.assertRaises(ValueError):
-            self.conn.get_recipe_totals(recipe_name="wrong cocoa")
+        # We now check for this on recipe load (so can't even add the recipe here)
+        # self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
+        #                                  name="wrong cocoa",
+        #                                  servings=2,
+        #                                  servings_amt=1,
+        #                                  servings_units="c")
+        # with self.assertRaises(ValueError):
+        #     self.conn.get_recipe_totals(recipe_name="wrong cocoa")

@@ -20,8 +20,9 @@ Since I don't yet have a BLL that checks/fixes file format, the db will only acc
 
 - lbs not lb as a unit of weight
 - c not cup
+- no whitespace characters around units
 
-But units are case insensitive.
+But units are case INsensitive.
 
 ### Add ingredients
 
