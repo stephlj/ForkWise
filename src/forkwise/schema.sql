@@ -51,7 +51,7 @@ CREATE TABLE recipes(
 CREATE TABLE ingredients(
     /* components of recipies, ie specific amounts of ingredients to add */
     id SERIAL PRIMARY KEY,
-    recipe_id integer NOT NULL references recipes(id),
+    recipe_id integer NOT NULL REFERENCES recipes(id),
     ingredient_id integer NOT NULL REFERENCES pantry_items(id),
     ingredient_amt real NOT NULL,
     ingredient_units text NOT NULL

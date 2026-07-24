@@ -122,6 +122,10 @@ psql -U <user_name> -d fork_db
 
 ## Dev
 
+![Schema diagram](img/schema.png)
+
+*Schema diagram made at [QuickDataBaseDiagrams.com](https://app.quickdatabasediagrams.com), using a manual run of SQL_to_EDL.py from DBCommons (so inconsistency with actual db schema is possible!)*
+
 This package uses `uv` for package and virtual environment management, based on the very helpful tutorials at [Sebastia Agramunt Puig's blog](https://agramunt.me/posts/python-virtual-environments-with-uv/).
 
 Create the environment with `uv venv .venv` and then run `uv sync --all-extras` (to get developer extras).
