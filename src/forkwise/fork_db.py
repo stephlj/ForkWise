@@ -7,6 +7,7 @@ Copyright (c) 2026 Stephanie Johnson
 """
 
 import logging
+import pandas as pd
 
 from dataclasses import fields
 from datetime import date
@@ -14,7 +15,7 @@ from psycopg import errors as psql_errors
 from typing import List
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe
+from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe, Meal
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -401,9 +402,44 @@ class ForkDB(DBConn):
                       props = ingr_props
                       )
     
-    def get_recipes_in_dates(self, date_range: List[date]) -> List[Recipe]:
-        # TODO do I want this to be totals or recipes? I think Recipes
-        # REMEMBER: Recipe totals are per recipe, not per serving - if a recipe makes 2 servings,
-        # get_recipe_totals will return totals for 2 servings. If a meal is 1 serving - need to do some math
-        # (Calc meal or within date totals - need to normalize recipe totals per serving! (And then multiply servings in meals))
-        pass
+    def get_meals_in_dates(self, date_range: List[date]) -> List[Meal]:
+        """
+        Return a list of Meals in a date range.
+        """
+
+        if len(date_range) != 2:
+            log_msg = f"Date range must be list of length 2; got instead {date_range}"
+            self._logger.error(log_msg)
+            raise ValueError(log_msg)
+        
+        if (type(date_range[0]) != date) or (type(date_range[1]) != date):
+            # date_range.sort() will do the wrong thing if this isn't date format
+            log_msg = f"Date range must be in datetime.date format; got instead {date_range}"
+            self._logger.error(log_msg)
+            raise TypeError(log_msg)
+        
+        date_range.sort()
+
+        query = """
+            SELECT m.date, m.recipe_servings, r.name
+            FROM meals AS m
+            LEFT JOIN recipes AS r ON
+                r.id = m.recipe_id
+            WHERE date BETWEEN %s AND %s;
+        """
+
+        recipes = self.execute_query(query, (date_range[0],date_range[1]))
+
+        meal_df = pd.DataFrame({"date_eaten":[r[0] for r in recipes],
+                                "servings": [r[1] for r in recipes],
+                                "name": [r[2] for r in recipes]
+                                })
+        grouped = meal_df.groupby("date_eaten")
+        dates = list(grouped.groups.keys())
+        meals = []
+        for m in range(0,grouped.ngroups):
+            meals.append(Meal(date_eaten=grouped.get_group(dates[m]).date_eaten.to_list()[0],
+                              recipes=grouped.get_group(dates[m]).name.to_list(),
+                              servings_eaten=grouped.get_group(dates[m]).servings.to_list()
+                              ))
+        return meals

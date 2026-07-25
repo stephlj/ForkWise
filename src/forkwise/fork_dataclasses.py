@@ -78,8 +78,8 @@ class Recipe:
 
 @dataclass
 class Meal:
-    recipes: List[Recipe]
+    recipes: List[str] # List of recipe names
     servings_eaten: List[float]
-    date: date
+    date_eaten: date
 
     

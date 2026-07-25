@@ -80,7 +80,8 @@ Meals are added from a csv. A meals csv must have the columns (in this order, no
 - `recipe name`: must match a recipe in the db
 - `servings`: how many servings of this recipe were eaten on this date.
 
-A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated). One row per recipe eaten,
+A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated,
+although I think this will work fine if times-per-day are given in datetime.date format). One row per recipe eaten,
 but multiple rows for the same date are fine (and multiple dates fine).
 
 In the terminal, run:
