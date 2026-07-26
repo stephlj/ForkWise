@@ -97,8 +97,19 @@ To view nutritional content of a recipe logged in the database:
 python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
 ```
 
-To view nutritial totals for meals in a date range: WIP
-Note to self, use bools for `white flour` and `animal` to calculate, for ex, percent protein from animal sources, percent carbs from white flour.
+To view nutritial totals for meals in a date range: 
+```
+python ./src/forkwise/display_meal_totals.py <username> <user pw> <start_date> <end_date>
+```
+where `start_date` and `end_date` are in ISO format of YYYY-MM-DD.
+
+For example, if `test_fork_db.py` has run but without the teardown method, and you run: (note you'll have to modify `config.yml` to point at `test_fork_db`)
+```
+python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-05-12 2026-07-05
+```
+the result is this plot:
+
+![Ex meals plot](img/Ex_PlotMeals.png)
 
 ## Getting started
 
