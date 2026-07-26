@@ -1,6 +1,7 @@
 .DS_Store
 src/.DS_Store
 tests/.DS_Store
+src/forkwise/schema_EDL.txt
 
 # Python-generated files
 __pycache__/
