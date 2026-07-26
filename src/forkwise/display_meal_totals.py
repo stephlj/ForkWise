@@ -1,0 +1,92 @@
+# Simple CLI to display information about a meals eaten in a date range.
+# 
+# Copyright (c) 2026 Stephanie Johnson
+
+import sys
+import logging
+import yaml
+import numpy as np
+import matplotlib.pyplot as plt
+
+from datetime import date
+from typing import List
+
+from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving
+from forkwise.fork_db import ForkDB
+
+def display_meals_info(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH):
+    """
+    Retrieve info on meals eaten in date_range from the db, calculate info per day, print info to command line.
+    """
+
+    with open(path_to_config, "r") as config_file:
+        config = yaml.safe_load(config_file)
+        db_name = config["db"]["db_name"]
+
+    conn = ForkDB(user=username, pw=pw, db_name=db_name)
+    meals = conn.get_meals_in_dates(date_range=date_range)
+
+    # Meals is a list of Meals. A Meal contains a list of Recipes (and servings of those Recipes) eaten on one date.
+    # I want to plot total calories, total protein etc on y against dates on x.
+
+    dates = []
+    tot_cal = []
+    tot_prot = []
+    tot_sugar = []
+    tot_fiber = []
+    # to add: fraction total protein from animal sources, fraction carbs from white flour
+
+    for m in meals:
+        dates.append(m.date_eaten)
+        daily_cal = []
+        daily_prot = []
+        daily_sugar = []
+        daily_fiber = []
+        for i in range(0,len(m.recipes)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
+            recipe = conn.get_recipe_totals(recipe_name=m.recipes[i])
+            totals = calc_totals_per_serving(recipe=recipe)
+            daily_cal.append(totals.cal*m.servings_eaten[i])
+            daily_prot.append(totals.protein_grams*m.servings_eaten[i])
+            daily_sugar.append(totals.sugar_grams*m.servings_eaten[i])
+            daily_fiber.append(totals.fiber_grams*m.servings_eaten[i])
+        tot_cal.append(sum(daily_cal))
+        tot_prot.append(sum(daily_prot))
+        tot_sugar.append(sum(daily_sugar))
+        tot_fiber.append(sum(daily_fiber))
+
+    conn.close()
+
+    # plt.plot(dates, tot_cal, 'ob')
+    # plt.xlabel("Date")
+    # plt.ylabel("Calories")
+
+    _, axs = plt.subplots(2, 1)
+    plt.subplots_adjust(hspace=0.5)
+
+    axs[0].plot(dates,tot_cal,'ob')
+    axs[0].set_xlabel("Date")
+    axs[0].set_ylabel("Calories")
+    axs[0].tick_params(axis='x', rotation=45)
+
+    grouped_totals = {"Protein": tot_prot, "Sugar": tot_sugar, "Fiber": tot_fiber}
+    x = np.arange(len(dates))
+    width = 0.25
+    for i, (label, values) in enumerate(grouped_totals.items()):
+        axs[1].bar(x + i * width, values, width, label=label)
+    axs[1].set_xticks(x + width, dates)
+    axs[1].set_xlabel("Date")
+    axs[1].set_ylabel("Grams")
+    axs[1].legend()
+
+    plt.show()
+
+
+if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
+
+    if len(sys.argv) != 5:
+        raise ValueError("fork_init takes 4 args: (1) user name to connect to the db, (2) user pw, (3) start date to plot, (4) end date")
+    
+    logging.basicConfig(level="INFO", format=DEFAULT_LOGGING_FORMAT)
+    
+    display_meals_info(date_range=[date.fromisoformat(sys.argv[3]),date.fromisoformat(sys.argv[4])], username=sys.argv[1], pw=sys.argv[2])

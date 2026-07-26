@@ -6,25 +6,8 @@ import sys
 import logging
 import yaml
 
-from dataclasses import fields
-
-from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH
+from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import Recipe, FoodProps
-
-def calc_totals_per_serving(recipe: Recipe)->FoodProps:
-    """
-    Given a Recipe, calculate totals per serving, returning as a FoodProps object.
-    """
-
-    return FoodProps(cal=recipe.props.cal/recipe.servings,
-                     fat_grams=recipe.props.fat_grams/recipe.servings,
-                     protein_grams=recipe.props.protein_grams/recipe.servings,
-                     fiber_grams=recipe.props.fiber_grams/recipe.servings,
-                     sugar_grams=recipe.props.sugar_grams/recipe.servings,
-                     carb_grams=recipe.props.carb_grams/recipe.servings,
-                     white_flour=recipe.props.white_flour,
-                     animal=recipe.props.animal)
 
 def display_recipe_info(recipe_name: str, username: str, pw: str, path_to_config: str=CONFIG_PATH):
     """

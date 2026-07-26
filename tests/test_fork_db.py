@@ -4,6 +4,7 @@ import unittest
 import os
 
 from psycopg import errors as psql_errors
+from datetime import date
 
 import dbcommons.testing_utils as utils
 from forkwise.fork_init import fork_init
@@ -37,16 +38,20 @@ class TestForkDB(unittest.TestCase):
         utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
     
     def test_add_ingredients_via_staging(self):
-        path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients_part.csv")
+        path_to_ingr_csv_wrong_units = os.path.join(TEST_DATA_PATH, "test_ingredients_wrong_units.csv")
+        path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
 
         num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv)
         
         # TODO use pandas instead of hard-coding number of lines?
         self.assertEqual(num_rows_added, 8, "Incorrect number of rows added to ingredients table")
 
+        num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_wrong_units)
+        self.assertEqual(num_rows_added, 1, "Failed to properly add only non-duplicate ingredients with correct units")
+        
         num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_some_dups)
-        self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients")
+        self.assertEqual(num_rows_added, 1, "Failed to properly add only non-duplicate ingredients")
 
     def test_add_recipe_via_staging(self):
         path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe.csv")
@@ -64,6 +69,17 @@ class TestForkDB(unittest.TestCase):
         # Now add the missing ingredients:
         # Note there's a deliberate case mismatch between ingredient names here vs test_recipe.csv
         self.conn.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr.csv"))
+
+        # Test that we still can't add the recipe if there's a unit category mismatch:
+        path_to_recipe_csv_wrong_units = os.path.join(TEST_DATA_PATH, "test_recipe_wrong_units.csv")
+        with self.assertRaises(ValueError):
+            self.conn.add_recipe_via_staging(
+                path_to_recipe_csv=path_to_recipe_csv_wrong_units, 
+                name="grilled asparagus", 
+                servings=2,
+                servings_amt=0.5,
+                servings_units='lbs'
+                )
 
         # Note that add_recipe_via_staging returns number of rows added to ingredients table
         self.assertEqual(
@@ -142,10 +158,48 @@ class TestForkDB(unittest.TestCase):
         self.assertEqual(totals.servings_amt, 1)
 
         # Test that unit conversion fails if units in ingredients vs pantry_items are mismatched types:
-        self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
-                                         name="wrong cocoa",
-                                         servings=2,
-                                         servings_amt=1,
-                                         servings_units="c")
-        with self.assertRaises(ValueError):
-            self.conn.get_recipe_totals(recipe_name="wrong cocoa")
+        # We now check for this on recipe load (so can't even add the recipe here)
+        # self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
+        #                                  name="wrong cocoa",
+        #                                  servings=2,
+        #                                  servings_amt=1,
+        #                                  servings_units="c")
+        # with self.assertRaises(ValueError):
+        #     self.conn.get_recipe_totals(recipe_name="wrong cocoa")
+
+    def test_get_meals_in_dates(self):
+        # Add meals, recipes, ingredients unique to this test
+        path_to_ingr_csv = os.path.join(TEST_DATA_PATH, "test_meals2_ingr.csv")
+        path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_meals2_recipe.csv")
+        path_to_recipe2_csv = os.path.join(TEST_DATA_PATH, "test_meals2_recipe2.csv")
+        path_to_recipe3_csv = os.path.join(TEST_DATA_PATH, "test_meals2_recipe3.csv")
+        path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals2.csv")
+
+        self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv) #has an extraneous ingredient just for extra testing
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv,
+                                            name="hummus", 
+                                            servings=8,
+                                            servings_amt=0.5,
+                                            servings_units='c')
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe2_csv, 
+                                             name="toast", 
+                                             servings=1,
+                                             servings_amt=1, 
+                                             servings_units='unit')
+        self.conn.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe3_csv, 
+                                             name="soy cocoa", 
+                                             servings=1,
+                                             servings_amt=1, 
+                                             servings_units='c')
+        self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv)
+        
+        # TODO These tests may fail because I need to sort by date in order to index the way I am ... 
+        # Test date selection:
+        meals = self.conn.get_meals_in_dates(date_range=[date(year=2026,month=5,day=20),date(year=2026,month=7,day=5)])
+        self.assertTrue(meals[0].recipes[1]=='soy cocoa')
+        self.assertTrue(meals[1].servings_eaten[0]==1.5)
+
+        # Test grouping:
+        meals = self.conn.get_meals_in_dates(date_range=[date(year=2026,month=5,day=12),date(year=2026,month=7,day=5)])
+        self.assertEqual(len(meals),3)
+        self.assertTrue(len(meals[0].recipes)==1)

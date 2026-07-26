@@ -20,8 +20,9 @@ Since I don't yet have a BLL that checks/fixes file format, the db will only acc
 
 - lbs not lb as a unit of weight
 - c not cup
+- no whitespace characters around units
 
-But units are case insensitive.
+But units are case INsensitive.
 
 ### Add ingredients
 
@@ -79,7 +80,8 @@ Meals are added from a csv. A meals csv must have the columns (in this order, no
 - `recipe name`: must match a recipe in the db
 - `servings`: how many servings of this recipe were eaten on this date.
 
-A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated). One row per recipe eaten,
+A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated,
+although I think this will work fine if times-per-day are given in datetime.date format). One row per recipe eaten,
 but multiple rows for the same date are fine (and multiple dates fine).
 
 In the terminal, run:
@@ -95,8 +97,19 @@ To view nutritional content of a recipe logged in the database:
 python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
 ```
 
-To view nutritial totals for meals in a date range: WIP
-Note to self, use bools for `white flour` and `animal` to calculate, for ex, percent protein from animal sources, percent carbs from white flour.
+To view nutritial totals for meals in a date range: 
+```
+python ./src/forkwise/display_meal_totals.py <username> <user pw> <start_date> <end_date>
+```
+where `start_date` and `end_date` are in ISO format of YYYY-MM-DD.
+
+For example, if `test_fork_db.py` has run but without the teardown method, and you run: (note you'll have to modify `config.yml` to point at `test_fork_db`)
+```
+python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-05-12 2026-07-05
+```
+the result is this plot:
+
+![Ex meals plot](img/Ex_PlotMeals.png)
 
 ## Getting started
 
@@ -120,6 +133,10 @@ psql -U <user_name> -d fork_db
 
 
 ## Dev
+
+![Schema diagram](img/schema.png)
+
+*Schema diagram made at [QuickDataBaseDiagrams.com](https://app.quickdatabasediagrams.com), using a manual run of SQL_to_EDL.py from DBCommons (so inconsistency with actual db schema is possible!)*
 
 This package uses `uv` for package and virtual environment management, based on the very helpful tutorials at [Sebastia Agramunt Puig's blog](https://agramunt.me/posts/python-virtual-environments-with-uv/).
 

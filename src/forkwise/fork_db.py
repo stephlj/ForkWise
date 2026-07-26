@@ -7,6 +7,7 @@ Copyright (c) 2026 Stephanie Johnson
 """
 
 import logging
+import pandas as pd
 
 from dataclasses import fields
 from datetime import date
@@ -14,7 +15,7 @@ from psycopg import errors as psql_errors
 from typing import List
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe
+from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe, Meal
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -97,7 +98,9 @@ class ForkDB(DBConn):
                 LEFT JOIN pantry_items p ON
                     LOWER(p.name) = LOWER(s.name) AND
                     {join_statements}
-                    WHERE p.id IS NULL
+                INNER JOIN unit_conversions u ON
+                    LOWER(s.units) = LOWER(u.unit)
+                WHERE p.id IS NULL
                 )
             INSERT INTO pantry_items ({col_names})
             SELECT *
@@ -106,6 +109,23 @@ class ForkDB(DBConn):
         """ 
         rows_added = self.execute_query(ingr_query)
         self._logger.info(f"Added {rows_added} to pantry_items table")
+
+        if len(rows_added) != rows_staged:
+            # This can be for two reasons: There were duplicates, which we ignore;
+            # or units didn't match anything in unit_conversions.
+            # Flag the latter:
+            q = """
+                SELECT s.name, s.units
+                FROM staging AS s
+                LEFT JOIN unit_conversions u ON
+                    LOWER(s.units) = LOWER(u.unit)
+                WHERE u.unit IS NULL;
+            """
+            unmatched_units = self.execute_query(q)
+            if len(unmatched_units) > 0:
+                msg = f"The following ingredients have units that aren't in the db and were skipped on load: {unmatched_units}"
+                self._logger.warning(msg)
+
         return len(rows_added)
     
         # TODO drop staging? or let csv_to_staging handle that?
@@ -148,21 +168,23 @@ class ForkDB(DBConn):
             self._logger.info(f"No recipe loaded from source file {path_to_recipe_csv} to staging table, will not be added to db")
             return 0
         
-        # A recipe can only be added if all ingredients are already in the db.
-        # Check first, error with a list of missing ingredients: TODO or should I return this list?
+        # A recipe can only be added if all ingredients are already in the db, with units in categories that match pantry_items.
+        # Check first, error with a list of missing ingredients:
         check_ingr = """
-            WITH joined AS (
-                SELECT s.*
-                FROM staging AS s
-                LEFT JOIN pantry_items p ON
-                    LOWER(p.name) = LOWER(s.ingr_name)
-                    WHERE p.id IS NULL
-            )
-            SELECT ingr_name FROM joined;
+            SELECT s.ingr_name, s.ingredient_units, p.units
+            FROM staging AS s
+            LEFT JOIN unit_conversions AS su ON
+                LOWER(su.unit) = LOWER(s.ingredient_units)
+            LEFT JOIN pantry_items p ON
+                LOWER(p.name) = LOWER(s.ingr_name)
+            LEFT JOIN unit_conversions AS pu ON
+                LOWER(pu.unit) = LOWER(p.units) AND
+                pu.category = su.category
+            WHERE p.id IS NULL OR pu.id IS NULL;
         """
         ingr_missing = self.execute_query(check_ingr)
         if len(ingr_missing) > 0:
-            msg = f"Cannot load recipe: {name}. Ingredients missing from db: {list(zip(*ingr_missing))}"
+            msg = f"Cannot load recipe: {name}. Ingredients missing from db and/or units aren't in db and/or unit category mismatch: (name, recipe units, db units) {ingr_missing}"
             self._logger.error(msg)
             raise ValueError(msg)
 
@@ -348,7 +370,7 @@ class ForkDB(DBConn):
         totals = self.execute_query(query,(recipe_tuple[0][0],))
 
         # Check that all units matched for conversions - otherwise the return from COUNT won't match
-        # the number of ingredients in the recipe:
+        # the number of ingredients in the recipe: (note this should be checked on recipe load regardless)
         check_query=f"""
             SELECT COUNT(*)
             FROM pantry_items AS p
@@ -380,9 +402,44 @@ class ForkDB(DBConn):
                       props = ingr_props
                       )
     
-    def get_recipes_in_dates(self, date_range: List[date]) -> List[Recipe]:
-        # TODO do I want this to be totals or recipes? I think Recipes
-        # REMEMBER: Recipe totals are per recipe, not per serving - if a recipe makes 2 servings,
-        # get_recipe_totals will return totals for 2 servings. If a meal is 1 serving - need to do some math
-        # (Calc meal or within date totals - need to normalize recipe totals per serving! (And then multiply servings in meals))
-        pass
+    def get_meals_in_dates(self, date_range: List[date]) -> List[Meal]:
+        """
+        Return a list of Meals in a date range.
+        """
+
+        if len(date_range) != 2:
+            log_msg = f"Date range must be list of length 2; got instead {date_range}"
+            self._logger.error(log_msg)
+            raise ValueError(log_msg)
+        
+        if (type(date_range[0]) != date) or (type(date_range[1]) != date):
+            # date_range.sort() will do the wrong thing if this isn't date format
+            log_msg = f"Date range must be in datetime.date format; got instead {date_range}"
+            self._logger.error(log_msg)
+            raise TypeError(log_msg)
+        
+        date_range.sort()
+
+        query = """
+            SELECT m.date, m.recipe_servings, r.name
+            FROM meals AS m
+            LEFT JOIN recipes AS r ON
+                r.id = m.recipe_id
+            WHERE date BETWEEN %s AND %s;
+        """
+
+        recipes = self.execute_query(query, (date_range[0],date_range[1]))
+
+        meal_df = pd.DataFrame({"date_eaten":[r[0] for r in recipes],
+                                "servings": [r[1] for r in recipes],
+                                "name": [r[2] for r in recipes]
+                                })
+        grouped = meal_df.groupby("date_eaten")
+        dates = list(grouped.groups.keys())
+        meals = []
+        for m in range(0,grouped.ngroups):
+            meals.append(Meal(date_eaten=grouped.get_group(dates[m]).date_eaten.to_list()[0],
+                              recipes=grouped.get_group(dates[m]).name.to_list(),
+                              servings_eaten=grouped.get_group(dates[m]).servings.to_list()
+                              ))
+        return meals
