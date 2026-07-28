@@ -94,18 +94,17 @@ class ForkDB(DBConn):
         # TODO implement an API call to fix such instances.
         join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in ingr_col_defs[1:])
         check_dups = f"""
-            SELECT s.name
+            SELECT s.name, p.name
             FROM staging AS s
             INNER JOIN pantry_items p ON
-                LOWER(p.name) = LOWER(s.name) AND
                 {join_statements}
             ;
         """
         dups = self.execute_query(check_dups)
         if len(dups)>0:
-            msg=f"Source file {path_to_ingr_csv} contains rows identical to existing pantry items except for the name: {list(zip(*dups))}"
+            msg=f"Source file {path_to_ingr_csv} contains rows identical to existing pantry items except for the name: (name in file, name in db) {dups}"
             self._logger.warning(msg)
-            
+
         ingr_query = f"""
             INSERT INTO pantry_items ({col_names})
             SELECT s.*
