@@ -91,18 +91,14 @@ class ForkDB(DBConn):
         # """   
         
         ingr_query = f"""
-            WITH joined AS (
-                SELECT s.*
+            INSERT INTO pantry_items ({col_names})
+            SELECT s.*
                 FROM staging AS s
                 LEFT JOIN pantry_items p ON
                     LOWER(p.name) = LOWER(s.name)
                 INNER JOIN unit_conversions u ON
                     LOWER(s.units) = LOWER(u.unit)
                 WHERE p.id IS NULL
-                )
-            INSERT INTO pantry_items ({col_names})
-            SELECT *
-            FROM joined
             RETURNING *;
         """ 
         rows_added = self.execute_query(ingr_query)
