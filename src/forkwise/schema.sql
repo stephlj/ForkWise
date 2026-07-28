@@ -26,7 +26,7 @@ CREATE TABLE unit_conversions(
 
 CREATE TABLE pantry_items(
     id SERIAL PRIMARY KEY,
-    name text NOT NULL,
+    name text UNIQUE NOT NULL,
     unitary_amt real NOT NULL, /* Basic unit of measure for this ingredient, e.g. 28 for one 28 oz can */
     units text NOT NULL, /* for one 28 oz can unitary_amt, this would be oz */
     cal real NOT NULL, /* calories per unitary_amt */
@@ -36,8 +36,7 @@ CREATE TABLE pantry_items(
     sugar_grams real NOT NULL, /* per unitary_amt */
     carb_grams real NOT NULL, /* per unitary_amt */
     white_flour boolean NOT NULL, /* if a white flour product, total g per unitary_amt */
-    animal boolean NOT NULL, /* is this an animal-derived product or not */
-    UNIQUE (name, unitary_amt, units)
+    animal boolean NOT NULL /* is this an animal-derived product or not */
 );
 
 CREATE TABLE recipes(

@@ -67,7 +67,7 @@ class ForkDB(DBConn):
         return len(rows_added)
     
     def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
-        # Will skip any row for which (name, unitary_amt, units) are already in the db.
+        # Will skip any row for which ingredient name is already in the db.
         # Returns number of rows added to pantry_items table.
 
         # TODO is there a way to avoid having to know PantryItem props needs to be special cased?
