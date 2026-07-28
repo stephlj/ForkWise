@@ -90,14 +90,12 @@ class ForkDB(DBConn):
         #     RETURNING *;
         # """   
         
-        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in ingr_col_defs[1:])
         ingr_query = f"""
             WITH joined AS (
                 SELECT s.*
                 FROM staging AS s
                 LEFT JOIN pantry_items p ON
-                    LOWER(p.name) = LOWER(s.name) AND
-                    {join_statements}
+                    LOWER(p.name) = LOWER(s.name)
                 INNER JOIN unit_conversions u ON
                     LOWER(s.units) = LOWER(u.unit)
                 WHERE p.id IS NULL
