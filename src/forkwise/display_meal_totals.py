@@ -5,7 +5,7 @@
 import sys
 import logging
 import yaml
-import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from datetime import date
@@ -56,10 +56,6 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
 
     conn.close()
 
-    # plt.plot(dates, tot_cal, 'ob')
-    # plt.xlabel("Date")
-    # plt.ylabel("Calories")
-
     _, axs = plt.subplots(2, 1)
     plt.subplots_adjust(hspace=0.5)
 
@@ -69,14 +65,11 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
     axs[0].tick_params(axis='x', rotation=45)
 
     grouped_totals = {"Protein": tot_prot, "Sugar": tot_sugar, "Fiber": tot_fiber}
-    x = np.arange(len(dates))
-    width = 0.25
-    for i, (label, values) in enumerate(grouped_totals.items()):
-        axs[1].bar(x + i * width, values, width, label=label)
-    axs[1].set_xticks(x + width, dates)
-    axs[1].set_xlabel("Date")
-    axs[1].set_ylabel("Grams")
-    axs[1].legend()
+    g_df = pd.DataFrame(grouped_totals)
+    pd_ax = g_df.plot.bar(ax=axs[1],rot=0)
+    pd_ax.set_xlabel("Date")
+    pd_ax.set_ylabel("Grams")
+    pd_ax.legend()
 
     plt.show()
 
