@@ -49,7 +49,7 @@ Ingredients are loaded from a csv. The csv must have columns (in this order, no 
 
 E.g. for a can of black beans, `name` might be "black beans", `unitary amount` might be 24, `units` might be "oz". `Animal` would be True only if the beans were cooked in animal fat, for example.
 
-As many ingredients as you want can be added per csv, one per row.
+As many ingredients as you want can be added per csv, one per row. Ingredients with the same name as an ingredient in the db will be skipped; a warning will show if an ingredient is added that is identical to an existing entry *except* for the name (e.g., if "black beans" is in the db and a new ingredient with identical unitary amount, calories etc is added as "black beans can"), but that potential duplicate will be added.
 
 In the terminal, run:
 
