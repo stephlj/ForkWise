@@ -103,6 +103,14 @@ To view nutritional content of a recipe logged in the database:
 ```
 python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
 ```
+For example, if `test_fork_db.py` has run but without the teardown method, and you run: (note you'll have to modify `config.yml` to point at `test_fork_db`)
+```
+python ./src/forkwise/display_recipe_totals.py test_fork_user pw hummus
+```
+the result is:
+
+![Ex nutritional info](img/Ex_NutritionalTotals.png)
+
 
 To view nutritial totals for meals in a date range: 
 ```
