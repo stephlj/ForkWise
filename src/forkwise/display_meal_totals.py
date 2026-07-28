@@ -57,13 +57,13 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
     conn.close()
 
     _, axs = plt.subplots(2, 1)
-    plt.subplots_adjust(hspace=0.5)
+    plt.subplots_adjust(hspace=0.5) # from claude
 
     # Plot cal per date
     axs[0].plot(dates,tot_cal,'ob')
     axs[0].set_xlabel("Date")
     axs[0].set_ylabel("Calories")
-    axs[0].tick_params(axis='x', rotation=45)
+    axs[0].tick_params(axis='x', rotation=45) # from claude
 
     # plot grams of protein, sugar, fiber per day
     grouped_totals = {"Protein": tot_prot, "Sugar": tot_sugar, "Fiber": tot_fiber}
