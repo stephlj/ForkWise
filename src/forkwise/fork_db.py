@@ -27,7 +27,7 @@ class ForkDB(DBConn):
         return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
     
     def list_all_recipes(self) -> List[str]:
-        name_tuples = self.execute_query("SELECT name FROM recipes;")
+        name_tuples = self.execute_query("SELECT name FROM recipes ORDER BY name;")
         return [a[0] for a in name_tuples]
         # print("\n".join([a for a, _ in name_tuples]))
     
