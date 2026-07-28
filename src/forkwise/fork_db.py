@@ -91,14 +91,14 @@ class ForkDB(DBConn):
         # """   
         
         # WARN if an ingredient is added under a different name but every other value the same.
-        # TODO implement an API call to fix such instances.
+        # TODO move this to the BLL (and refactor all such things out of this class)
         join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in ingr_col_defs[1:])
         check_dups = f"""
             SELECT s.name, p.name
             FROM staging AS s
             INNER JOIN pantry_items p ON
                 {join_statements}
-            ;
+            WHERE s.name != p.name;
         """
         dups = self.execute_query(check_dups)
         if len(dups)>0:
