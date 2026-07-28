@@ -1,16 +1,23 @@
 # ForkWise: Nutrition tracking app
 
-![Schema diagram](img/schema.png)
+ForkWise is designed around the principle that the first step towards making a change is, in health and nutrition as in many areas
+of life, observation and tracking. ForkWise aims for enough accuracy to produce actionable data without such a high burden of data
+entry as to be unuseable.
 
-*Schema diagram made at [QuickDataBaseDiagrams.com](https://app.quickdatabasediagrams.com), using SQL_to_EDL.py from [FinTracker](https://github.com/stephlj/FinTrackr) (so inconsistency with actual db schema is possible!)*
+ForkWise logs daily meals and reports total calories, as well as fiber, sugar, and protein. Meals are recorded as instances of 
+recipes that are stored in the database and are constructed from a basic set of ingredients. Amounts are intended to be ballpark; if you put a bit more cream cheese on your bagel this morning, don't worry about it. Ingredients are representative of a class - 
+different brands of bagels will have slightly different nutritional content per bagel, but not enough to move the needle of healthy fitness goals (and enumerating meals by bagel brand represents too high a burden).
+
+Progress towards health goals will fall out of the data provided by ForkWise; if I know that 20% of my daily sugar intake comes from 
+one particular source, then that's the first place to look if I'm interested in reducing my daily sugar intake.
 
 ## Inputs
 
-MVP: All inputs via csv. User provides csv of meals eaten on particular dates, corresponding to recipes in the db; formats specified below.
+MVP: All inputs via csv. User provides csv of meals eaten on particular dates, corresponding to recipes in the db; formats specified below. Obviously this is not ideal for low burden of data entry, but it's a place to start.
 
-v2: Extract recipes from URLs, get ingredient nutritional info from web search.
+Later versions: Extract recipes from URLs and/or images, get ingredient nutritional info from web search and/or images. GUI for meal logging.
 
-Security: the database runs locally, nothing leaves your machine.
+Security: the database is hosted locally, nothing leaves your machine.
 
 ## Example usage
 
@@ -81,7 +88,7 @@ Meals are added from a csv. A meals csv must have the columns (in this order, no
 - `servings`: how many servings of this recipe were eaten on this date.
 
 A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated,
-although I think this will work fine if times-per-day are given in datetime.date format). One row per recipe eaten,
+although I think this will work fine if times-per-day are entered in ISO format - TODO check). One row per recipe eaten,
 but multiple rows for the same date are fine (and multiple dates fine).
 
 In the terminal, run:
@@ -131,6 +138,9 @@ To connect directly to the db via the terminal: TODO why don't I need to pass a 
 psql -U <user_name> -d fork_db
 ```
 
+## Version log
+
+v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Use it for a week or so, see where the pain points are and design a better data entry interface.
 
 ## Dev
 
