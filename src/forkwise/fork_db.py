@@ -76,7 +76,7 @@ class ForkDB(DBConn):
         rows_staged = self.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=ingr_col_defs)
 
         if rows_staged == 0:
-            self._logger.info("No ingredients loaded from source file to staging table; no ingredeints will be added to db")
+            self._logger.info(f"No ingredients loaded from source file {path_to_ingr_csv} to staging table; no ingredeints will be added to db")
             return 0
         
         col_names = ", ".join(f'{a}' for a, _ in ingr_col_defs)
@@ -90,6 +90,22 @@ class ForkDB(DBConn):
         #     RETURNING *;
         # """   
         
+        # WARN if an ingredient is added under a different name but every other value the same.
+        # TODO implement an API call to fix such instances.
+        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in ingr_col_defs[1:])
+        check_dups = f"""
+            SELECT s.name
+            FROM staging AS s
+            INNER JOIN pantry_items p ON
+                LOWER(p.name) = LOWER(s.name) AND
+                {join_statements}
+            ;
+        """
+        dups = self.execute_query(check_dups)
+        if len(dups)>0:
+            msg=f"Source file {path_to_ingr_csv} contains rows identical to existing pantry items except for the name: {list(zip(*dups))}"
+            self._logger.warning(msg)
+            
         ingr_query = f"""
             INSERT INTO pantry_items ({col_names})
             SELECT s.*

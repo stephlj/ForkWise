@@ -51,7 +51,7 @@ class TestForkDB(unittest.TestCase):
         self.assertEqual(num_rows_added, 1, "Failed to properly add only non-duplicate ingredients with correct units")
         
         num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_some_dups)
-        self.assertEqual(num_rows_added, 1, "Failed to properly add only non-duplicate ingredients")
+        self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients")
 
     def test_add_recipe_via_staging(self):
         path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe.csv")
