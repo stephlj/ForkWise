@@ -30,6 +30,11 @@ class ForkDB(DBConn):
         name_tuples = self.execute_query("SELECT name FROM recipes ORDER BY name;")
         return [a[0] for a in name_tuples]
         # print("\n".join([a for a, _ in name_tuples]))
+
+    def list_all_ingredients(self) -> List[str]:
+        # Note what the user calls ingredients, the db calls pantry items
+        name_tuples = self.execute_query("SELECT name FROM pantry_items ORDER BY name;")
+        return [a[0] for a in name_tuples]
     
     def add_conversions(self, path_to_conversions_csv: str) -> int:
         # Add new unit conversions from a csv (mostly used during db init)
