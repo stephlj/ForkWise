@@ -36,6 +36,10 @@ class ForkDB(DBConn):
         name_tuples = self.execute_query("SELECT name FROM pantry_items ORDER BY name;")
         return [a[0] for a in name_tuples]
     
+    #TODO
+    def list_ingredients_per_recipe(self) -> List[str]:
+        pass
+    
     def add_conversions(self, path_to_conversions_csv: str) -> int:
         # Add new unit conversions from a csv (mostly used during db init)
         # In future versions of Forkwise this will be pulled from the internet

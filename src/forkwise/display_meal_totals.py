@@ -9,22 +9,42 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from datetime import date
+from collections import namedtuple
 from typing import List
+from forkwise.fork_dataclasses import Meal, Recipe
 
 from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving
 from forkwise.fork_db import ForkDB
+
+RecipesPerDate = namedtuple('RecipesPerDate',[('date_eaten',date),('recipe_list',List[Recipe])])
+
+def get_meals(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH) -> List[RecipesPerDate]:
+    with open(path_to_config, "r") as config_file:
+        config = yaml.safe_load(config_file)
+        db_name = config["db"]["db_name"]
+
+    conn = ForkDB(user=username, pw=pw, db_name=db_name)
+    meals_list = conn.get_meals_in_dates(date_range=date_range)
+
+    meals=[]
+    # TODO just change get_meals_in_dates to return this named tuple? This is goofy
+    for m in meals:
+        this_date = m.date_eaten
+        todays_recipes = []
+        for i in range(0,len(m.recipes)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
+            todays_recipes.append(conn.get_recipe_totals(recipe_name=m.recipes[i])) #get_recipe_totals returns a Recipe
+        meals.append(RecipesPerDate(date_eaten=this_date, recipe_list=todays_recipes))
+
+    conn.close()
+
+    return meals
 
 def display_meals_info(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH):
     """
     Retrieve info on meals eaten in date_range from the db, calculate info per day, print info to command line.
     """
 
-    with open(path_to_config, "r") as config_file:
-        config = yaml.safe_load(config_file)
-        db_name = config["db"]["db_name"]
-
-    conn = ForkDB(user=username, pw=pw, db_name=db_name)
-    meals = conn.get_meals_in_dates(date_range=date_range)
+    meals = get_meals(date_range=date_range, username=username, pw=pw, path_to_config=path_to_config)
 
     # Meals is a list of Meals. A Meal contains a list of Recipes (and servings of those Recipes) eaten on one date.
     # I want to plot total calories, total protein etc on y against dates on x.
@@ -54,7 +74,7 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
         tot_sugar.append(sum(daily_sugar))
         tot_fiber.append(sum(daily_fiber))
 
-    conn.close()
+    # TODO print recipe names per day
 
     _, axs = plt.subplots(2, 1)
     plt.subplots_adjust(hspace=0.5) # from claude
@@ -76,6 +96,10 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
 
     plt.show()
 
+def display_meal_breakdown(date_eaten: date, username: str, pw: str, path_to_config: str=CONFIG_PATH):
+    
+    meals = get_meals(date_range=[date_eaten, date_eaten], username=username, pw=pw, path_to_config=path_to_config)
+
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
@@ -85,4 +109,7 @@ if __name__ == "__main__":
     
     logging.basicConfig(level="INFO", format=DEFAULT_LOGGING_FORMAT)
     
-    display_meals_info(date_range=[date.fromisoformat(sys.argv[3]),date.fromisoformat(sys.argv[4])], username=sys.argv[1], pw=sys.argv[2])
+    if date.fromisoformat(sys.argv[3])==date.fromisoformat(sys.argv[4]):
+        display_meal_breakdown(date_eaten=date.fromisoformat(sys.argv[3]), username=sys.argv[1], pw=sys.argv[2])
+    else:
+        display_meals_info(date_range=[date.fromisoformat(sys.argv[3]),date.fromisoformat(sys.argv[4])], username=sys.argv[1], pw=sys.argv[2])
