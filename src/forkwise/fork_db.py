@@ -68,7 +68,7 @@ class ForkDB(DBConn):
             RETURNING *;
         """ 
         rows_added = self.execute_query(conv_query)
-        self._logger.info(f"Added {rows_added} to unit_conversions table")
+        self._logger.debug(f"Added {rows_added} to unit_conversions table")
         return len(rows_added)
     
     def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:

@@ -139,7 +139,7 @@ where `admin_pw` is the pw to set for `admin_name` account (see config file for 
 
 Add new users:
 ```
-python ./src/forkwise/add_fork_user.py <new_user_name> <new_user> <admin_pw>
+python ./src/forkwise/add_fork_user.py <new_user_name> <new_user_pw> <admin_pw>
 ```
 
 To connect directly to the db via the terminal: TODO why don't I need to pass a pw ... 

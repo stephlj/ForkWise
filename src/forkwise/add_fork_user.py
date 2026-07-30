@@ -15,7 +15,7 @@ def add_fork_user(new_user_name: str, new_user_pw: str, admin_pw: str, path_to_c
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         raise ValueError("add_fork_user takes 3 args: new user name, new user pw, admin pw")
     
     logging.basicConfig(level="INFO", format=DEFAULT_LOGGING_FORMAT)
