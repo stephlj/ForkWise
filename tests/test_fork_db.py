@@ -38,9 +38,13 @@ class TestForkDB(unittest.TestCase):
         utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
     
     def test_add_ingredients_via_staging(self):
+        path_to_ingr_csv_dups = os.path.join(TEST_DATA_PATH,"test_ingredients_part_dups.csv")
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients_part.csv")
         path_to_ingr_csv_wrong_units = os.path.join(TEST_DATA_PATH, "test_ingredients_wrong_units.csv")
         path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
+
+        with self.assertRaises(psql_errors.UniqueViolation):
+            self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_dups)
 
         num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv)
         # TODO use pandas instead of hard-coding number of lines?
