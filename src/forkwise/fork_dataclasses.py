@@ -62,7 +62,9 @@ class Ingredient:
         yield self.ingredient_units
 
 @dataclass
-class Recipe:
+class Recipe: 
+    # In the db, a recipe is associated with a list of ingredients (pantry items in particular amounts)
+    # But in the python layer, a Recipe is a set of FoodProps that those ingredients result in
     name: str = field(metadata={'sql_type':'text'})
     servings: float = field(metadata={'sql_type':'real'})
     servings_amt: float = field(metadata={'sql_type':'real'})
@@ -78,7 +80,7 @@ class Recipe:
 
 @dataclass
 class Meal:
-    recipe_names: List[str]
+    recipes: List[Recipe]
     servings_eaten: List[float]
     date_eaten: date
 

@@ -40,7 +40,19 @@ def get_meals(date_range: List[date], username: str, pw: str, path_to_config: st
 
     return meals
 
-def display_meals_info(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH):
+def calc_daily_totals(meals_list: List[RecipesPerDate]) -> tuple[List,List,List,List,List,List,List]:
+    """
+    Given a list of RecipesPerDate, return lists of:
+    dates
+    names
+    total cal per date
+    total protein per date
+    total sugar per date
+    total fiber per date
+    total fat per date
+    """
+
+def display_meals_info(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH) -> None:
     """
     Retrieve info on meals eaten in date_range from the db, calculate info per day, print info to command line.
     """
@@ -98,7 +110,7 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
 
     plt.show()
 
-def display_meal_breakdown(date_eaten: date, username: str, pw: str, path_to_config: str=CONFIG_PATH):
+def display_meal_breakdown(date_eaten: date, username: str, pw: str, path_to_config: str=CONFIG_PATH) -> None:
     
     meals = get_meals(date_range=[date_eaten, date_eaten], username=username, pw=pw, path_to_config=path_to_config)
 

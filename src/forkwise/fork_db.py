@@ -422,7 +422,7 @@ class ForkDB(DBConn):
     
     def get_meals_in_dates(self, date_range: List[date]) -> List[Meal]:
         """
-        Return a list of Meals in a date range.
+        Return a list of Meals in a date range. date_range is a list of length 2.
         """
 
         if len(date_range) != 2:
@@ -452,12 +452,15 @@ class ForkDB(DBConn):
                                 "servings": [r[1] for r in recipes],
                                 "name": [r[2] for r in recipes]
                                 })
-        grouped = meal_df.groupby("date_eaten")
+        grouped = meal_df.groupby("date_eaten") # TODO sort dates in chronological order
         dates = list(grouped.groups.keys())
         meals = []
         for m in range(0,grouped.ngroups):
+            for r in grouped.get_group(dates[m]).name.to_list():
+                recipe_list = []
+                recipe_list.append(self.get_recipe_totals(recipe_name=r)) # get_recipe_totals returns a Recipe
             meals.append(Meal(date_eaten=grouped.get_group(dates[m]).date_eaten.to_list()[0],
-                              recipe_names=grouped.get_group(dates[m]).name.to_list(),
+                              recipes=recipe_list,
                               servings_eaten=grouped.get_group(dates[m]).servings.to_list()
                               ))
         return meals
