@@ -16,7 +16,14 @@ from forkwise.fork_dataclasses import Meal, Recipe
 from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving, calc_totals_eaten
 from forkwise.fork_db import ForkDB
 
-RecipesPerDate = namedtuple('RecipesPerDate',[('date_eaten',date),('recipe_list',List[Recipe]),('servings_eaten',List[float])])
+PropsPerDay = namedtuple('PropsPerDay',
+                         [('names',List[str])
+                          ('cal_list',List[float]),
+                          ('prot_list',List[float]),
+                          ('sugar_list',List[float]),
+                          ('fiber_list',List[float]),
+                          ('fat_list',List[float])
+                          ])
 
 def get_meals(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH) -> List[RecipesPerDate]:
     with open(path_to_config, "r") as config_file:
@@ -26,21 +33,11 @@ def get_meals(date_range: List[date], username: str, pw: str, path_to_config: st
     conn = ForkDB(user=username, pw=pw, db_name=db_name)
     meals_list = conn.get_meals_in_dates(date_range=date_range)
 
-    meals=[]
-    # TODO just change get_meals_in_dates to return a list of Recipes instead of recipe names? This is goofy,
-    # and probably not performant to have calls to the db in a for loop
-    for m in meals_list:
-        this_date = m.date_eaten
-        todays_recipes = []
-        for i in range(0,len(m.recipe_names)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
-            todays_recipes.append(conn.get_recipe_totals(recipe_name=m.recipe_names[i])) #get_recipe_totals returns a Recipe
-        meals.append(RecipesPerDate(date_eaten=this_date, recipe_list=todays_recipes, servings_eaten=m.servings_eaten))
-
     conn.close()
 
-    return meals
+    return meals_list
 
-def calc_daily_totals(meals_list: List[RecipesPerDate]) -> tuple[List,List,List,List,List,List,List]:
+def calc_daily_totals(meals_list: List[Meal]) -> tuple[List[date],List[PropsPerDay]]:
     """
     Given a list of RecipesPerDate, return lists of:
     dates
