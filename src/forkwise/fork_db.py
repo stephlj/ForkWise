@@ -452,15 +452,15 @@ class ForkDB(DBConn):
                                 "servings": [r[1] for r in recipes],
                                 "name": [r[2] for r in recipes]
                                 })
-        grouped = meal_df.groupby("date_eaten") # TODO sort dates in chronological order
+        grouped = meal_df.groupby("date_eaten")
         dates = list(grouped.groups.keys())
         meals = []
-        for m in range(0,grouped.ngroups):
-            for r in grouped.get_group(dates[m]).name.to_list():
-                recipe_list = []
+        for d in dates:
+            recipe_list = []
+            for r in grouped.get_group(d).name.to_list():
                 recipe_list.append(self.get_recipe_totals(recipe_name=r)) # get_recipe_totals returns a Recipe
-            meals.append(Meal(date_eaten=grouped.get_group(dates[m]).date_eaten.to_list()[0],
+            meals.append(Meal(date_eaten=grouped.get_group(d).date_eaten.to_list()[0],
                               recipes=recipe_list,
-                              servings_eaten=grouped.get_group(dates[m]).servings.to_list()
+                              servings_eaten=grouped.get_group(d).servings.to_list()
                               ))
         return meals
