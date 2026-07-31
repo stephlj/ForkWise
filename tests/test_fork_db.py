@@ -199,10 +199,10 @@ class TestForkDB(unittest.TestCase):
         # TODO These tests may fail because I need to sort by date in order to index the way I am ... 
         # Test date selection:
         meals = self.conn.get_meals_in_dates(date_range=[date(year=2026,month=5,day=20),date(year=2026,month=7,day=5)])
-        self.assertTrue(meals[0].recipes[1]=='soy cocoa')
+        self.assertTrue(meals[0].recipe_names[1]=='soy cocoa')
         self.assertTrue(meals[1].servings_eaten[0]==1.5)
 
         # Test grouping:
         meals = self.conn.get_meals_in_dates(date_range=[date(year=2026,month=5,day=12),date(year=2026,month=7,day=5)])
         self.assertEqual(len(meals),3)
-        self.assertTrue(len(meals[0].recipes)==1)
+        self.assertTrue(len(meals[0].recipe_names)==1)

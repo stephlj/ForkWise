@@ -457,7 +457,7 @@ class ForkDB(DBConn):
         meals = []
         for m in range(0,grouped.ngroups):
             meals.append(Meal(date_eaten=grouped.get_group(dates[m]).date_eaten.to_list()[0],
-                              recipes=grouped.get_group(dates[m]).name.to_list(),
+                              recipe_names=grouped.get_group(dates[m]).name.to_list(),
                               servings_eaten=grouped.get_group(dates[m]).servings.to_list()
                               ))
         return meals

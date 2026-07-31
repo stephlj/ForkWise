@@ -13,10 +13,10 @@ from collections import namedtuple
 from typing import List
 from forkwise.fork_dataclasses import Meal, Recipe
 
-from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving
+from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving, calc_totals_eaten
 from forkwise.fork_db import ForkDB
 
-RecipesPerDate = namedtuple('RecipesPerDate',[('date_eaten',date),('recipe_list',List[Recipe])])
+RecipesPerDate = namedtuple('RecipesPerDate',[('date_eaten',date),('recipe_list',List[Recipe]),('servings_eaten',List[float])])
 
 def get_meals(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH) -> List[RecipesPerDate]:
     with open(path_to_config, "r") as config_file:
@@ -27,13 +27,14 @@ def get_meals(date_range: List[date], username: str, pw: str, path_to_config: st
     meals_list = conn.get_meals_in_dates(date_range=date_range)
 
     meals=[]
-    # TODO just change get_meals_in_dates to return this named tuple? This is goofy
-    for m in meals:
+    # TODO just change get_meals_in_dates to return a list of Recipes instead of recipe names? This is goofy,
+    # and probably not performant to have calls to the db in a for loop
+    for m in meals_list:
         this_date = m.date_eaten
         todays_recipes = []
-        for i in range(0,len(m.recipes)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
-            todays_recipes.append(conn.get_recipe_totals(recipe_name=m.recipes[i])) #get_recipe_totals returns a Recipe
-        meals.append(RecipesPerDate(date_eaten=this_date, recipe_list=todays_recipes))
+        for i in range(0,len(m.recipe_names)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
+            todays_recipes.append(conn.get_recipe_totals(recipe_name=m.recipe_names[i])) #get_recipe_totals returns a Recipe
+        meals.append(RecipesPerDate(date_eaten=this_date, recipe_list=todays_recipes, servings_eaten=m.servings_eaten))
 
     conn.close()
 
@@ -46,14 +47,12 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
 
     meals = get_meals(date_range=date_range, username=username, pw=pw, path_to_config=path_to_config)
 
-    # Meals is a list of Meals. A Meal contains a list of Recipes (and servings of those Recipes) eaten on one date.
-    # I want to plot total calories, total protein etc on y against dates on x.
-
     dates = []
     tot_cal = []
     tot_prot = []
     tot_sugar = []
     tot_fiber = []
+    tot_fat = []
     # to add: fraction total protein from animal sources, fraction carbs from white flour
 
     for m in meals:
@@ -62,17 +61,20 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
         daily_prot = []
         daily_sugar = []
         daily_fiber = []
-        for i in range(0,len(m.recipes)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
-            recipe = conn.get_recipe_totals(recipe_name=m.recipes[i])
-            totals = calc_totals_per_serving(recipe=recipe)
-            daily_cal.append(totals.cal*m.servings_eaten[i])
-            daily_prot.append(totals.protein_grams*m.servings_eaten[i])
-            daily_sugar.append(totals.sugar_grams*m.servings_eaten[i])
-            daily_fiber.append(totals.fiber_grams*m.servings_eaten[i])
+        daily_fat = []
+        for i in range(0,len(m.recipe_list)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
+            totals = calc_totals_per_serving(recipe=m.recipe_list[i])
+            totals_eaten = calc_totals_eaten(tots_per_serv=totals, servings_eaten=m.servings_eaten[i])
+            daily_cal.append(totals_eaten.cal)
+            daily_prot.append(totals_eaten.protein_grams)
+            daily_sugar.append(totals_eaten.sugar_grams)
+            daily_fiber.append(totals_eaten.fiber_grams)
+            daily_fat.append(totals_eaten.fat_grams)
         tot_cal.append(sum(daily_cal))
         tot_prot.append(sum(daily_prot))
         tot_sugar.append(sum(daily_sugar))
         tot_fiber.append(sum(daily_fiber))
+        tot_fat.append(sum(daily_fat))
 
     # TODO print recipe names per day
 
@@ -99,6 +101,8 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
 def display_meal_breakdown(date_eaten: date, username: str, pw: str, path_to_config: str=CONFIG_PATH):
     
     meals = get_meals(date_range=[date_eaten, date_eaten], username=username, pw=pw, path_to_config=path_to_config)
+
+    # Meals is still a list of recipes, but all for the same date.
 
 
 if __name__ == "__main__":

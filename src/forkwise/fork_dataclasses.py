@@ -78,7 +78,7 @@ class Recipe:
 
 @dataclass
 class Meal:
-    recipes: List[str] # List of recipe names
+    recipe_names: List[str]
     servings_eaten: List[float]
     date_eaten: date
 
