@@ -97,13 +97,15 @@ class ForkDB(DBConn):
         
         # WARN if an ingredient is added under a different name but every other value the same.
         # TODO move this to the BLL (and refactor all such things out of this class)
-        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in ingr_col_defs[1:])
+        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in ingr_col_defs[3:])
         check_dups = f"""
             SELECT s.name, p.name
             FROM staging AS s
             INNER JOIN pantry_items p ON
+                p.unitary_amt = s.unitary_amt AND
+                LOWER(p.units) = LOWER(s.units) AND
                 {join_statements}
-            WHERE s.name != p.name;
+            WHERE LOWER(s.name) != LOWER(p.name);
         """
         dups = self.execute_query(check_dups)
         if len(dups)>0:
@@ -122,7 +124,7 @@ class ForkDB(DBConn):
             RETURNING *;
         """ 
         rows_added = self.execute_query(ingr_query)
-        self._logger.info(f"Added {rows_added} to pantry_items table")
+        self._logger.debug(f"Added {rows_added} to pantry_items table")
 
         if len(rows_added) != rows_staged:
             # This can be for two reasons: There were duplicates, which we ignore;
@@ -253,7 +255,7 @@ class ForkDB(DBConn):
             RETURNING *;
         """
         rows_added = self.execute_query(ingredient_query, (recipe_id,))
-        self._logger.info(f"Added {rows_added} to ingredients table and recipe {name} to recipe table")
+        self._logger.debug(f"Added {rows_added} to ingredients table and recipe {name} to recipe table")
         
         # TODO drop staging? or let csv_to_staging handle that?
         return len(rows_added)

@@ -1,5 +1,6 @@
 oz,weight, 1
 lbs,weight, 16
+g,weight, 0.035
 tsp,volume, 1
 Tbsp,volume, 3
 c,volume, 48
