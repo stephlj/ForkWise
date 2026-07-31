@@ -103,6 +103,37 @@ def display_meal_breakdown(date_eaten: date, username: str, pw: str, path_to_con
     meals = get_meals(date_range=[date_eaten, date_eaten], username=username, pw=pw, path_to_config=path_to_config)
 
     # Meals is still a list of recipes, but all for the same date.
+    for m in meals:
+        names = []
+        cal = []
+        prot = []
+        sugar = []
+        fiber = []
+        fat = []
+        for i in range(0,len(m.recipe_list)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
+            names.append(m.recipe_list[i].name)
+            totals = calc_totals_per_serving(recipe=m.recipe_list[i])
+            totals_eaten = calc_totals_eaten(tots_per_serv=totals, servings_eaten=m.servings_eaten[i])
+            cal.append(totals_eaten.cal)
+            prot.append(totals_eaten.protein_grams)
+            sugar.append(totals_eaten.sugar_grams)
+            fiber.append(totals_eaten.fiber_grams)
+            fat.append(totals_eaten.fat_grams)
+
+        _, axs = plt.subplots(2, 3)
+
+        axs[0].pie(x=cal,labels=names)
+        axs[0].set_title("Calories")
+        axs[1].pie(x=prot,labels=names)
+        axs[1].set_title("Protein (g)")
+        axs[2].pie(x=sugar,labels=names)
+        axs[2].set_title("Sugar (g)")
+        axs[3].pie(x=fiber,labels=names)
+        axs[3].set_title("Fiber (g)")
+        axs[4].pie(x=fat,labels=names)
+        axs[4].set_title("Fat (g)")
+
+        plt.show()
 
 
 if __name__ == "__main__":
