@@ -28,3 +28,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(totals.cal, r.props.cal/r.servings)
         self.assertEqual(totals.carb_grams, r.props.carb_grams/r.servings)
         self.assertEqual(totals.animal, r.props.animal)
+
+    def test_calc_totals_eaten(self):
+        # TODO
+        pass

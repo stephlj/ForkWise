@@ -9,15 +9,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from datetime import date
-from collections import namedtuple
+# from collections import namedtuple
+from typing import NamedTuple
 from typing import List
 from forkwise.fork_dataclasses import Meal, Recipe
 
 from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving, calc_totals_eaten
 from forkwise.fork_db import ForkDB
 
-PropsPerDay = namedtuple('PropsPerDay',
-                         [('recipe_names',List[str])
+PropsPerDay = NamedTuple('PropsPerDay',
+                         [('recipe_names',List[str]),
                           ('cal_list',List[float]),
                           ('prot_list',List[float]),
                           ('sugar_list',List[float]),
@@ -25,7 +26,7 @@ PropsPerDay = namedtuple('PropsPerDay',
                           ('fat_list',List[float])
                           ])
 
-def get_meals(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH) -> List[RecipesPerDate]:
+def get_meals(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH) -> List[Meal]:
     with open(path_to_config, "r") as config_file:
         config = yaml.safe_load(config_file)
         db_name = config["db"]["db_name"]
@@ -41,7 +42,7 @@ def calc_daily_totals(meals_list: List[Meal]) -> tuple[List[date],List[PropsPerD
     """
     Given a list of Meals, return calorie, protein etc totals per recipe*servings per day.
 
-    # TODO return a dict?
+    # TODO return a dict? This feels fragile.
     """
     dates = []
     daily_props = []
@@ -54,9 +55,9 @@ def calc_daily_totals(meals_list: List[Meal]) -> tuple[List[date],List[PropsPerD
         daily_sugar = []
         daily_fiber = []
         daily_fat = []
-        for i in range(0,len(m.recipe)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
+        for i in range(0,len(m.recipes)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
             names.append(m.recipes[i].name)
-            totals = calc_totals_per_serving(recipe=m.recipes[i].name)
+            totals = calc_totals_per_serving(recipe=m.recipes[i])
             totals_eaten = calc_totals_eaten(tots_per_serv=totals, servings_eaten=m.servings_eaten[i])
             daily_cal.append(totals_eaten.cal)
             daily_prot.append(totals_eaten.protein_grams)
