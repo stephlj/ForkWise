@@ -17,7 +17,7 @@ from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_
 from forkwise.fork_db import ForkDB
 
 PropsPerDay = namedtuple('PropsPerDay',
-                         [('names',List[str])
+                         [('recipe_names',List[str])
                           ('cal_list',List[float]),
                           ('prot_list',List[float]),
                           ('sugar_list',List[float]),
@@ -39,15 +39,40 @@ def get_meals(date_range: List[date], username: str, pw: str, path_to_config: st
 
 def calc_daily_totals(meals_list: List[Meal]) -> tuple[List[date],List[PropsPerDay]]:
     """
-    Given a list of RecipesPerDate, return lists of:
-    dates
-    names
-    total cal per date
-    total protein per date
-    total sugar per date
-    total fiber per date
-    total fat per date
+    Given a list of Meals, return calorie, protein etc totals per recipe*servings per day.
+
+    # TODO return a dict?
     """
+    dates = []
+    daily_props = []
+    
+    for m in meals_list:
+        dates.append(m.date_eaten)
+        names = []
+        daily_cal = []
+        daily_prot = []
+        daily_sugar = []
+        daily_fiber = []
+        daily_fat = []
+        for i in range(0,len(m.recipe)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
+            names.append(m.recipes[i].name)
+            totals = calc_totals_per_serving(recipe=m.recipes[i].name)
+            totals_eaten = calc_totals_eaten(tots_per_serv=totals, servings_eaten=m.servings_eaten[i])
+            daily_cal.append(totals_eaten.cal)
+            daily_prot.append(totals_eaten.protein_grams)
+            daily_sugar.append(totals_eaten.sugar_grams)
+            daily_fiber.append(totals_eaten.fiber_grams)
+            daily_fat.append(totals_eaten.fat_grams)
+        daily_props.append(PropsPerDay(
+                                recipe_names=names,
+                                cal_list=daily_cal,
+                                prot_list=daily_prot,
+                                sugar_list=daily_sugar,
+                                fiber_list=daily_fiber,
+                                fat_list=daily_fat
+                                ))
+        
+    return (dates,daily_props)
 
 def display_meals_info(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH) -> None:
     """
@@ -55,6 +80,8 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
     """
 
     meals = get_meals(date_range=date_range, username=username, pw=pw, path_to_config=path_to_config)
+
+    dates, daily_props = calc_daily_totals(meals_list=meals)
 
     dates = []
     tot_cal = []
@@ -64,26 +91,12 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
     tot_fat = []
     # to add: fraction total protein from animal sources, fraction carbs from white flour
 
-    for m in meals:
-        dates.append(m.date_eaten)
-        daily_cal = []
-        daily_prot = []
-        daily_sugar = []
-        daily_fiber = []
-        daily_fat = []
-        for i in range(0,len(m.recipe_list)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
-            totals = calc_totals_per_serving(recipe=m.recipe_list[i])
-            totals_eaten = calc_totals_eaten(tots_per_serv=totals, servings_eaten=m.servings_eaten[i])
-            daily_cal.append(totals_eaten.cal)
-            daily_prot.append(totals_eaten.protein_grams)
-            daily_sugar.append(totals_eaten.sugar_grams)
-            daily_fiber.append(totals_eaten.fiber_grams)
-            daily_fat.append(totals_eaten.fat_grams)
-        tot_cal.append(sum(daily_cal))
-        tot_prot.append(sum(daily_prot))
-        tot_sugar.append(sum(daily_sugar))
-        tot_fiber.append(sum(daily_fiber))
-        tot_fat.append(sum(daily_fat))
+    for p in daily_props:
+        tot_cal.append(sum(p.cal_list))
+        tot_prot.append(sum(p.prot_list))
+        tot_sugar.append(sum(p.sugar_list))
+        tot_fiber.append(sum(p.fiber_list))
+        tot_fat.append(sum(p.fat_list))
 
     # TODO print recipe names per day
 
@@ -111,38 +124,22 @@ def display_meal_breakdown(date_eaten: date, username: str, pw: str, path_to_con
     
     meals = get_meals(date_range=[date_eaten, date_eaten], username=username, pw=pw, path_to_config=path_to_config)
 
-    # Meals is still a list of recipes, but all for the same date.
-    for m in meals:
-        names = []
-        cal = []
-        prot = []
-        sugar = []
-        fiber = []
-        fat = []
-        for i in range(0,len(m.recipe_list)): # TODO I don't think this should scramble (servings_eaten, recipe_name)? triple check
-            names.append(m.recipe_list[i].name)
-            totals = calc_totals_per_serving(recipe=m.recipe_list[i])
-            totals_eaten = calc_totals_eaten(tots_per_serv=totals, servings_eaten=m.servings_eaten[i])
-            cal.append(totals_eaten.cal)
-            prot.append(totals_eaten.protein_grams)
-            sugar.append(totals_eaten.sugar_grams)
-            fiber.append(totals_eaten.fiber_grams)
-            fat.append(totals_eaten.fat_grams)
+    _, daily_props = calc_daily_totals(meals_list=meals)
 
-        _, axs = plt.subplots(2, 3)
+    _, axs = plt.subplots(2, 3)
 
-        axs[0].pie(x=cal,labels=names)
-        axs[0].set_title("Calories")
-        axs[1].pie(x=prot,labels=names)
-        axs[1].set_title("Protein (g)")
-        axs[2].pie(x=sugar,labels=names)
-        axs[2].set_title("Sugar (g)")
-        axs[3].pie(x=fiber,labels=names)
-        axs[3].set_title("Fiber (g)")
-        axs[4].pie(x=fat,labels=names)
-        axs[4].set_title("Fat (g)")
+    axs[0].pie(x=daily_props.cal_list,labels=daily_props.recipe_names)
+    axs[0].set_title("Calories")
+    axs[1].pie(x=daily_props.prot_list,labels=daily_props.recipe_names)
+    axs[1].set_title("Protein (g)")
+    axs[2].pie(x=daily_props.sugar_list,labels=daily_props.recipe_names)
+    axs[2].set_title("Sugar (g)")
+    axs[3].pie(x=daily_props.fiber_list,labels=daily_props.recipe_names)
+    axs[3].set_title("Fiber (g)")
+    axs[4].pie(x=daily_props.fat,labels=daily_props.recipe_names)
+    axs[4].set_title("Fat (g)")
 
-        plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":
