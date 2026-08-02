@@ -196,11 +196,18 @@ class TestForkDB(unittest.TestCase):
                                              servings_units='c')
         self.conn.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv)
         
-        # TODO These tests may fail because I need to sort by date in order to index the way I am ... 
+        # TODO These tests may fail because I need to sort by date in order to index the way I am ... and maybe recipes per date by name?
         # Test date selection:
         meals = self.conn.get_meals_in_dates(date_range=[date(year=2026,month=5,day=20),date(year=2026,month=7,day=5)])
-        self.assertTrue(meals[0].recipes[1]=='soy cocoa')
+        self.assertTrue(meals[0].recipes[1].name=='soy cocoa')
+        self.assertTrue(meals[1].recipes[0].name=='hummus')
         self.assertTrue(meals[1].servings_eaten[0]==1.5)
+
+        # Test we can pull just one day:
+        meals = self.conn.get_meals_in_dates(date_range=[date(year=2026,month=5,day=12), date(year=2026,month=5,day=12)])
+        self.assertTrue(len(meals)==1)
+        self.assertTrue(meals[0].recipes[0].name=='hummus')
+        self.assertTrue(meals[0].servings_eaten[0]==1)
 
         # Test grouping:
         meals = self.conn.get_meals_in_dates(date_range=[date(year=2026,month=5,day=12),date(year=2026,month=7,day=5)])

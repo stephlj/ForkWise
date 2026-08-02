@@ -36,6 +36,10 @@ class ForkDB(DBConn):
         name_tuples = self.execute_query("SELECT name FROM pantry_items ORDER BY name;")
         return [a[0] for a in name_tuples]
     
+    #TODO
+    def list_ingredients_per_recipe(self) -> List[str]:
+        pass
+    
     def add_conversions(self, path_to_conversions_csv: str) -> int:
         # Add new unit conversions from a csv (mostly used during db init)
         # In future versions of Forkwise this will be pulled from the internet
@@ -420,7 +424,7 @@ class ForkDB(DBConn):
     
     def get_meals_in_dates(self, date_range: List[date]) -> List[Meal]:
         """
-        Return a list of Meals in a date range.
+        Return a list of Meals in a date range. date_range is a list of length 2.
         """
 
         if len(date_range) != 2:
@@ -453,9 +457,12 @@ class ForkDB(DBConn):
         grouped = meal_df.groupby("date_eaten")
         dates = list(grouped.groups.keys())
         meals = []
-        for m in range(0,grouped.ngroups):
-            meals.append(Meal(date_eaten=grouped.get_group(dates[m]).date_eaten.to_list()[0],
-                              recipes=grouped.get_group(dates[m]).name.to_list(),
-                              servings_eaten=grouped.get_group(dates[m]).servings.to_list()
+        for d in dates:
+            recipe_list = []
+            for r in grouped.get_group(d).name.to_list():
+                recipe_list.append(self.get_recipe_totals(recipe_name=r)) # get_recipe_totals returns a Recipe
+            meals.append(Meal(date_eaten=grouped.get_group(d).date_eaten.to_list()[0],
+                              recipes=recipe_list,
+                              servings_eaten=grouped.get_group(d).servings.to_list()
                               ))
         return meals

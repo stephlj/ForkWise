@@ -119,13 +119,28 @@ python ./src/forkwise/display_meal_totals.py <username> <user pw> <start_date> <
 ```
 where `start_date` and `end_date` are in ISO format of YYYY-MM-DD.
 
-For example, if `test_fork_db.py` has run but without the teardown method, and you run: (note you'll have to modify `config.yml` to point at `test_fork_db`)
+If you comment out `test_fork_db.py` teardown method so the testing db persists, and temporarily modify `config.yaml` to point at `test_fork_db`,
+and run:
 ```
 python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-05-12 2026-07-05
 ```
 the result is this plot:
 
 ![Ex meals plot](img/Ex_PlotMeals.png)
+
+To view pie charts breaking down daily nutritional content by recipe for a single `date`:
+```
+python ./src/forkwise/display_meal_totals.py <username> <user pw> <date> <date>
+```
+(ie the second two args must be the same; `date` in ISO format of YYYY-MM-DD again).
+
+If you comment out `test_fork_db.py` teardown method so the testing db persists, and temporarily modify `config.yaml` to point at `test_fork_db`,
+and run:
+```
+python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-07-05 2026-07-05
+```
+the result is:
+![Ex meal breakdown plot](img/Ex_PlotMealBreakdowns.png)
 
 ## Getting started
 

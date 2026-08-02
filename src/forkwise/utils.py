@@ -28,3 +28,18 @@ def calc_totals_per_serving(recipe: Recipe)->FoodProps:
                      carb_grams=recipe.props.carb_grams/recipe.servings,
                      white_flour=recipe.props.white_flour,
                      animal=recipe.props.animal)
+
+def calc_totals_eaten(tots_per_serv: FoodProps, servings_eaten: float)->FoodProps:
+    """
+    Given a FoodProps object (output of calc_totals_per_serving), and a number of servings_eaten,
+    calculate totals eaten, returning as a FoodProps object.
+    """
+
+    return FoodProps(cal=tots_per_serv.cal*servings_eaten,
+                     fat_grams=tots_per_serv.fat_grams*servings_eaten,
+                     protein_grams=tots_per_serv.protein_grams*servings_eaten,
+                     fiber_grams=tots_per_serv.fiber_grams*servings_eaten,
+                     sugar_grams=tots_per_serv.sugar_grams*servings_eaten,
+                     carb_grams=tots_per_serv.carb_grams*servings_eaten,
+                     white_flour=tots_per_serv.white_flour,
+                     animal=tots_per_serv.animal)
