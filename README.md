@@ -166,6 +166,16 @@ psql -U <user_name> -d fork_db
 
 v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Use it for a week or so, see where the pain points are and design a better data entry interface.
 
+v1.2: Some additional plots and bug fixes from real usage.
+
+TODOs:
+- TESTING: Check final cal, etc in plots from testing db data
+- REFACTOR: Meal dataclass and data structures in display_meal_totals
+- FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
+- REFACTOR: DAL to remove business logic
+- FEATURE: display g protein from animal sources, carbs from white flour
+- TESTING: Add CI
+
 ## Dev
 
 ![Schema diagram](img/schema.png)
