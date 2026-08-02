@@ -84,7 +84,6 @@ def display_meals_info(date_range: List[date], username: str, pw: str, path_to_c
 
     dates, daily_props = calc_daily_totals(meals_list=meals)
 
-    dates = []
     tot_cal = []
     tot_prot = []
     tot_sugar = []
@@ -125,20 +124,26 @@ def display_meal_breakdown(date_eaten: date, username: str, pw: str, path_to_con
     
     meals = get_meals(date_range=[date_eaten, date_eaten], username=username, pw=pw, path_to_config=path_to_config)
 
-    _, daily_props = calc_daily_totals(meals_list=meals)
+    _, all_props = calc_daily_totals(meals_list=meals)
 
-    _, axs = plt.subplots(2, 3)
-
-    axs[0].pie(x=daily_props.cal_list,labels=daily_props.recipe_names)
-    axs[0].set_title("Calories")
-    axs[1].pie(x=daily_props.prot_list,labels=daily_props.recipe_names)
-    axs[1].set_title("Protein (g)")
-    axs[2].pie(x=daily_props.sugar_list,labels=daily_props.recipe_names)
-    axs[2].set_title("Sugar (g)")
-    axs[3].pie(x=daily_props.fiber_list,labels=daily_props.recipe_names)
-    axs[3].set_title("Fiber (g)")
-    axs[4].pie(x=daily_props.fat,labels=daily_props.recipe_names)
-    axs[4].set_title("Fat (g)")
+    daily_props = all_props[0]
+    
+    fig = plt.figure()
+    ax00 = plt.subplot2grid((2,3),(0,0))
+    plt.pie(x=daily_props.cal_list,labels=daily_props.recipe_names)
+    ax00.set_title("Calories")
+    ax01 = plt.subplot2grid((2,3),(0,1))
+    plt.pie(x=daily_props.prot_list,labels=daily_props.recipe_names)
+    ax01.set_title("Protein (g)")
+    ax02 = plt.subplot2grid((2,3),(0,2))
+    plt.pie(x=daily_props.sugar_list,labels=daily_props.recipe_names)
+    ax02.set_title("Sugar (g)")
+    ax10 = plt.subplot2grid((2,3),(1,0))
+    plt.pie(x=daily_props.fiber_list,labels=daily_props.recipe_names)
+    ax10.set_title("Fiber (g)")
+    ax11 = plt.subplot2grid((2,3),(1,1))
+    plt.pie(x=daily_props.fat_list,labels=daily_props.recipe_names)
+    ax11.set_title("Fat (g)")
 
     plt.show()
 
