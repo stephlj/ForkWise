@@ -75,6 +75,7 @@ In the terminal, run:
 ```
 python ./src/forkwise/add_recipe.py <username> <user pw> <path_to_csv> <recipe_name> <servings> <servings_amt> <servings_units>
 ```
+(Put `<recipe_name>` in single quotes to accommodate spaces.)
 
 This will fail if a recipe by the same name already exists; or a recipe of a different name but the same exact ingredient list exists.
 
@@ -169,6 +170,7 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v1.2: Some additional plots and bug fixes from real usage.
 
 TODOs:
+- FEATURE: Add values in pie slices
 - TESTING: Check final cal, etc in plots from testing db data
 - REFACTOR: Meal dataclass and data structures in display_meal_totals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)

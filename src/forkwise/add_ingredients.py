@@ -27,7 +27,9 @@ if __name__ == "__main__":
 
     db_conn = ForkDB(user=sys.argv[1], pw=sys.argv[2], db_name=db_name)
 
-    _ = db_conn.add_ingredients_via_staging(path_to_ingr_csv=sys.argv[3])
+    num_rows_added = db_conn.add_ingredients_via_staging(path_to_ingr_csv=sys.argv[3])
 
     db_conn.close()
+
+    logger.info(f"Added {num_rows_added} rows to pantry items table")
     
