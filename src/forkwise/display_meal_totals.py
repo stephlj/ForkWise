@@ -127,22 +127,22 @@ def display_meal_breakdown(date_eaten: date, username: str, pw: str, path_to_con
     _, all_props = calc_daily_totals(meals_list=meals)
 
     daily_props = all_props[0]
-    
-    fig = plt.figure()
+
+    _ = plt.figure()
     ax00 = plt.subplot2grid((2,3),(0,0))
-    plt.pie(x=daily_props.cal_list,labels=daily_props.recipe_names)
+    plt.pie(x=daily_props.cal_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.cal_list)/100,2))
     ax00.set_title("Calories")
     ax01 = plt.subplot2grid((2,3),(0,1))
-    plt.pie(x=daily_props.prot_list,labels=daily_props.recipe_names)
+    plt.pie(x=daily_props.prot_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.prot_list)/100,2))
     ax01.set_title("Protein (g)")
     ax02 = plt.subplot2grid((2,3),(0,2))
-    plt.pie(x=daily_props.sugar_list,labels=daily_props.recipe_names)
+    plt.pie(x=daily_props.sugar_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.sugar_list)/100,2))
     ax02.set_title("Sugar (g)")
     ax10 = plt.subplot2grid((2,3),(1,0))
-    plt.pie(x=daily_props.fiber_list,labels=daily_props.recipe_names)
+    plt.pie(x=daily_props.fiber_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.fiber_list)/100,2))
     ax10.set_title("Fiber (g)")
     ax11 = plt.subplot2grid((2,3),(1,1))
-    plt.pie(x=daily_props.fat_list,labels=daily_props.recipe_names)
+    plt.pie(x=daily_props.fat_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.fat_list)/100,2))
     ax11.set_title("Fat (g)")
 
     plt.show()
