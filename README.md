@@ -170,11 +170,16 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v1.2: Some additional plots and bug fixes from real usage.
 
 TODOs:
+- BUG: If units don't exist on ingredient load, it just silently skips rows
+- BUG: wont allow recipes that are only partial duplicates
+- BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
 - FEATURE: Add values in pie slices
+- FEATURE: Add recipe as ingredient
 - TESTING: Check final cal, etc in plots from testing db data
 - REFACTOR: Meal dataclass and data structures in display_meal_totals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
-- REFACTOR: DAL to remove business logic
+- REFACTOR: DAL to remove business logic; add recipe etc directly (not from staging), move csv to staging out but keep
+staging to db - in future GUI can add from staging to check for missing ingredients and add if necessary
 - FEATURE: display g protein from animal sources, carbs from white flour
 - TESTING: Add CI
 
