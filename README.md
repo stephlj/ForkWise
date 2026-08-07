@@ -178,7 +178,7 @@ TODOs:
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - REFACTOR: DAL to remove business logic; add recipe etc directly (not from staging), move csv to staging out but keep
 staging to db - in future GUI can add from staging to check for missing ingredients and add if necessary
-- FEATURE: Add recipe as ingredient - need to do some refactoring in dbcommons and the refactor DAL item
+- FEATURE: Add recipe as ingredient - need to do some refactoring in dbcommons and the refactor DAL item. Started on branch RecipeAsIngr
 - FEATURE: display g protein from animal sources, carbs from white flour
 - TESTING: Add CI
 
