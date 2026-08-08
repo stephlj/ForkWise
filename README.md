@@ -174,13 +174,14 @@ TODOs:
 - BUG: wont allow recipes that are only partial duplicates
 - BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
 - TESTING: Check final cal, etc in plots from testing db data
-- REFACTOR: Meal dataclass and data structures in display_meal_totals
-- FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
+- TESTING: Add CI
+- REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay)
 - REFACTOR: DAL to remove business logic; add recipe etc directly (not from staging), move csv to staging out but keep
 staging to db - in future GUI can add from staging to check for missing ingredients and add if necessary
 - FEATURE: Add recipe as ingredient - need to do some refactoring in dbcommons and the refactor DAL item. Started on branch RecipeAsIngr
+- FEATURE: Edit pantry items, recipes, meals
+- FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour
-- TESTING: Add CI
 
 ## Dev
 
