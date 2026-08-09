@@ -45,8 +45,8 @@ Ingredients are loaded from a csv. The csv must have columns (in this order, no 
 - `Protien`: g of protein
 - `Fat`: g of fat
 - `Carbs`: g of carbohydrate, total (incl sugar and dietary fiber)
-- `White flour`: bool, true if the ingredient is predominantly white flour (eg 1 for an english muffin)
 - `Animal`: bool, true if any part of the ingredient is derived from animal products.
+- `White flour`: bool, true if the ingredient is predominantly white flour (eg 1 for an english muffin)
 
 E.g. for a can of black beans, `name` might be "black beans", `unitary amount` might be 24, `units` might be "oz". `Animal` would be True only if the beans were cooked in animal fat, for example.
 
@@ -170,6 +170,9 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v1.2: Some additional plots and bug fixes from real usage.
 
 TODOs:
+- BUG: FoodProps iter returns a DIFFERET order than csv column order for ingredient load in README; therefore assignment
+to sugar, fiber etc for food properties in pantry_items is scrambled. Reorder FoodProps to be same order as README csv
+input spec. (It'd be nice to reorder both to match standard nutritional labels too). Then reload or fix prod db
 - BUG: If units don't exist on ingredient load, it just silently skips rows
 - BUG: wont allow recipes that are only partial duplicates
 - BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true

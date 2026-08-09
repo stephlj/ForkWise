@@ -18,23 +18,23 @@ from datetime import date
 @dataclass
 class FoodProps:
     cal: float = field(metadata={'sql_type':'real'})
-    fat_grams: float = field(metadata={'sql_type':'real'})
-    protein_grams: float = field(metadata={'sql_type':'real'})
     fiber_grams: float = field(metadata={'sql_type':'real'})
     sugar_grams: float = field(metadata={'sql_type':'real'})
+    protein_grams: float = field(metadata={'sql_type':'real'})
+    fat_grams: float = field(metadata={'sql_type':'real'})
     carb_grams: float = field(metadata={'sql_type':'real'})
-    white_flour: bool = field(metadata={'sql_type':'boolean'})
     animal: bool = field(metadata={'sql_type':'boolean'})
+    white_flour: bool = field(metadata={'sql_type':'boolean'})
 
     def __iter__(self):
         yield self.cal
-        yield self.fat_grams
-        yield self.protein_grams
         yield self.fiber_grams
         yield self.sugar_grams
+        yield self.protein_grams
+        yield self.fat_grams
         yield self.carb_grams
-        yield self.white_flour
         yield self.animal
+        yield self.white_flour
 
 
 @dataclass
