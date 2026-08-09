@@ -56,6 +56,15 @@ class TestForkDB(unittest.TestCase):
         num_rows_added = self.conn.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_some_dups)
         self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients")
 
+        # Spot check correct load order of columns
+        carrot_fiber_grams_tuple = self.conn.execute_query("SELECT fiber_grams FROM pantry_items WHERE name=%s",('Carrot',))
+        carrot_fiber_grams = carrot_fiber_grams_tuple[0][0]
+        self.assertEqual(carrot_fiber_grams,2.2)
+
+        tamari_fat_grams_tuple = self.conn.execute_query("SELECT fat_grams FROM pantry_items WHERE name=%s",('Tamari',))
+        tamari_fat_grams = tamari_fat_grams_tuple[0][0]
+        self.assertEqual(tamari_fat_grams,0)
+
     def test_add_recipe_via_staging(self):
         path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe.csv")
 
