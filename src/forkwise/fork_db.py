@@ -327,11 +327,21 @@ class ForkDB(DBConn):
         --------
         Recipe dataclass
         """
-        
-        recipe_tuple = self.execute_query("SELECT id, servings, servings_amt, servings_units FROM recipes WHERE name=%s;", (recipe_name,))
+
+        # TODO have execute_query in dbcommons return column names - return a dict rather than the raw tuple.
+        # column_names = [desc[0] for desc in cursor.description] # have not tested this
+        recipe_dict_keys = ['id','servings','servings_amt', 'servings_units']
+        recipe_cols = ", ".join(recipe_dict_keys)
+        recipe_tuple = self.execute_query(f"SELECT {recipe_cols} FROM recipes WHERE name=%s;", (recipe_name,))
         if len(recipe_tuple)==0:
-            self._logger.error(f"Recipe {recipe_name} does not exist")
-            raise ValueError(f"Recipe {recipe_name} does not exist")
+            msg = f"Recipe {recipe_name} does not exist"
+            self._logger.error(msg)
+            raise ValueError(msg)
+        elif len(recipe_tuple) > 1:
+            msg = f"Query to get recipe id from name returned multiple rows, something is wrong!"
+            self._logger.error(msg)
+            raise ValueError(msg)
+        recipe_dict = dict(zip(recipe_dict_keys,recipe_tuple[0]))
         
         # I eventually abandoned this approach but saving the COALESE for future reference:
         # query=f"""
@@ -369,12 +379,14 @@ class ForkDB(DBConn):
         # WHERE i.recipe_id=1;
 
         ingr_cols = [f.name for f in fields(PantryItem) if f.name not in ["props"]] + [f.name for f in fields(FoodProps)]
-        select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in ingr_cols if c not in {'name','unitary_amt','units','white_flour','animal'})
+        totals_dict_keys = [c for c in ingr_cols if c not in {'name','unitary_amt','units'}]
+        totals_dict_keys.append('count')
+        select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in totals_dict_keys if c not in {'white_flour','animal', 'count'})
 
         query=f"""
             SELECT {select_statements},
-                SUM(p.white_flour::int) AS white_flour,
                 SUM(p.animal::int) AS animal,
+                SUM(p.white_flour::int) AS white_flour,
                 COUNT(*)
             FROM pantry_items AS p
             INNER JOIN unit_conversions AS pu ON 
@@ -387,7 +399,13 @@ class ForkDB(DBConn):
             WHERE i.recipe_id=%s;
             """
 
-        totals = self.execute_query(query,(recipe_tuple[0][0],))
+        totals_tuple = self.execute_query(query,(recipe_dict['id'],))
+        if len(totals_tuple) != 1:
+            msg = f"Query to get recipe totals from recipe {recipe_name} returned multiple rows, something is wrong!"
+            self._logger.error(msg)
+            raise ValueError(msg)
+        totals_dict = dict(zip(totals_dict_keys,totals_tuple[0]))
+        
 
         # Check that all units matched for conversions - otherwise the return from COUNT won't match
         # the number of ingredients in the recipe: (note this should be checked on recipe load regardless)
@@ -398,27 +416,27 @@ class ForkDB(DBConn):
                 i.ingredient_id=p.id
             WHERE i.recipe_id=%s;
         """
-        correct_rows = self.execute_scalar(check_query,(recipe_tuple[0][0],))
+        correct_rows = self.execute_scalar(check_query,(recipe_dict['id'],))
 
-        if correct_rows != totals[0][-1]:
+        if correct_rows != totals_dict['count']:
             msg = "Unit conversions failed in recipe totaling - some rows were dropped"
             self._logger.error(msg)
             raise ValueError(msg)
 
-        ingr_props = FoodProps(cal=totals[0][0],
-                      fat_grams=totals[0][1],
-                      protein_grams=totals[0][2],
-                      fiber_grams=totals[0][3],
-                      sugar_grams= totals[0][4],
-                      carb_grams= totals[0][5],
-                      white_flour= bool(totals[0][6]),
-                      animal= bool(totals[0][7])
+        ingr_props = FoodProps(cal=totals_dict['cal'],
+                      fat_grams=totals_dict['fat_grams'],
+                      protein_grams=totals_dict['protein_grams'],
+                      fiber_grams=totals_dict['fiber_grams'],
+                      sugar_grams= totals_dict['sugar_grams'],
+                      carb_grams= totals_dict['carb_grams'],
+                      white_flour= bool(totals_dict['white_flour']),
+                      animal= bool(totals_dict['animal'])
                       )
 
         return Recipe(name=recipe_name, 
-                      servings = recipe_tuple[0][1],
-                      servings_amt=recipe_tuple[0][2],
-                      servings_units=recipe_tuple[0][3],
+                      servings = recipe_dict['servings'],
+                      servings_amt=recipe_dict['servings_amt'],
+                      servings_units=recipe_dict['servings_units'],
                       props = ingr_props
                       )
     

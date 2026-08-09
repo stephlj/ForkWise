@@ -105,7 +105,8 @@ To view nutritional content of a recipe logged in the database:
 ```
 python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
 ```
-For example, if `test_fork_db.py` has run but without the teardown method, and you run: (note you'll have to modify `config.yml` to point at `test_fork_db`)
+If you comment out `test_fork_db.py` teardown method so the testing db persists, and temporarily modify `config.yaml` to point at `test_fork_db`,
+and run:
 ```
 python ./src/forkwise/display_recipe_totals.py test_fork_user pw hummus
 ```
@@ -176,8 +177,9 @@ TODOs:
 - TESTING: Check final cal, etc in plots from testing db data
 - TESTING: Add CI
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay)
-- REFACTOR: DAL to remove business logic; add recipe etc directly (not from staging), move csv to staging out but keep
+- REFACTOR: DAL to remove business logic; add recipe etc directly (not from staging), move csv to staging out in dbcommons but keep
 staging to db - in future GUI can add from staging to check for missing ingredients and add if necessary
+- REFACTOR: have execute_query in dbcommons return column names - return a dict rather than the raw tuple.
 - FEATURE: Add recipe as ingredient - need to do some refactoring in dbcommons and the refactor DAL item. Started on branch RecipeAsIngr
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
