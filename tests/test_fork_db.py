@@ -33,9 +33,9 @@ class TestForkDB(unittest.TestCase):
         # TEMP HACK - goes with the line above I can't use anymore
         # cls.conn.add_conversions(path_to_conversions_csv=os.path.join(os.getcwd(), "src", "forkwise", "conversions.csv"))
 
-    # @classmethod
-    # def tearDownClass(cls):
-    #     utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
+    @classmethod
+    def tearDownClass(cls):
+        utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
     
     def test_add_ingredients_via_staging(self):
         path_to_ingr_csv_dups = os.path.join(TEST_DATA_PATH,"test_ingredients_part_dups.csv")
@@ -156,7 +156,8 @@ class TestForkDB(unittest.TestCase):
 
         totals = self.conn.get_recipe_totals(recipe_name='hot cocoa')
 
-        self.assertEqual(totals.props.cal, 314)
+        # Recipe totals are for however many servings the recipe makes, not per serving
+        self.assertEqual(totals.props.cal, 2*149 + (4/3)*12) # 2 c milk * 149 cal/1 c + 4 tsp cocoa * 1 Tbsp/3 tsp * 12 cal/1 Tbsp
         self.assertTrue(totals.props.animal)
         self.assertEqual(totals.servings_amt, 1)
 
