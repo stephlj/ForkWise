@@ -170,9 +170,6 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v1.2: Some additional plots and bug fixes from real usage.
 
 TODOs:
-- BUG: FoodProps iter returns a DIFFERET order than csv column order for ingredient load in README; therefore assignment
-to sugar, fiber etc for food properties in pantry_items is scrambled. Reorder FoodProps to be same order as README csv
-input spec. (It'd be nice to reorder both to match standard nutritional labels too). Then reload or fix prod db
 - BUG: If units don't exist on ingredient load, it just silently skips rows
 - BUG: wont allow recipes that are only partial duplicates
 - BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
