@@ -12,7 +12,7 @@ from forkwise.fork_db import ForkDB
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 4:
         raise ValueError("add_recipe.py takes 3 args: (1) db username, (2) user db pw, (3) path to csv of meals")
     
     logging.basicConfig(level="INFO", format=DEFAULT_LOGGING_FORMAT)

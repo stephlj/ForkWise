@@ -164,6 +164,11 @@ To connect directly to the db via the terminal: TODO why don't I need to pass a 
 psql -U <user_name> -d fork_db
 ```
 
+To do quick fixes: for example, change a mis-spelled "chocolat cashews" to "chocolate cashews" in recipes: Connect to the db, then:
+```
+UDPATE recipes SET name='chocolate cashews' WHERE name='chocolat cashews';
+```
+
 ## Version log
 
 v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Use it for a week or so, see where the pain points are and design a better data entry interface.
@@ -172,6 +177,7 @@ v1.2: Some additional plots and bug fixes from real usage.
 
 TODOs:
 - REFACTOR: have execute_query in dbcommons return column names - return a dict rather than the raw tuple.
+- REFACTOR: must drop staging after using it - must drop as same user that creates it!
 - TESTING: Check final cal, etc in plots from testing db data
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay)
 - BUG: If units don't exist on ingredient load, it just silently skips rows
@@ -184,6 +190,7 @@ staging to db - in future GUI can add from staging to check for missing ingredie
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour
+- TESTING: switch to "with self.subTest()"? for independent consecutive tests in one test case
 
 ## Dev
 

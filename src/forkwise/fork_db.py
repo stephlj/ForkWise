@@ -308,7 +308,7 @@ class ForkDB(DBConn):
             RETURNING *;
         """
         rows_added = self.execute_query(add_query)
-        self._logger.info(f"Added {rows_added} to meals table")
+        self._logger.info(f"Added {len(rows_added)} to meals table")
         
         # TODO drop staging? or let csv_to_staging handle that?
         return len(rows_added)
