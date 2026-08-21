@@ -10,6 +10,7 @@ import logging
 import pandas as pd
 
 from dataclasses import fields
+from functools import wraps
 from datetime import date
 from psycopg import errors as psql_errors
 from typing import List
@@ -23,6 +24,15 @@ class ForkDB(DBConn):
         super().__init__(user=user, pw=pw, db_name=db_name)
         self._logger = logging.getLogger(__name__)
 
+    def clean_up_staging(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
+            finally:
+                self.drop_staging()
+        return wrapper
+    
     def get_recipe_name(self, recipe_id: int) -> int | None:
         return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
     
@@ -40,12 +50,14 @@ class ForkDB(DBConn):
     def list_ingredients_per_recipe(self) -> List[str]:
         pass
     
+    @clean_up_staging
     def add_conversions(self, path_to_conversions_csv: str) -> int:
         # Add new unit conversions from a csv (mostly used during db init)
         # In future versions of Forkwise this will be pulled from the internet
         # Returns number of rows added to conversions table.
 
         col_defs = [('unit','text'),('category','text'),('factor','real')]
+        self.create_staging(col_defs=col_defs)
         rows_staged = self.csv_to_staging(csv_path=path_to_conversions_csv, csv_columns=col_defs)
 
         if rows_staged == 0:
@@ -75,6 +87,7 @@ class ForkDB(DBConn):
         self._logger.debug(f"Added {rows_added} to unit_conversions table")
         return len(rows_added)
     
+    @clean_up_staging
     def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
         # Will skip any row for which ingredient name is already in the db.
         # Returns number of rows added to pantry_items table.
@@ -82,6 +95,7 @@ class ForkDB(DBConn):
         # TODO is there a way to avoid having to know PantryItem props needs to be special cased?
         ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(PantryItem) if f.name not in ["props"]] + [(f.name, f.metadata['sql_type']) for f in fields(FoodProps)]
 
+        self.create_staging(col_defs=ingr_col_defs)
         rows_staged = self.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=ingr_col_defs)
 
         if rows_staged == 0:
@@ -147,9 +161,8 @@ class ForkDB(DBConn):
                 self._logger.warning(msg)
 
         return len(rows_added)
-    
-        # TODO drop staging? or let csv_to_staging handle that?
 
+    @clean_up_staging
     def add_recipe_via_staging(self, 
                                path_to_recipe_csv: str, 
                                name: str, 
@@ -181,7 +194,7 @@ class ForkDB(DBConn):
         """
     
         ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Ingredient)]
-
+        self.create_staging(col_defs=ingr_col_defs)
         rows_staged = self.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=ingr_col_defs)
 
         if rows_staged == 0:
@@ -261,9 +274,9 @@ class ForkDB(DBConn):
         rows_added = self.execute_query(ingredient_query, (recipe_id,))
         self._logger.debug(f"Added {rows_added} to ingredients table and recipe {name} to recipe table")
         
-        # TODO drop staging? or let csv_to_staging handle that?
         return len(rows_added)
     
+    @clean_up_staging
     def add_meals_via_staging(self, path_to_meals_csv: str)->int:
         """
         Add meals from csv via a staging table.
@@ -280,6 +293,7 @@ class ForkDB(DBConn):
         """
         
         meal_col_defs = [('date','date'), ('recipe_name','text'), ('servings','real')]
+        self.create_staging(col_defs=meal_col_defs)
         rows_staged = self.csv_to_staging(csv_path=path_to_meals_csv, csv_columns=meal_col_defs)
 
         if rows_staged == 0:
@@ -309,8 +323,7 @@ class ForkDB(DBConn):
         """
         rows_added = self.execute_query(add_query)
         self._logger.info(f"Added {len(rows_added)} to meals table")
-        
-        # TODO drop staging? or let csv_to_staging handle that?
+
         return len(rows_added)
     
     def get_recipe_totals(self, recipe_name: str) -> Recipe:

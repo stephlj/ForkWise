@@ -23,12 +23,6 @@ def fork_init(admin_pw: str, path_to_config: str=CONFIG_PATH)->None:
     conn = ForkDB(user=admin, pw=admin_pw, db_name=db_name)
     conn.add_conversions(path_to_conversions_csv=os.path.join(os.getcwd(), "src", "forkwise", "conversions.csv"))
 
-    # Claude found and fixed this bug (comment is Claude's):
-    # csv_to_staging leaves the staging table behind, owned by admin. Drop it here so
-    # other users (who only have GRANT-based privileges, not ownership) aren't blocked
-    # by InsufficientPrivilege when they try to DROP it before creating their own.
-    conn.execute_action("DROP TABLE IF EXISTS staging;")
-
     conn.close()
 
 if __name__ == "__main__":
