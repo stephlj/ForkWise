@@ -177,10 +177,9 @@ v1.2: Some additional plots and bug fixes from real usage.
 
 TODOs:
 - REFACTOR: have execute_query in dbcommons return column names - return a dict rather than the raw tuple.
-- REFACTOR: must drop staging after using it - must drop as same user that creates it!
+- REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay)
 - TESTING: Check final cal, etc in plots from testing db data
 - REFACTOR: Create a function that plots a pie chart for one attribute. In the UI, will want to click on cal for a day and display that pie chart, or compare across multiple days; similarly for protein per day, etc.
-- REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay)
 - BUG: If units don't exist on ingredient load, it just silently skips rows
 - BUG: wont allow recipes that are only partial duplicates
 - BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
