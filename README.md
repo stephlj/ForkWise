@@ -213,9 +213,9 @@ No solution found when resolving dependencies:
 ```
 you already have the package (e.g. it's a package that comes with all python installs). I love `uv` but its error messages can be quite unhelpful.
 
-To update to the latest version of the DBCommons repo, run:
+DBCommons is a dependency pulled directly from its [GitHub repo](https://github.com/stephlj/DBCommons), so it's installed automatically by `uv sync`. To update to the latest version of DBCommons, run:
 ```
-uv pip install "git+https://github.com/stephlj/DBCommons"
+uv lock --upgrade-package dbcommons && uv sync
 ```
 
 Use `pytest` to run the tests. (For quick debugging: Add `-s` or `--capture=no` to print print statements to console.)

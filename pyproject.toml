@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "dbcommons @ git+https://github.com/stephlj/DBCommons",
     "matplotlib>=3.10.9",
     "pandas>=3.0.2",
     "pytest>=9.0.3",
