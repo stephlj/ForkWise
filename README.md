@@ -173,13 +173,12 @@ UDPATE recipes SET name='chocolate cashews' WHERE name='chocolat cashews';
 
 v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Use it for a week or so, see where the pain points are and design a better data entry interface.
 
-v1.2: Some additional plots and bug fixes from real usage.
+v2: GUI for data entry and display
 
 TODOs:
 - REFACTOR: have execute_query in dbcommons return column names - return a dict rather than the raw tuple? or use a row factory?
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay)
 - TESTING: Check final cal, etc in plots from testing db data
-- REFACTOR: Create a function that plots a pie chart for one attribute. In the UI, will want to click on cal for a day and display that pie chart, or compare across multiple days; similarly for protein per day, etc.
 - BUG: If units don't exist on ingredient load, it just silently skips rows
 - BUG: wont allow recipes that are only partial duplicates
 - BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
@@ -189,6 +188,7 @@ TODOs:
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour
 - TESTING: switch to "with self.subTest()"? for independent consecutive tests in one test case
+- REFACTOR-DONE: Create a function that plots a pie chart for one attribute. In the UI, will want to click on cal for a day and display that pie chart, or compare across multiple days; similarly for protein per day, etc.
 
 ## Dev
 

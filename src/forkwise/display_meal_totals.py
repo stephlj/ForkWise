@@ -26,6 +26,10 @@ PropsPerDay = NamedTuple('PropsPerDay',
                           ('fat_list',List[float])
                           ])
 
+def plot_pie(props_obj: PropsPerDay, prop: str) -> None:
+    # Before this function call, choose axies to plot into
+    plt.pie(x=getattr(props_obj,prop),labels=props_obj.recipe_names, autopct=lambda v: round(v*sum(getattr(props_obj,prop))/100,2))
+
 def get_meals(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH) -> List[Meal]:
     with open(path_to_config, "r") as config_file:
         config = yaml.safe_load(config_file)
@@ -130,19 +134,19 @@ def display_meal_breakdown(date_eaten: date, username: str, pw: str, path_to_con
 
     _ = plt.figure()
     ax00 = plt.subplot2grid((2,3),(0,0))
-    plt.pie(x=daily_props.cal_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.cal_list)/100,2))
+    plot_pie(props_obj=daily_props, prop="cal_list")
     ax00.set_title("Calories")
     ax01 = plt.subplot2grid((2,3),(0,1))
-    plt.pie(x=daily_props.prot_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.prot_list)/100,2))
+    plot_pie(props_obj=daily_props, prop="prot_list")
     ax01.set_title("Protein (g)")
     ax02 = plt.subplot2grid((2,3),(0,2))
-    plt.pie(x=daily_props.sugar_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.sugar_list)/100,2))
+    plot_pie(props_obj=daily_props, prop="sugar_list")
     ax02.set_title("Sugar (g)")
     ax10 = plt.subplot2grid((2,3),(1,0))
-    plt.pie(x=daily_props.fiber_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.fiber_list)/100,2))
+    plot_pie(props_obj=daily_props, prop="fiber_list")
     ax10.set_title("Fiber (g)")
     ax11 = plt.subplot2grid((2,3),(1,1))
-    plt.pie(x=daily_props.fat_list,labels=daily_props.recipe_names, autopct=lambda v: round(v*sum(daily_props.fat_list)/100,2))
+    plot_pie(props_obj=daily_props, prop="fat_list")
     ax11.set_title("Fat (g)")
 
     plt.show()
