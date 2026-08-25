@@ -259,7 +259,7 @@ class ForkDB(DBConn):
         num_rows_added = self.staging_to_pantry()
         self._logger.debug(f"Added {num_rows_added} to pantry_items table")
 
-        if len(num_rows_added) != rows_staged:
+        if num_rows_added != rows_staged:
             # This can be for two reasons: There were duplicates, which we ignore;
             # or units didn't match anything in unit_conversions.
             # Warn for the latter:
