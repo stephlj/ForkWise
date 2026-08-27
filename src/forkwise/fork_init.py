@@ -9,7 +9,7 @@ import yaml
 from dbcommons.init_db import init_db
 
 from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, SCHEMA_PATH
-from forkwise.fork_db import ForkDB
+from forkwise.data_loader import DataLoader
 
 def fork_init(admin_pw: str, path_to_config: str=CONFIG_PATH)->None:
     init_db(pw=admin_pw,path_to_config=path_to_config, path_to_schema=SCHEMA_PATH)
@@ -20,10 +20,8 @@ def fork_init(admin_pw: str, path_to_config: str=CONFIG_PATH)->None:
         admin = config["db"]["admin_name"]
     
     # Add conversions table as admin
-    conn = ForkDB(user=admin, pw=admin_pw, db_name=db_name)
-    conn.add_conversions(path_to_conversions_csv=os.path.join(os.getcwd(), "src", "forkwise", "conversions.csv"))
-
-    conn.close()
+    with DataLoader(user=admin, pw=admin_pw, db_name=db_name) as dl:
+        dl.add_conversions(path_to_conversions_csv=os.path.join(os.getcwd(), "src", "forkwise", "conversions.csv"))
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)

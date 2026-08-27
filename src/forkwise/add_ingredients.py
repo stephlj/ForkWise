@@ -9,7 +9,7 @@ import logging
 import yaml
 
 from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH
-from forkwise.fork_db import ForkDB
+from forkwise.data_loader import DataLoader
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
@@ -25,11 +25,8 @@ if __name__ == "__main__":
         config = yaml.safe_load(config_file)
         db_name = config["db"]["db_name"]
 
-    db_conn = ForkDB(user=sys.argv[1], pw=sys.argv[2], db_name=db_name)
-
-    num_rows_added = db_conn.add_ingredients_via_staging(path_to_ingr_csv=sys.argv[3])
-
-    db_conn.close()
+    with DataLoader(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dl:
+        num_rows_added = dl.add_ingredients_via_staging(path_to_ingr_csv=sys.argv[3])
 
     logger.info(f"Added {num_rows_added} rows to pantry items table")
     
