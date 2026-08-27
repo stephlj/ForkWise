@@ -17,6 +17,22 @@ class DataLoader:
 
         self._logger = logging.getLogger(__name__)
     
+    def close(self):
+        # TODO there's some safety if's and try's I should add here
+        self.conn.close()
+    
+    def __del__(self):
+        # Fall back method to make sure connection is closed when garbage collected, again should
+        # add some checking here TODO
+        self.close()
+
+    def __enter__(self):
+        # Use DataLoader within a "with" clause
+        return self
+    
+    def __exit__(self):
+        self.close()
+    
     def clean_up_staging(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):

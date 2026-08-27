@@ -7,14 +7,11 @@ Copyright (c) 2026 Stephanie Johnson
 """
 
 import logging
-import pandas as pd
 
-from datetime import date
 from psycopg import errors as psql_errors
 from typing import List
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe, Meal
 from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
 
 class ForkDB(DBConn):
@@ -203,139 +200,3 @@ class ForkDB(DBConn):
         rows_added = self.execute_query(q)
 
         return len(rows_added)
-    
-    def get_recipe_totals(self, recipe_name: str) -> Recipe:
-        """
-        Calculate nutritional totals for a recipe. Note that the totals
-        are for however many servings the recipe is for - NOT per serving!
-
-        Parameters
-        ----------
-        recipe_name : str
-            A recipe name in the db
-
-        Returns:
-        --------
-        Recipe dataclass
-        """
-
-        # TODO have execute_query in dbcommons return column names - return a dict rather than the raw tuple.
-        # column_names = [desc[0] for desc in cursor.description] # have not tested this
-        recipe_dict_keys = ['id','servings','servings_amt', 'servings_units']
-        recipe_cols = ", ".join(recipe_dict_keys)
-        recipe_tuple = self.execute_query(f"SELECT {recipe_cols} FROM recipes WHERE name=%s;", (recipe_name,))
-        if len(recipe_tuple)==0:
-            msg = f"Recipe {recipe_name} does not exist"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        elif len(recipe_tuple) > 1:
-            msg = f"Query to get recipe id from name returned multiple rows, something is wrong!"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        recipe_dict = dict(zip(recipe_dict_keys,recipe_tuple[0]))
-
-        totals_dict_keys = [c for c in self.pantry_col_names if c not in {'name','unitary_amt','units'}]
-        totals_dict_keys.append('count')
-        select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in totals_dict_keys if c not in {'white_flour','animal', 'count'})
-
-        query=f"""
-            SELECT {select_statements},
-                SUM(p.animal::int) AS animal,
-                SUM(p.white_flour::int) AS white_flour,
-                COUNT(*)
-            FROM pantry_items AS p
-            INNER JOIN unit_conversions AS pu ON 
-                LOWER(pu.unit)=LOWER(p.units) 
-            INNER JOIN ingredients AS i ON 
-                i.ingredient_id=p.id 
-            INNER JOIN unit_conversions AS iu ON 
-                LOWER(iu.unit)=LOWER(i.ingredient_units) AND
-                iu.category=pu.category
-            WHERE i.recipe_id=%s;
-            """
-
-        totals_tuple = self.execute_query(query,(recipe_dict['id'],))
-        if len(totals_tuple) != 1:
-            msg = f"Query to get recipe totals from recipe {recipe_name} returned multiple rows, something is wrong!"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        totals_dict = dict(zip(totals_dict_keys,totals_tuple[0]))
-        
-
-        # Check that all units matched for conversions - otherwise the return from COUNT won't match
-        # the number of ingredients in the recipe: (note this should be checked on recipe load regardless)
-        check_query=f"""
-            SELECT COUNT(*)
-            FROM pantry_items AS p
-            INNER JOIN ingredients i ON
-                i.ingredient_id=p.id
-            WHERE i.recipe_id=%s;
-        """
-        correct_rows = self.execute_scalar(check_query,(recipe_dict['id'],))
-
-        if correct_rows != totals_dict['count']:
-            msg = "Unit conversions failed in recipe totaling - some rows were dropped"
-            self._logger.error(msg)
-            raise ValueError(msg)
-
-        ingr_props = FoodProps(cal=totals_dict['cal'],
-                      fat_grams=totals_dict['fat_grams'],
-                      protein_grams=totals_dict['protein_grams'],
-                      fiber_grams=totals_dict['fiber_grams'],
-                      sugar_grams= totals_dict['sugar_grams'],
-                      carb_grams= totals_dict['carb_grams'],
-                      white_flour= bool(totals_dict['white_flour']),
-                      animal= bool(totals_dict['animal'])
-                      )
-
-        return Recipe(name=recipe_name, 
-                      servings = recipe_dict['servings'],
-                      servings_amt=recipe_dict['servings_amt'],
-                      servings_units=recipe_dict['servings_units'],
-                      props = ingr_props
-                      )
-    
-    def get_meals_in_dates(self, date_range: List[date]) -> List[Meal]:
-        """
-        Return a list of Meals in a date range. date_range is a list of length 2.
-        """
-
-        if len(date_range) != 2:
-            log_msg = f"Date range must be list of length 2; got instead {date_range}"
-            self._logger.error(log_msg)
-            raise ValueError(log_msg)
-        
-        if (type(date_range[0]) != date) or (type(date_range[1]) != date):
-            # date_range.sort() will do the wrong thing if this isn't date format
-            log_msg = f"Date range must be in datetime.date format; got instead {date_range}"
-            self._logger.error(log_msg)
-            raise TypeError(log_msg)
-        
-        date_range.sort()
-
-        query = """
-            SELECT m.date, m.recipe_servings, r.name
-            FROM meals AS m
-            LEFT JOIN recipes AS r ON
-                r.id = m.recipe_id
-            WHERE date BETWEEN %s AND %s;
-        """
-
-        recipes = self.execute_query(query, (date_range[0],date_range[1]))
-
-        meal_df = pd.DataFrame({"date_eaten":[r[0] for r in recipes],
-                                "servings": [r[1] for r in recipes],
-                                "name": [r[2] for r in recipes]
-                                })
-        grouped = meal_df.groupby("date_eaten")
-        dates = list(grouped.groups.keys())
-        meals = []
-        for d in dates:
-            recipe_list = []
-            for r in grouped.get_group(d).name.to_list():
-                recipe_list.append(self.get_recipe_totals(recipe_name=r)) # get_recipe_totals returns a Recipe
-            meals.append(Meal(date_eaten=grouped.get_group(d).date_eaten.to_list()[0],
-                              recipes=recipe_list,
-                              servings_eaten=grouped.get_group(d).servings.to_list()
-                              ))
-        return meals
