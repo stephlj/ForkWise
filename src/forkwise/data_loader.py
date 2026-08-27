@@ -6,26 +6,16 @@ Copyright (c) 2026 Stephanie Johnson
 
 import logging
 
-from dataclasses import fields
 from functools import wraps
 
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
 
 class DataLoader:
     def __init__(self, user: str, pw: str, db_name: str):
         self.conn = ForkDB(user=user, pw=pw, db_name=db_name)
 
         self._logger = logging.getLogger(__name__)
-
-        # TODO is there a way to avoid having to know PantryItem props needs to be special cased?
-        self.pantry_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(PantryItem) if f.name not in ["props"]] + [(f.name, f.metadata['sql_type']) for f in fields(FoodProps)]
-
-        self.pantry_col_names = ", ".join(f'{a}' for a, _ in self.pantry_col_defs) 
-
-        self.ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Ingredient)]
-
-        self.meal_col_defs = [('date','date'), ('recipe_name','text'), ('servings','real')]
     
     def clean_up_staging(func):
         @wraps(func)
@@ -60,8 +50,8 @@ class DataLoader:
         # Will skip any row for which ingredient name is already in the db.
         # Returns number of rows added to pantry_items table.
 
-        self.conn.create_staging(col_defs=self.pantry_col_defs)
-        rows_staged = self.conn.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=self.pantry_col_defs)
+        self.conn.create_staging(col_defs=PANTRY_COL_DEFS)
+        rows_staged = self.conn.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=PANTRY_COL_DEFS)
 
         if rows_staged == 0:
             self._logger.info(f"No ingredients loaded from source file {path_to_ingr_csv} to staging table; no ingredeints will be added to db")
@@ -118,8 +108,8 @@ class DataLoader:
         int, number of rows added to ingredients table (NOT recipes table!)
         """
     
-        self.conn.create_staging(col_defs=self.ingr_col_defs)
-        rows_staged = self.conn.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=self.ingr_col_defs)
+        self.conn.create_staging(col_defs=INGR_COL_DEFS)
+        rows_staged = self.conn.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=INGR_COL_DEFS)
 
         if rows_staged == 0:
             self._logger.info(f"No recipe loaded from source file {path_to_recipe_csv} to staging table, will not be added to db")
@@ -167,8 +157,8 @@ class DataLoader:
         int, number of rows added to meals table
         """
         
-        self.conn.create_staging(col_defs=self.meal_col_defs)
-        rows_staged = self.conn.csv_to_staging(csv_path=path_to_meals_csv, csv_columns=self.meal_col_defs)
+        self.conn.create_staging(col_defs=MEAL_COL_DEFS)
+        rows_staged = self.conn.csv_to_staging(csv_path=path_to_meals_csv, csv_columns=MEAL_COL_DEFS)
 
         if rows_staged == 0:
             self._logger.info(f"No meals loaded from source file {path_to_meals_csv} to staging table, will not be added to db")

@@ -15,6 +15,7 @@ from typing import List
 
 from dbcommons.db_conn import DBConn
 from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe, Meal
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -85,7 +86,7 @@ class ForkDB(DBConn):
         # Check if there are any rows in the staging table that are the same as an existing row
         # in pantry_items execept for the name (ie, these items exist under a different name)
         # Return is a list of tuples: (staging.name, pantry_items.name) for any duplicates
-        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in self.pantry_col_defs[3:])
+        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in PANTRY_COL_DEFS[3:])
         check_dups = f"""
             SELECT s.name, p.name
             FROM staging AS s
@@ -103,7 +104,7 @@ class ForkDB(DBConn):
         # the same combo of (ingredient id, ingredient amt, ingredient units) associated with a single recipe id.
         # Return is a list of tuples of (recipe_id, count) for any matches
 
-        join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in self.ingr_col_defs[1:])
+        join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in INGR_COL_DEFS[1:])
         # Equivalent to: LEFT JOIN pantry_items p ON ... WHERE p.id IS NOT NULL
         check_dup_ingredients = f"""
             WITH joined1 AS (
@@ -155,7 +156,7 @@ class ForkDB(DBConn):
         # Return is number of rows inserted into pantry_items.
 
         ingr_query = f"""
-            INSERT INTO pantry_items ({self.pantry_col_names})
+            INSERT INTO pantry_items ({PANTRY_COL_NAMES})
             SELECT s.*
                 FROM staging AS s
                 LEFT JOIN pantry_items p ON
