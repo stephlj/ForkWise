@@ -10,6 +10,7 @@ import logging
 
 from psycopg import errors as psql_errors
 from typing import List
+from datetime import date
 
 from dbcommons.db_conn import DBConn
 from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
@@ -22,6 +23,47 @@ class ForkDB(DBConn):
     
     def get_recipe_name(self, recipe_id: int) -> int | None:
         return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
+    
+    def get_recipe_servings(self, recipe_name: str)->List[tuple]:
+        # Returns a list of tuples; each element of list is one recipe, tuple is (id, servings, servings_amt, servings_units)
+        # TODO have execute_query in dbcommons return column names - return a dict rather than the raw tuple.
+        # column_names = [desc[0] for desc in cursor.description] # have not tested this
+        return self.execute_query(f"SELECT * FROM recipes WHERE name=%s;", (recipe_name,))
+    
+    def get_recipes_in_dates(self, date_range: tuple[date])->List[tuple]:
+        query = """
+            SELECT m.date, m.recipe_servings, r.name
+            FROM meals AS m
+            LEFT JOIN recipes AS r ON
+                r.id = m.recipe_id
+            WHERE date BETWEEN %s AND %s;
+        """
+
+        return self.execute_query(query, (date_range[0],date_range[1]))
+    
+    def calc_recipe_totals(self, recipe_id: int)->List[tuple]:
+        # TODO There has got to be a better way ...
+        totals_dict_keys = [c for c in PANTRY_COL_NAMES if c not in {'name','unitary_amt','units'}]
+        totals_dict_keys.append('count')
+        select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in totals_dict_keys if c not in {'white_flour','animal', 'count'})
+
+        query=f"""
+            SELECT {select_statements},
+                SUM(p.animal::int) AS animal,
+                SUM(p.white_flour::int) AS white_flour,
+                COUNT(*)
+            FROM pantry_items AS p
+            INNER JOIN unit_conversions AS pu ON 
+                LOWER(pu.unit)=LOWER(p.units) 
+            INNER JOIN ingredients AS i ON 
+                i.ingredient_id=p.id 
+            INNER JOIN unit_conversions AS iu ON 
+                LOWER(iu.unit)=LOWER(i.ingredient_units) AND
+                iu.category=pu.category
+            WHERE i.recipe_id=%s;
+            """
+
+        return self.execute_query(query,(recipe_id,))
     
     def list_all_recipes(self) -> List[str]:
         name_tuples = self.execute_query("SELECT name FROM recipes ORDER BY name;")
@@ -123,6 +165,16 @@ class ForkDB(DBConn):
         """
         return self.execute_query(check_dup_ingredients)
         
+    def num_pantry_items_per_recipe(self, recipe_id: int)->int:
+        q=f"""
+                SELECT COUNT(*)
+                FROM pantry_items AS p
+                INNER JOIN ingredients i ON
+                    i.ingredient_id=p.id
+                WHERE i.recipe_id=%s;
+            """
+        return len(self.execute_scalar(q,(recipe_id,)))
+    
     def staging_to_units(self)->int:
         # This will throw a UniqueViolation if any row is already in the conversions table:
         # conv_query = "INSERT INTO unit_conversions (unit_from, unit_to, factor) SELECT * FROM staging RETURNING *;"
