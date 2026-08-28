@@ -12,10 +12,10 @@ from datetime import date
 # from collections import namedtuple
 from typing import NamedTuple
 from typing import List
-from forkwise.fork_dataclasses import Meal, Recipe
 
 from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving, calc_totals_eaten
-from forkwise.fork_db import ForkDB
+from forkwise.data_getter import DataGetter
+from forkwise.fork_dataclasses import Meal, Recipe
 
 PropsPerDay = NamedTuple('PropsPerDay',
                          [('recipe_names',List[str]),
@@ -35,10 +35,8 @@ def get_meals(date_range: List[date], username: str, pw: str, path_to_config: st
         config = yaml.safe_load(config_file)
         db_name = config["db"]["db_name"]
 
-    conn = ForkDB(user=username, pw=pw, db_name=db_name)
-    meals_list = conn.get_meals_in_dates(date_range=date_range)
-
-    conn.close()
+    with DataGetter(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dg:
+        meals_list = dg.get_meals_in_dates(date_range=date_range)
 
     return meals_list
 

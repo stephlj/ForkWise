@@ -105,7 +105,8 @@ To view nutritional content of a recipe logged in the database:
 ```
 python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
 ```
-If you comment out `test_fork_db.py` teardown method so the testing db persists, and temporarily modify `config.yaml` to point at `test_fork_db`,
+If you comment out `test_data_getter.py`'s db teardown so the testing db persists, 
+run just the `test_data_getter.py` test, and then temporarily modify `config.yaml` to point at `test_fork_db`,
 and run:
 ```
 python ./src/forkwise/display_recipe_totals.py test_fork_user pw hummus
@@ -114,6 +115,7 @@ the result is:
 
 ![Ex nutritional info](img/Ex_NutritionalTotals.png)
 
+(Remember to teardown the testing db manually afterwards, and change the config back!)
 
 To view nutritial totals for meals in a date range: 
 ```
@@ -121,7 +123,8 @@ python ./src/forkwise/display_meal_totals.py <username> <user pw> <start_date> <
 ```
 where `start_date` and `end_date` are in ISO format of YYYY-MM-DD.
 
-If you comment out `test_fork_db.py` teardown method so the testing db persists, and temporarily modify `config.yaml` to point at `test_fork_db`,
+If you comment out `test_data_getter.py`'s db teardown so the testing db persists, 
+run just the `test_data_getter.py` test, and then temporarily modify `config.yaml` to point at `test_fork_db`,
 and run:
 ```
 python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-05-12 2026-07-05
@@ -130,19 +133,24 @@ the result is this plot:
 
 ![Ex meals plot](img/Ex_PlotMeals.png)
 
+(Remember to teardown the testing db manually afterwards, and change the config back!)
+
 To view pie charts breaking down daily nutritional content by recipe for a single `date`:
 ```
 python ./src/forkwise/display_meal_totals.py <username> <user pw> <date> <date>
 ```
 (ie the second two args must be the same; `date` in ISO format of YYYY-MM-DD again).
 
-If you comment out `test_fork_db.py` teardown method so the testing db persists, and temporarily modify `config.yaml` to point at `test_fork_db`,
+If you comment out `test_data_getter.py`'s db teardown so the testing db persists, 
+run just the `test_data_getter.py` test, and then temporarily modify `config.yaml` to point at `test_fork_db`,
 and run:
 ```
 python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-07-05 2026-07-05
 ```
 the result is:
 ![Ex meal breakdown plot](img/Ex_PlotMealBreakdowns.png)
+
+(Remember to teardown the testing db manually afterwards, and change the config back!)
 
 ## Getting started
 
@@ -182,8 +190,7 @@ TODOs:
 - BUG: If units don't exist on ingredient load, it just silently skips rows
 - BUG: wont allow recipes that are only partial duplicates
 - BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
-- REFACTOR: DAL to remove business logic; add recipe from staging table that doesn't come from csv - in future GUI can add from staging to check for missing ingredients and add if necessary
-- FEATURE: Add recipe as ingredient - need to do some refactoring in dbcommons and the refactor DAL item. Started on branch RecipeAsIngr
+- FEATURE: Add recipe as ingredient - add recipe from staging table that doesn't come from csv - in future GUI can add from staging to check for missing ingredients and add if necessary. Started on branch RecipeAsIngr
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour
