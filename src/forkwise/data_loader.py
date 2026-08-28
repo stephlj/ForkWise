@@ -16,20 +16,25 @@ class DataLoader:
         self.conn = ForkDB(user=user, pw=pw, db_name=db_name)
 
         self._logger = logging.getLogger(__name__)
-    
+
     def close(self):
-        # TODO there's some safety if's and try's I should add here
-        self.conn.close()
-    
+        if getattr(self, "conn", None) is None:
+            return
+        try:
+            self.conn.close()
+        except Exception:
+            self._logger.exception("DataLoader failed to close connection cleanly")
+        finally:
+            self.conn = None
+
     def __del__(self):
-        # Fall back method to make sure connection is closed when garbage collected, again should
-        # add some checking here TODO
+        # Fall back safety net to make sure connection is closed when garbage collected
         self.close()
 
     def __enter__(self):
         # Use DataLoader within a "with" clause
         return self
-    
+
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
     
