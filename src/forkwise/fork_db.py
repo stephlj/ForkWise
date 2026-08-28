@@ -173,7 +173,7 @@ class ForkDB(DBConn):
                     i.ingredient_id=p.id
                 WHERE i.recipe_id=%s;
             """
-        return len(self.execute_scalar(q,(recipe_id,)))
+        return self.execute_scalar(q,(recipe_id,))
     
     def staging_to_units(self)->int:
         # This will throw a UniqueViolation if any row is already in the conversions table:
@@ -204,8 +204,9 @@ class ForkDB(DBConn):
         # that don't have units that match rows in unit_conversions.
         # Return is number of rows inserted into pantry_items.
 
+        col_names_str = ", ".join(PANTRY_COL_NAMES)
         ingr_query = f"""
-            INSERT INTO pantry_items ({PANTRY_COL_NAMES})
+            INSERT INTO pantry_items ({col_names_str})
             SELECT s.*
                 FROM staging AS s
                 LEFT JOIN pantry_items p ON

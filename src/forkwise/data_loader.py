@@ -30,7 +30,7 @@ class DataLoader:
         # Use DataLoader within a "with" clause
         return self
     
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.close()
     
     def clean_up_staging(func):

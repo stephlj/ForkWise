@@ -87,7 +87,7 @@ class Meal:
 # Create col defs for interaction with the db layer - the data representation in the python and sql layers are not identical
 # TODO is there a way to avoid having to know PantryItem props needs to be special cased?
 PANTRY_COL_DEFS = [(f.name, f.metadata['sql_type']) for f in fields(PantryItem) if f.name not in ["props"]] + [(f.name, f.metadata['sql_type']) for f in fields(FoodProps)]
-PANTRY_COL_NAMES = ", ".join(f'{a}' for a, _ in PANTRY_COL_DEFS) 
+PANTRY_COL_NAMES = [n for n, _ in PANTRY_COL_DEFS] 
 INGR_COL_DEFS = [(f.name, f.metadata['sql_type']) for f in fields(Ingredient)]
 MEAL_COL_DEFS = [('date','date'), ('recipe_name','text'), ('servings','real')]
     
