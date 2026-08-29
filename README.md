@@ -4,7 +4,7 @@ ForkWise is designed around the principle that the first step towards making a c
 of life, observation and tracking. ForkWise aims for enough accuracy to produce actionable data without such a high burden of data
 entry as to be unuseable.
 
-ForkWise logs daily meals and reports total calories, as well as fiber, sugar, and protein. Meals are recorded as instances of 
+ForkWise logs daily meals and reports total calories, as well as nutritial values like fiber, sugar, and protein. Meals are recorded as instances of 
 recipes that are stored in the database and are constructed from a basic set of ingredients. You can make the data as detailed as you need for your goals: different bagel brands will have slightly different nutritional content, so you can log breakfasts of different kinds of bagels separately; or you can just call them all "bagels" and enter an average amount of calories, etc in the ingredients list.
 
 Progress towards health goals will fall out of the data provided by ForkWise; if I know that 20% of my daily sugar intake comes from 
@@ -58,6 +58,13 @@ In the terminal, run:
 python ./src/forkwise/add_ingredients.py <username> <user pw> <path_to_csv>
 ```
 
+To view a list of ingredients in the db, run in a python session:
+```
+from forkwise.fork_db import ForkDB
+with ForkDB(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dbconn:
+    print(dbconn.list_all_ingredients())
+```
+
 ### Add recipe
 
 A recipe can only be added if all ingredients are already in the db.
@@ -78,6 +85,13 @@ python ./src/forkwise/add_recipe.py <username> <user pw> <path_to_csv> <recipe_n
 (Put `<recipe_name>` in single quotes to accommodate spaces.)
 
 This will fail if a recipe by the same name already exists; or a recipe of a different name but the same exact ingredient list exists.
+
+To view a list of recipes in the db, run in a python session:
+```
+from forkwise.fork_db import ForkDB
+with ForkDB(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dbconn:
+    print(dbconn.list_all_recipes())
+```
 
 ### Add meals
 
