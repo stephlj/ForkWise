@@ -63,7 +63,7 @@ class DataLoader:
             raise ValueError(msg)
         
         num_rows_added = self.conn.staging_to_units()
-        self._logger.info(f"Added {num_rows_added} to unit_conversions table")
+        self._logger.info(f"Added {num_rows_added} rows to unit_conversions table")
         return num_rows_added
     
     @clean_up_staging
@@ -85,7 +85,7 @@ class DataLoader:
             self._logger.warning(msg)
 
         num_rows_added = self.conn.staging_to_pantry()
-        self._logger.info(f"Added {num_rows_added} to pantry_items table")
+        self._logger.info(f"Added {num_rows_added} rows to pantry_items table")
 
         if num_rows_added != rows_staged:
             # This can be for two reasons: There were duplicates, which we ignore;
@@ -158,7 +158,7 @@ class DataLoader:
         
         # Insert recipe name and servings into recipe table, unless a recipe by this name already exists:
         num_rows_added = self.conn.staging_to_recipe(name=name, servings=servings, servings_amt=servings_amt, servings_units=servings_units)
-        self._logger.info(f"Added {num_rows_added} to ingredients table and recipe {name} to recipe table")
+        self._logger.info(f"Added {num_rows_added} rows to ingredients table and recipe {name} to recipe table")
         
         return num_rows_added
     
@@ -194,6 +194,6 @@ class DataLoader:
             raise ValueError(msg)
 
         num_rows_added = self.conn.staging_to_meals()
-        self._logger.info(f"Added {num_rows_added} to meals table")
+        self._logger.info(f"Added {num_rows_added} rows to meals table")
 
         return num_rows_added
