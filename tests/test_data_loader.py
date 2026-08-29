@@ -28,15 +28,11 @@ class TestDataLoader(unittest.TestCase):
 
         # TODO add connection here once? Or use in with clauses in test cases?
         cls.DataLoader = DataLoader(user=cls.params["user"], pw=cls.params["user_pw"], db_name=cls.params["test_db_name"])
-        
-        # For direct db queries for some tests:
-        cls.conn = ForkDB(user=cls.params["user"], pw=cls.params["user_pw"], db_name=cls.params["test_db_name"])
     
     @classmethod
     def tearDownClass(cls):
         # utils.tear_down_test_DB(db_conn=cls.conn, params=cls.params)
         cls.DataLoader.close()
-        cls.conn.close()
 
         # Delete testing db
         exit_code = subprocess.run(["dropdb", cls.params["test_db_name"]])
@@ -68,11 +64,13 @@ class TestDataLoader(unittest.TestCase):
         self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients")
 
         # Spot check correct load order of columns
-        carrot_fiber_grams_tuple = self.conn.execute_query("SELECT fiber_grams FROM pantry_items WHERE name=%s",('Carrot',))
+        with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
+            carrot_fiber_grams_tuple = dbconn.execute_query("SELECT fiber_grams FROM pantry_items WHERE name=%s",('Carrot',))
         carrot_fiber_grams = carrot_fiber_grams_tuple[0][0]
         self.assertEqual(carrot_fiber_grams,2.2)
 
-        tamari_fat_grams_tuple = self.conn.execute_query("SELECT fat_grams FROM pantry_items WHERE name=%s",('Tamari',))
+        with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
+            tamari_fat_grams_tuple = dbconn.execute_query("SELECT fat_grams FROM pantry_items WHERE name=%s",('Tamari',))
         tamari_fat_grams = tamari_fat_grams_tuple[0][0]
         self.assertEqual(tamari_fat_grams,0)
 
