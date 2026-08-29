@@ -7,392 +7,43 @@ Copyright (c) 2026 Stephanie Johnson
 """
 
 import logging
-import pandas as pd
 
-from dataclasses import fields
-from functools import wraps
-from datetime import date
 from psycopg import errors as psql_errors
 from typing import List
+from datetime import date
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe, Meal
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
         # Use super() because I've now override base class init
         super().__init__(user=user, pw=pw, db_name=db_name)
         self._logger = logging.getLogger(__name__)
-
-    def clean_up_staging(func):
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            try:
-                return func(self, *args, **kwargs)
-            finally:
-                self.drop_staging()
-        return wrapper
     
     def get_recipe_name(self, recipe_id: int) -> int | None:
         return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
     
-    def list_all_recipes(self) -> List[str]:
-        name_tuples = self.execute_query("SELECT name FROM recipes ORDER BY name;")
-        return [a[0] for a in name_tuples]
-        # print("\n".join([a for a, _ in name_tuples]))
-
-    def list_all_ingredients(self) -> List[str]:
-        # Note what the user calls ingredients, the db calls pantry items
-        name_tuples = self.execute_query("SELECT name FROM pantry_items ORDER BY name;")
-        return [a[0] for a in name_tuples]
-    
-    #TODO
-    def list_ingredients_per_recipe(self) -> List[str]:
-        pass
-    
-    @clean_up_staging
-    def add_conversions(self, path_to_conversions_csv: str) -> int:
-        # Add new unit conversions from a csv (mostly used during db init)
-        # In future versions of Forkwise this will be pulled from the internet
-        # Returns number of rows added to conversions table.
-
-        col_defs = [('unit','text'),('category','text'),('factor','real')]
-        self.create_staging(col_defs=col_defs)
-        rows_staged = self.csv_to_staging(csv_path=path_to_conversions_csv, csv_columns=col_defs)
-
-        if rows_staged == 0:
-            msg=f"No unit conversions were staged from file {path_to_conversions_csv}; cannot load conversions"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        
-        # This will throw a UniqueViolation if any row is already in the conversions table:
-        # conv_query = "INSERT INTO unit_conversions (unit_from, unit_to, factor) SELECT * FROM staging RETURNING *;"
-        # Instead, just don't add duplicates:
-        conv_query = f"""
-            WITH joined AS (
-                SELECT s.*
-                FROM staging AS s
-                LEFT JOIN unit_conversions u ON
-                    u.unit = s.unit AND
-                    u.category = s.category AND
-                    u.factor = s.factor
-                    WHERE u.id IS NULL
-                )
-            INSERT INTO unit_conversions (unit, category, factor)
-            SELECT *
-            FROM joined
-            RETURNING *;
-        """ 
-        rows_added = self.execute_query(conv_query)
-        self._logger.debug(f"Added {rows_added} to unit_conversions table")
-        return len(rows_added)
-    
-    @clean_up_staging
-    def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
-        # Will skip any row for which ingredient name is already in the db.
-        # Returns number of rows added to pantry_items table.
-
-        # TODO is there a way to avoid having to know PantryItem props needs to be special cased?
-        ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(PantryItem) if f.name not in ["props"]] + [(f.name, f.metadata['sql_type']) for f in fields(FoodProps)]
-
-        self.create_staging(col_defs=ingr_col_defs)
-        rows_staged = self.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=ingr_col_defs)
-
-        if rows_staged == 0:
-            self._logger.info(f"No ingredients loaded from source file {path_to_ingr_csv} to staging table; no ingredeints will be added to db")
-            return 0
-        
-        col_names = ", ".join(f'{a}' for a, _ in ingr_col_defs)
-        
-        # This will throw a UniqueViolation if any rows in staging are already in the db pantry_items table
-        # col_names_staging = ", ".join(f's.{a}' for a, _ in ingr_col_defs)
-        # ingr_query = f"""
-        #     INSERT INTO pantry_items ({col_names})
-        #     SELECT {col_names_staging}
-        #     FROM staging AS s
-        #     RETURNING *;
-        # """   
-        
-        # WARN if an ingredient is added under a different name but every other value the same.
-        # TODO move this to the BLL (and refactor all such things out of this class)
-        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in ingr_col_defs[3:])
-        check_dups = f"""
-            SELECT s.name, p.name
-            FROM staging AS s
-            INNER JOIN pantry_items p ON
-                p.unitary_amt = s.unitary_amt AND
-                LOWER(p.units) = LOWER(s.units) AND
-                {join_statements}
-            WHERE LOWER(s.name) != LOWER(p.name);
-        """
-        dups = self.execute_query(check_dups)
-        if len(dups)>0:
-            msg=f"Source file {path_to_ingr_csv} contains rows identical to existing pantry items except for the name: (name in file, name in db) {dups}"
-            self._logger.warning(msg)
-
-        ingr_query = f"""
-            INSERT INTO pantry_items ({col_names})
-            SELECT s.*
-                FROM staging AS s
-                LEFT JOIN pantry_items p ON
-                    LOWER(p.name) = LOWER(s.name)
-                INNER JOIN unit_conversions u ON
-                    LOWER(s.units) = LOWER(u.unit)
-                WHERE p.id IS NULL
-            RETURNING *;
-        """ 
-        rows_added = self.execute_query(ingr_query)
-        self._logger.debug(f"Added {rows_added} to pantry_items table")
-
-        if len(rows_added) != rows_staged:
-            # This can be for two reasons: There were duplicates, which we ignore;
-            # or units didn't match anything in unit_conversions.
-            # Flag the latter:
-            q = """
-                SELECT s.name, s.units
-                FROM staging AS s
-                LEFT JOIN unit_conversions u ON
-                    LOWER(s.units) = LOWER(u.unit)
-                WHERE u.unit IS NULL;
-            """
-            unmatched_units = self.execute_query(q)
-            if len(unmatched_units) > 0:
-                msg = f"The following ingredients have units that aren't in the db and were skipped on load: {unmatched_units}"
-                self._logger.warning(msg)
-
-        return len(rows_added)
-
-    @clean_up_staging
-    def add_recipe_via_staging(self, 
-                               path_to_recipe_csv: str, 
-                               name: str, 
-                               servings: float,
-                               servings_amt: float,
-                               servings_units: str) -> int:
-        """
-        Add recipe from csv via a staging table.
-
-        Parameters
-        ----------
-        path_to_recipe_csv : str
-           Path to a recipe: each row is an ingredient (name, amount, units).
-           Name must already be an ingredient in the db in pantry_items table.
-           Units don't have to match pantry_items table units (can be converted later)-
-           but must match unit type (weight, vol etc).
-        name : str
-            Recipe name.
-        servings: float
-            How many servings do the amounts in this recipe make in total.
-        servings_amt : float
-            Amount corresponding to one serving (e.g. 1, if 1 c is a serving)
-        servings_units : str
-            Units per serving amount, eg c if a serving is 1 c
-
-        Returns
-        -------
-        int, number of rows added to ingredients table (NOT recipes table!)
-        """
-    
-        ingr_col_defs = [(f.name, f.metadata['sql_type']) for f in fields(Ingredient)]
-        self.create_staging(col_defs=ingr_col_defs)
-        rows_staged = self.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=ingr_col_defs)
-
-        if rows_staged == 0:
-            self._logger.info(f"No recipe loaded from source file {path_to_recipe_csv} to staging table, will not be added to db")
-            return 0
-        
-        # A recipe can only be added if all ingredients are already in the db, with units in categories that match pantry_items.
-        # Check first, error with a list of missing ingredients:
-        check_ingr = """
-            SELECT s.ingr_name, s.ingredient_units, p.units
-            FROM staging AS s
-            LEFT JOIN unit_conversions AS su ON
-                LOWER(su.unit) = LOWER(s.ingredient_units)
-            LEFT JOIN pantry_items p ON
-                LOWER(p.name) = LOWER(s.ingr_name)
-            LEFT JOIN unit_conversions AS pu ON
-                LOWER(pu.unit) = LOWER(p.units) AND
-                pu.category = su.category
-            WHERE p.id IS NULL OR pu.id IS NULL;
-        """
-        ingr_missing = self.execute_query(check_ingr)
-        if len(ingr_missing) > 0:
-            msg = f"Cannot load recipe: {name}. Ingredients missing from db and/or units aren't in db and/or unit category mismatch: (name, recipe units, db units) {ingr_missing}"
-            self._logger.error(msg)
-            raise ValueError(msg)
-
-        # We also don't allow duplicate recipes. A duplicate is same name, or same ingredients+amounts for a single recipe_id:
-        # Check the latter condition first. Join pantry_items onto staging to get pantry_item id; then ask whether the ingredients table has
-        # the same combo of (ingredient id, ingredient amt, ingredient units) associated with a single recipe id already as what's in staging.
-        join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in ingr_col_defs[1:])
-        # Equivalent to: LEFT JOIN pantry_items p ON ... WHERE p.id IS NOT NULL
-        check_dup_ingredients = f"""
-            WITH joined1 AS (
-                SELECT s.*, p.id
-                FROM staging AS s
-                INNER JOIN pantry_items p ON
-                    LOWER(p.name) = LOWER(s.ingr_name)
-            ),
-            joined2 AS (
-                SELECT j.*, i.recipe_id
-                FROM joined1 AS j
-                INNER JOIN ingredients i ON
-                    i.ingredient_id = j.id AND
-                    {join_statements}
-            )
-            SELECT recipe_id, COUNT(*)
-            FROM joined2
-            GROUP BY recipe_id;
-        """
-        check_dups = self.execute_query(check_dup_ingredients)
-        if len(check_dups) > 0:
-            recipe_id, num_comps = zip(*check_dups)
-            same_comps = sum([x==rows_staged for x in num_comps])
-            if same_comps>0:
-                recipe_name = self.get_recipe_name(recipe_id=recipe_id[0])
-                msg = f"A recipe with ingredients in csv {path_to_recipe_csv} already exists (name: {recipe_name}); nothing will be added"
-                self._logger.error(msg)
-                raise ValueError(msg)
-        
-        # Insert recipe name and servings into recipe table, unless a recipe by this name already exists:
-        try:
-            recipe_id = self.execute_scalar(
-                "INSERT INTO recipes (name, servings, servings_amt, servings_units) VALUES (%s,%s, %s, %s) RETURNING id;", 
-                (name,servings, servings_amt, servings_units)
-                )
-        except psql_errors.UniqueViolation:
-            self._logger.error(f"A recipe with name {name} already exists in db; nothing will be added")
-            raise
-
-        # then insert into ingreidents table
-        ingredient_query = """
-            INSERT INTO ingredients (recipe_id, ingredient_id, ingredient_amt, ingredient_units)
-            SELECT %s, (SELECT id FROM pantry_items WHERE LOWER(name) = LOWER(s.ingr_name)), s.ingredient_amt, s.ingredient_units
-            FROM staging AS s
-            RETURNING *;
-        """
-        rows_added = self.execute_query(ingredient_query, (recipe_id,))
-        self._logger.debug(f"Added {rows_added} to ingredients table and recipe {name} to recipe table")
-        
-        return len(rows_added)
-    
-    @clean_up_staging
-    def add_meals_via_staging(self, path_to_meals_csv: str)->int:
-        """
-        Add meals from csv via a staging table.
-
-        Parameters
-        ----------
-        path_to_meals_csv : str
-           Path to a list of meals csvs. Each row is one recipe eaten on a date.
-           Columns (no header) are: date, recipe name, servings.
-
-        Returns
-        -------
-        int, number of rows added to meals table
-        """
-        
-        meal_col_defs = [('date','date'), ('recipe_name','text'), ('servings','real')]
-        self.create_staging(col_defs=meal_col_defs)
-        rows_staged = self.csv_to_staging(csv_path=path_to_meals_csv, csv_columns=meal_col_defs)
-
-        if rows_staged == 0:
-            self._logger.info(f"No meals loaded from source file {path_to_meals_csv} to staging table, will not be added to db")
-            return 0
-        
-        # Meals can only be added if all recipes are already in the db.
-        # Check first, error with a list of missing recipes:
-        check_rec = """
-            SELECT s.recipe_name
-            FROM staging AS s
-            LEFT JOIN recipes r ON
-                LOWER(r.name) = LOWER(s.recipe_name)
-            WHERE r.id IS NULL;
-        """
-        recipe_missing = self.execute_query(check_rec)
-        if len(recipe_missing) > 0:
-            msg = f"Cannot load meals from {path_to_meals_csv}. Recipes missing from db: {list(zip(*recipe_missing))}"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        
-        add_query = """
-            INSERT INTO meals (date, recipe_id, recipe_servings)
-            SELECT s.date, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.servings
-            FROM staging AS s
-            RETURNING *;
-        """
-        rows_added = self.execute_query(add_query)
-        self._logger.info(f"Added {len(rows_added)} to meals table")
-
-        return len(rows_added)
-    
-    def get_recipe_totals(self, recipe_name: str) -> Recipe:
-        """
-        Calculate nutritional totals for a recipe. Note that the totals
-        are for however many servings the recipe is for - NOT per serving!
-
-        Parameters
-        ----------
-        recipe_name : str
-            A recipe name in the db
-
-        Returns:
-        --------
-        Recipe dataclass
-        """
-
+    def get_recipe_servings(self, recipe_name: str)->List[tuple]:
+        # Returns a list of tuples; each element of list is one recipe, tuple is (id, servings, servings_amt, servings_units)
         # TODO have execute_query in dbcommons return column names - return a dict rather than the raw tuple.
         # column_names = [desc[0] for desc in cursor.description] # have not tested this
-        recipe_dict_keys = ['id','servings','servings_amt', 'servings_units']
-        recipe_cols = ", ".join(recipe_dict_keys)
-        recipe_tuple = self.execute_query(f"SELECT {recipe_cols} FROM recipes WHERE name=%s;", (recipe_name,))
-        if len(recipe_tuple)==0:
-            msg = f"Recipe {recipe_name} does not exist"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        elif len(recipe_tuple) > 1:
-            msg = f"Query to get recipe id from name returned multiple rows, something is wrong!"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        recipe_dict = dict(zip(recipe_dict_keys,recipe_tuple[0]))
-        
-        # I eventually abandoned this approach but saving the COALESE for future reference:
-        # query=f"""
-        #     WITH joined AS (
-        #         SELECT *,
-        #             COALESCE(u.factor, CASE WHEN p.units=i.ingredient_units THEN 1 ELSE NULL END) AS factor
-        #         FROM pantry_items AS p
-        #         LEFT JOIN ingredients i ON
-        #             i.ingredient_id = p.id
-        #         LEFT JOIN unit_conversions u ON
-        #             u.unit_from = p.units  AND
-        #             u.unit_to = i.ingredient_units
-        #         WHERE i.recipe_id=%s
-        #     ),
-        #     SELECT joined.name, 
-        #         {join_statements}
-        #     FROM joined;
-        #     """
+        return self.execute_query(f"SELECT * FROM recipes WHERE name=%s;", (recipe_name,))
+    
+    def get_recipes_in_dates(self, date_range: tuple[date])->List[tuple]:
+        query = """
+            SELECT m.date, m.recipe_servings, r.name
+            FROM meals AS m
+            LEFT JOIN recipes AS r ON
+                r.id = m.recipe_id
+            WHERE date BETWEEN %s AND %s;
+        """
 
-        # For query building: The aliaising of the columns in the SELECT statement is just for display,
-        # doesn't impact SQL execution:
-        # SELECT p.*, 
-        #        pu.unit AS p_unit, 
-        #        pu.factor AS bottom_factor, 
-        #        i.*, 
-        #        iu.unit AS iu_unit, 
-        #        iu.factor AS top_factor 
-        # FROM pantry_items AS p 
-        # INNER JOIN unit_conversions AS pu ON 
-        #     pu.unit=p.units 
-        # INNER JOIN ingredients AS i ON 
-        #     i.ingredient_id=p.id 
-        # INNER JOIN unit_conversions AS iu ON 
-        #     iu.unit=i.ingredient_units 
-        # WHERE i.recipe_id=1;
-
-        ingr_cols = [f.name for f in fields(PantryItem) if f.name not in ["props"]] + [f.name for f in fields(FoodProps)]
-        totals_dict_keys = [c for c in ingr_cols if c not in {'name','unitary_amt','units'}]
+        return self.execute_query(query, (date_range[0],date_range[1]))
+    
+    def calc_recipe_totals(self, recipe_id: int)->List[tuple]:
+        # TODO There has got to be a better way ...
+        totals_dict_keys = [c for c in PANTRY_COL_NAMES if c not in {'name','unitary_amt','units'}]
         totals_dict_keys.append('count')
         select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in totals_dict_keys if c not in {'white_flour','animal', 'count'})
 
@@ -412,88 +63,193 @@ class ForkDB(DBConn):
             WHERE i.recipe_id=%s;
             """
 
-        totals_tuple = self.execute_query(query,(recipe_dict['id'],))
-        if len(totals_tuple) != 1:
-            msg = f"Query to get recipe totals from recipe {recipe_name} returned multiple rows, something is wrong!"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        totals_dict = dict(zip(totals_dict_keys,totals_tuple[0]))
-        
-
-        # Check that all units matched for conversions - otherwise the return from COUNT won't match
-        # the number of ingredients in the recipe: (note this should be checked on recipe load regardless)
-        check_query=f"""
-            SELECT COUNT(*)
-            FROM pantry_items AS p
-            INNER JOIN ingredients i ON
-                i.ingredient_id=p.id
-            WHERE i.recipe_id=%s;
-        """
-        correct_rows = self.execute_scalar(check_query,(recipe_dict['id'],))
-
-        if correct_rows != totals_dict['count']:
-            msg = "Unit conversions failed in recipe totaling - some rows were dropped"
-            self._logger.error(msg)
-            raise ValueError(msg)
-
-        ingr_props = FoodProps(cal=totals_dict['cal'],
-                      fat_grams=totals_dict['fat_grams'],
-                      protein_grams=totals_dict['protein_grams'],
-                      fiber_grams=totals_dict['fiber_grams'],
-                      sugar_grams= totals_dict['sugar_grams'],
-                      carb_grams= totals_dict['carb_grams'],
-                      white_flour= bool(totals_dict['white_flour']),
-                      animal= bool(totals_dict['animal'])
-                      )
-
-        return Recipe(name=recipe_name, 
-                      servings = recipe_dict['servings'],
-                      servings_amt=recipe_dict['servings_amt'],
-                      servings_units=recipe_dict['servings_units'],
-                      props = ingr_props
-                      )
+        return self.execute_query(query,(recipe_id,))
     
-    def get_meals_in_dates(self, date_range: List[date]) -> List[Meal]:
-        """
-        Return a list of Meals in a date range. date_range is a list of length 2.
-        """
+    def list_all_recipes(self) -> List[str]:
+        name_tuples = self.execute_query("SELECT name FROM recipes ORDER BY name;")
+        return [a[0] for a in name_tuples]
+        # print("\n".join([a for a, _ in name_tuples]))
 
-        if len(date_range) != 2:
-            log_msg = f"Date range must be list of length 2; got instead {date_range}"
-            self._logger.error(log_msg)
-            raise ValueError(log_msg)
+    def list_all_ingredients(self) -> List[str]:
+        # Note what the user calls ingredients, the db calls pantry items
+        name_tuples = self.execute_query("SELECT name FROM pantry_items ORDER BY name;")
+        return [a[0] for a in name_tuples]
+    
+    #TODO
+    def list_ingredients_per_recipe(self) -> List[str]:
+        pass
+    
+    def check_units_exist(self)->List[tuple]:
+        # Check that all rows in staging have units that match rows in unit_conversions
+        # Return is a list of (staging.name, staging.units) where staging.units has 
+        # no match in unit_conversions
+        q = """
+                SELECT s.name, s.units
+                FROM staging AS s
+                LEFT JOIN unit_conversions u ON
+                    LOWER(s.units) = LOWER(u.unit)
+                WHERE u.unit IS NULL;
+            """
+        return self.execute_query(q)
+    
+    def check_ingr_exist(self)->List[tuple]:
+        # Check all ingredients in staging have rows in pantry_items and units in unit_conversions
+        # Return is a list of tuples of any missing items (staging.ingr_name, staging.ingredient_units, pantry_items.units)
+
+        check_ingr = """
+            SELECT s.ingr_name, s.ingredient_units, p.units
+            FROM staging AS s
+            LEFT JOIN unit_conversions AS su ON
+                LOWER(su.unit) = LOWER(s.ingredient_units)
+            LEFT JOIN pantry_items p ON
+                LOWER(p.name) = LOWER(s.ingr_name)
+            LEFT JOIN unit_conversions AS pu ON
+                LOWER(pu.unit) = LOWER(p.units) AND
+                pu.category = su.category
+            WHERE p.id IS NULL OR pu.id IS NULL;
+        """
+        return self.execute_query(check_ingr)
+    
+    def check_recipe_exist(self)->List[tuple]:
+        # Return is a list of tuples of recipe names in staging that aren't in the recipes table in the db
+        check_rec = """
+            SELECT s.recipe_name
+            FROM staging AS s
+            LEFT JOIN recipes r ON
+                LOWER(r.name) = LOWER(s.recipe_name)
+            WHERE r.id IS NULL;
+        """
+        return self.execute_query(check_rec)
+    
+    def check_dup_ingr(self) -> List[tuple]:
+        # Check if there are any rows in the staging table that are the same as an existing row
+        # in pantry_items execept for the name (ie, these items exist under a different name)
+        # Return is a list of tuples: (staging.name, pantry_items.name) for any duplicates
+        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in PANTRY_COL_DEFS[3:])
+        check_dups = f"""
+            SELECT s.name, p.name
+            FROM staging AS s
+            INNER JOIN pantry_items p ON
+                p.unitary_amt = s.unitary_amt AND
+                LOWER(p.units) = LOWER(s.units) AND
+                {join_statements}
+            WHERE LOWER(s.name) != LOWER(p.name);
+        """
+        return self.execute_query(check_dups)
+    
+    def check_dup_recipe(self)->List[tuple]:
+        # Check whether staging contains a set of ingredients+amounts that matches an existing recipe under a different name
+        # Join pantry_items onto staging to get pantry_item id; then ask whether the ingredients table already has
+        # the same combo of (ingredient id, ingredient amt, ingredient units) associated with a single recipe id.
+        # Return is a list of tuples of (recipe_id, count) for any matches
+
+        join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in INGR_COL_DEFS[1:])
+        # Equivalent to: LEFT JOIN pantry_items p ON ... WHERE p.id IS NOT NULL
+        check_dup_ingredients = f"""
+            WITH joined1 AS (
+                SELECT s.*, p.id
+                FROM staging AS s
+                INNER JOIN pantry_items p ON
+                    LOWER(p.name) = LOWER(s.ingr_name)
+            ),
+            joined2 AS (
+                SELECT j.*, i.recipe_id
+                FROM joined1 AS j
+                INNER JOIN ingredients i ON
+                    i.ingredient_id = j.id AND
+                    {join_statements}
+            )
+            SELECT recipe_id, COUNT(*)
+            FROM joined2
+            GROUP BY recipe_id;
+        """
+        return self.execute_query(check_dup_ingredients)
         
-        if (type(date_range[0]) != date) or (type(date_range[1]) != date):
-            # date_range.sort() will do the wrong thing if this isn't date format
-            log_msg = f"Date range must be in datetime.date format; got instead {date_range}"
-            self._logger.error(log_msg)
-            raise TypeError(log_msg)
-        
-        date_range.sort()
+    def num_pantry_items_per_recipe(self, recipe_id: int)->int:
+        q=f"""
+                SELECT COUNT(*)
+                FROM pantry_items AS p
+                INNER JOIN ingredients i ON
+                    i.ingredient_id=p.id
+                WHERE i.recipe_id=%s;
+            """
+        return self.execute_scalar(q,(recipe_id,))
+    
+    def staging_to_units(self)->int:
+        # This will throw a UniqueViolation if any row is already in the conversions table:
+        # conv_query = "INSERT INTO unit_conversions (unit_from, unit_to, factor) SELECT * FROM staging RETURNING *;"
+        # Instead, just don't add duplicates:
+        conv_query = f"""
+            WITH joined AS (
+                SELECT s.*
+                FROM staging AS s
+                LEFT JOIN unit_conversions u ON
+                    u.unit = s.unit AND
+                    u.category = s.category AND
+                    u.factor = s.factor
+                    WHERE u.id IS NULL
+                )
+            INSERT INTO unit_conversions (unit, category, factor)
+            SELECT *
+            FROM joined
+            RETURNING *;
+        """ 
+        rows_added = self.execute_query(conv_query)
+        return len(rows_added)
+    
+    def staging_to_pantry(self)->int:
+        # Insert contents of staging into pantry_items
+        # Skips any rows in staging with the same name as rows 
+        # already in pantry_items; skips any rows in staging
+        # that don't have units that match rows in unit_conversions.
+        # Return is number of rows inserted into pantry_items.
 
-        query = """
-            SELECT m.date, m.recipe_servings, r.name
-            FROM meals AS m
-            LEFT JOIN recipes AS r ON
-                r.id = m.recipe_id
-            WHERE date BETWEEN %s AND %s;
+        col_names_str = ", ".join(PANTRY_COL_NAMES)
+        ingr_query = f"""
+            INSERT INTO pantry_items ({col_names_str})
+            SELECT s.*
+                FROM staging AS s
+                LEFT JOIN pantry_items p ON
+                    LOWER(p.name) = LOWER(s.name)
+                INNER JOIN unit_conversions u ON
+                    LOWER(s.units) = LOWER(u.unit)
+                WHERE p.id IS NULL
+            RETURNING *;
+        """ 
+        rows_added = self.execute_query(ingr_query)
+        return len(rows_added)
+
+    def staging_to_recipe(self, name: str, servings: float, servings_amt: float, servings_units: str)->int:
+        # Insert recipe name and servings into recipe table, unless a recipe by this name already exists:
+        # Return is number of rows added to INGREDIENTS table
+        try:
+            recipe_id = self.execute_scalar(
+                "INSERT INTO recipes (name, servings, servings_amt, servings_units) VALUES (%s,%s, %s, %s) RETURNING id;", 
+                (name, servings, servings_amt, servings_units)
+                )
+        except psql_errors.UniqueViolation:
+            self._logger.error(f"A recipe with name {name} already exists in db; nothing will be added")
+            raise
+
+        # then insert into ingredients table
+        ingredient_query = """
+            INSERT INTO ingredients (recipe_id, ingredient_id, ingredient_amt, ingredient_units)
+            SELECT %s, (SELECT id FROM pantry_items WHERE LOWER(name) = LOWER(s.ingr_name)), s.ingredient_amt, s.ingredient_units
+            FROM staging AS s
+            RETURNING *;
         """
+        rows_added = self.execute_query(ingredient_query, (recipe_id,))
+        return len(rows_added)
+    
+    def staging_to_meals(self)->int:
+        # Add meals from staging to meals table.
+        # Return is number of rows added to meals table.
+        q = """
+            INSERT INTO meals (date, recipe_id, recipe_servings)
+            SELECT s.date, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.servings
+            FROM staging AS s
+            RETURNING *;
+        """
+        rows_added = self.execute_query(q)
 
-        recipes = self.execute_query(query, (date_range[0],date_range[1]))
-
-        meal_df = pd.DataFrame({"date_eaten":[r[0] for r in recipes],
-                                "servings": [r[1] for r in recipes],
-                                "name": [r[2] for r in recipes]
-                                })
-        grouped = meal_df.groupby("date_eaten")
-        dates = list(grouped.groups.keys())
-        meals = []
-        for d in dates:
-            recipe_list = []
-            for r in grouped.get_group(d).name.to_list():
-                recipe_list.append(self.get_recipe_totals(recipe_name=r)) # get_recipe_totals returns a Recipe
-            meals.append(Meal(date_eaten=grouped.get_group(d).date_eaten.to_list()[0],
-                              recipes=recipe_list,
-                              servings_eaten=grouped.get_group(d).servings.to_list()
-                              ))
-        return meals
+        return len(rows_added)
