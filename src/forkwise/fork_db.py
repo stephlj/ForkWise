@@ -66,18 +66,27 @@ class ForkDB(DBConn):
         return self.execute_query(query,(recipe_id,))
     
     def list_all_recipes(self) -> List[str]:
-        name_tuples = self.execute_query("SELECT name FROM recipes ORDER BY name;")
-        return [a[0] for a in name_tuples]
+        name_list = self.execute_query("SELECT name FROM recipes ORDER BY name;")
+        return [a['name'] for a in name_list]
         # print("\n".join([a for a, _ in name_tuples]))
 
     def list_all_ingredients(self) -> List[str]:
         # Note what the user calls ingredients, the db calls pantry items
-        name_tuples = self.execute_query("SELECT name FROM pantry_items ORDER BY name;")
-        return [a[0] for a in name_tuples]
+        name_list = self.execute_query("SELECT name FROM pantry_items ORDER BY name;")
+        return [a['name'] for a in name_list]
     
-    #TODO
-    def list_ingredients_per_recipe(self) -> List[str]:
-        pass
+    def list_ingredients_per_recipe(self, recipe_name: str) -> List[str]:
+        query = f"""
+            SELECT p.name
+            FROM pantry_items as p
+            INNER JOIN ingredients i ON
+                i.ingredient_id == p.id
+            INNER JOIN recipes r ON
+                r.id == i.recipe_id
+            WHERE r.name == %s;
+        """
+        ingr_list = self.execute_query(query, (recipe_name,))
+        return [ingr_list['name'] for i in ingr_list]
     
     def check_units_exist(self)->List[tuple]:
         # Check that all rows in staging have units that match rows in unit_conversions
