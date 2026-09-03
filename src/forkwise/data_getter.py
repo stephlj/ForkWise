@@ -57,19 +57,17 @@ class DataGetter:
         """
 
         
-        recipe_tuple = self.conn.get_recipe_servings(recipe_name=recipe_name)
-        if len(recipe_tuple)==0:
+        recipe_dict_list = self.conn.get_recipe_servings(recipe_name=recipe_name)
+        if len(recipe_dict)==0:
             msg = f"Recipe {recipe_name} does not exist"
             self._logger.error(msg)
             raise ValueError(msg)
-        elif len(recipe_tuple) > 1:
-            msg = f"Query to get recipe id from name returned multiple rows, something is wrong!"
+        elif len(recipe_dict) > 1:
+            msg = f"Query to get recipe from name returned multiple rows, something is wrong!"
             self._logger.error(msg)
             raise ValueError(msg)
         
-        # TODO return this directly from schema
-        recipe_dict_keys = ['id','name','servings','servings_amt', 'servings_units']
-        recipe_dict = dict(zip(recipe_dict_keys,recipe_tuple[0]))
+        recipe_dict = recipe_dict_list[0]
 
         totals_tuple = self.conn.calc_recipe_totals(recipe_id=recipe_dict['id'])
         if len(totals_tuple) != 1:

@@ -24,11 +24,9 @@ class ForkDB(DBConn):
     def get_recipe_name(self, recipe_id: int) -> int | None:
         return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
     
-    def get_recipe_servings(self, recipe_name: str)->List[tuple]:
-        # Returns a list of tuples; each element of list is one recipe, tuple is (id, servings, servings_amt, servings_units)
-        # TODO have execute_query in dbcommons return column names - return a dict rather than the raw tuple.
-        # column_names = [desc[0] for desc in cursor.description] # have not tested this
-        return self.execute_query(f"SELECT * FROM recipes WHERE name=%s;", (recipe_name,))
+    def get_recipe_servings(self, recipe_name: str)->dict:
+        # For a recipe, returns a dict with keys: id, servings, servings_amt, and servings_units
+        return self.execute_query(f"SELECT id, servings, servings_amt, servings_units FROM recipes WHERE name=%s;", (recipe_name,))
     
     def get_recipes_in_dates(self, date_range: tuple[date])->List[tuple]:
         query = """
