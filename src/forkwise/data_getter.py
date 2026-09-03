@@ -126,9 +126,9 @@ class DataGetter:
         recipes = self.conn.get_recipes_in_dates(date_range=(date_range[0],date_range[1]))
 
         # TODO refactor all of this
-        meal_df = pd.DataFrame({"date_eaten":[r[0] for r in recipes],
-                                "servings": [r[1] for r in recipes],
-                                "name": [r[2] for r in recipes]
+        meal_df = pd.DataFrame({"date_eaten":[r.date for r in recipes],
+                                "servings": [r.recipe_servings for r in recipes],
+                                "name": [r.name for r in recipes]
                                 })
         grouped = meal_df.groupby("date_eaten")
         dates = list(grouped.groups.keys())

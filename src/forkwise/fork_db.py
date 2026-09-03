@@ -24,11 +24,13 @@ class ForkDB(DBConn):
     def get_recipe_name(self, recipe_id: int) -> int | None:
         return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
     
-    def get_recipe_servings(self, recipe_name: str)->dict:
-        # For a recipe, returns a dict with keys: id, servings, servings_amt, and servings_units
+    def get_recipe_servings(self, recipe_name: str)->List[dict]:
+        # For a recipe, returns a (length-one) list of dicts with keys: id, servings, servings_amt, and servings_units
         return self.execute_query(f"SELECT id, servings, servings_amt, servings_units FROM recipes WHERE name=%s;", (recipe_name,))
     
-    def get_recipes_in_dates(self, date_range: tuple[date])->List[tuple]:
+    def get_recipes_in_dates(self, date_range: tuple[date])->List[dict]:
+        # Returns a list of dicts; each dict has keys date, recipe_servings, name;
+        # length is number of recipes eaten in date range
         query = """
             SELECT m.date, m.recipe_servings, r.name
             FROM meals AS m
