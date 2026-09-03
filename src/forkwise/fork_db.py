@@ -41,7 +41,7 @@ class ForkDB(DBConn):
 
         return self.execute_query(query, (date_range[0],date_range[1]))
     
-    def calc_recipe_totals(self, recipe_id: int)->List[tuple]:
+    def calc_recipe_totals(self, recipe_id: int)->List[dict]:
         # TODO There has got to be a better way ...
         totals_dict_keys = [c for c in PANTRY_COL_NAMES if c not in {'name','unitary_amt','units'}]
         totals_dict_keys.append('count')
