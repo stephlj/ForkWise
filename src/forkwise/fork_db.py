@@ -78,19 +78,19 @@ class ForkDB(DBConn):
     def list_ingredients_per_recipe(self, recipe_name: str) -> List[str]:
         query = f"""
             SELECT p.name
-            FROM pantry_items as p
+            FROM pantry_items AS p
             INNER JOIN ingredients i ON
-                i.ingredient_id == p.id
+                i.ingredient_id = p.id
             INNER JOIN recipes r ON
-                r.id == i.recipe_id
-            WHERE r.name == %s;
+                r.id = i.recipe_id
+            WHERE r.name = %s;
         """
         ingr_list = self.execute_query(query, (recipe_name,))
-        return [ingr_list['name'] for i in ingr_list]
+        return [i['name'] for i in ingr_list]
     
     def check_units_exist(self)->List[tuple]:
         # Check that all rows in staging have units that match rows in unit_conversions
-        # Return is a list of (staging.name, staging.units) where staging.units has 
+        # Return is a list of dicts representing (staging.name, staging.units) where staging.units has 
         # no match in unit_conversions
         q = """
                 SELECT s.name, s.units
@@ -101,9 +101,10 @@ class ForkDB(DBConn):
             """
         return self.execute_query(q)
     
-    def check_ingr_exist(self)->List[tuple]:
+    def check_ingr_exist(self)->List[dict]:
         # Check all ingredients in staging have rows in pantry_items and units in unit_conversions
-        # Return is a list of tuples of any missing items (staging.ingr_name, staging.ingredient_units, pantry_items.units)
+        # Return is a list of dicts of any missing items; 
+        # each dict represents (staging.ingr_name, staging.ingredient_units, pantry_items.units)
 
         check_ingr = """
             SELECT s.ingr_name, s.ingredient_units, p.units

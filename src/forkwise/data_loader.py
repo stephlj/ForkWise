@@ -140,7 +140,7 @@ class DataLoader:
         # Check first, error with a list of missing ingredients:
         ingr_missing = self.conn.check_ingr_exist()
         if len(ingr_missing) > 0:
-            msg = f"Cannot load recipe: {name}. Ingredients missing from db and/or units aren't in db and/or unit category mismatch: (name, recipe units, db units) {ingr_missing}"
+            msg = f"Cannot load recipe: {name}. Ingredients missing from db and/or units aren't in db and/or unit category mismatch: {ingr_missing}"
             self._logger.error(msg)
             raise ValueError(msg)
 
@@ -189,7 +189,7 @@ class DataLoader:
         # Check first, error with a list of missing recipes:
         recipe_missing = self.conn.check_recipe_exist()
         if len(recipe_missing) > 0:
-            msg = f"Cannot load meals from {path_to_meals_csv}. Recipes missing from db: {list(zip(*recipe_missing))}"
+            msg = f"Cannot load meals from {path_to_meals_csv}. Recipes missing from db: {[r['recipe_name'] for r in recipe_missing]}"
             self._logger.error(msg)
             raise ValueError(msg)
 
