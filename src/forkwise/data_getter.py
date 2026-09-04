@@ -58,11 +58,11 @@ class DataGetter:
 
         
         recipe_dict_list = self.conn.get_recipe_servings(recipe_name=recipe_name)
-        if len(recipe_dict)==0:
+        if len(recipe_dict_list)==0:
             msg = f"Recipe {recipe_name} does not exist"
             self._logger.error(msg)
             raise ValueError(msg)
-        elif len(recipe_dict) > 1:
+        elif len(recipe_dict_list) > 1:
             msg = f"Query to get recipe from name returned multiple rows, something is wrong!"
             self._logger.error(msg)
             raise ValueError(msg)
@@ -85,12 +85,12 @@ class DataGetter:
             self._logger.error(msg)
             raise ValueError(msg)
 
-        ingr_props = FoodProps(cal=totals_dict['cal'],
-                      fat_grams=totals_dict['fat_grams'],
-                      protein_grams=totals_dict['protein_grams'],
-                      fiber_grams=totals_dict['fiber_grams'],
-                      sugar_grams= totals_dict['sugar_grams'],
-                      carb_grams= totals_dict['carb_grams'],
+        ingr_props = FoodProps(cal=totals_dict['total_cal'],
+                      fat_grams=totals_dict['total_fat_grams'],
+                      protein_grams=totals_dict['total_protein_grams'],
+                      fiber_grams=totals_dict['total_fiber_grams'],
+                      sugar_grams= totals_dict['total_sugar_grams'],
+                      carb_grams= totals_dict['total_carb_grams'],
                       white_flour= bool(totals_dict['white_flour']),
                       animal= bool(totals_dict['animal'])
                       )
