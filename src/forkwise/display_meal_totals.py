@@ -35,7 +35,7 @@ def get_meals(date_range: List[date], username: str, pw: str, path_to_config: st
         config = yaml.safe_load(config_file)
         db_name = config["db"]["db_name"]
 
-    with DataGetter(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dg:
+    with DataGetter(user=username, pw=pw, db_name=db_name) as dg:
         meals_list = dg.get_meals_in_dates(date_range=date_range)
 
     return meals_list
