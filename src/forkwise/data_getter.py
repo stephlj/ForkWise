@@ -57,29 +57,24 @@ class DataGetter:
         """
 
         
-        recipe_tuple = self.conn.get_recipe_servings(recipe_name=recipe_name)
-        if len(recipe_tuple)==0:
+        recipe_dict_list = self.conn.get_recipe_servings(recipe_name=recipe_name)
+        if len(recipe_dict_list)==0:
             msg = f"Recipe {recipe_name} does not exist"
             self._logger.error(msg)
             raise ValueError(msg)
-        elif len(recipe_tuple) > 1:
-            msg = f"Query to get recipe id from name returned multiple rows, something is wrong!"
+        elif len(recipe_dict_list) > 1:
+            msg = f"Query to get recipe from name returned multiple rows, something is wrong!"
             self._logger.error(msg)
             raise ValueError(msg)
         
-        # TODO return this directly from schema
-        recipe_dict_keys = ['id','name','servings','servings_amt', 'servings_units']
-        recipe_dict = dict(zip(recipe_dict_keys,recipe_tuple[0]))
+        recipe_dict = recipe_dict_list[0]
 
-        totals_tuple = self.conn.calc_recipe_totals(recipe_id=recipe_dict['id'])
-        if len(totals_tuple) != 1:
+        totals_list = self.conn.calc_recipe_totals(recipe_id=recipe_dict['id'])
+        if len(totals_list) != 1:
             msg = f"Query to get recipe totals from recipe {recipe_name} returned multiple rows, something is wrong!"
             self._logger.error(msg)
             raise ValueError(msg)
-        # TODO get this from the db
-        totals_dict_keys = [c for c in PANTRY_COL_NAMES if c not in {'name','unitary_amt','units'}]
-        totals_dict_keys.append('count')
-        totals_dict = dict(zip(totals_dict_keys,totals_tuple[0]))
+        totals_dict = totals_list[0]
         
 
         # Check that all units matched for conversions - otherwise the return from COUNT won't match
@@ -90,12 +85,12 @@ class DataGetter:
             self._logger.error(msg)
             raise ValueError(msg)
 
-        ingr_props = FoodProps(cal=totals_dict['cal'],
-                      fat_grams=totals_dict['fat_grams'],
-                      protein_grams=totals_dict['protein_grams'],
-                      fiber_grams=totals_dict['fiber_grams'],
-                      sugar_grams= totals_dict['sugar_grams'],
-                      carb_grams= totals_dict['carb_grams'],
+        ingr_props = FoodProps(cal=totals_dict['total_cal'],
+                      fat_grams=totals_dict['total_fat_grams'],
+                      protein_grams=totals_dict['total_protein_grams'],
+                      fiber_grams=totals_dict['total_fiber_grams'],
+                      sugar_grams= totals_dict['total_sugar_grams'],
+                      carb_grams= totals_dict['total_carb_grams'],
                       white_flour= bool(totals_dict['white_flour']),
                       animal= bool(totals_dict['animal'])
                       )
@@ -128,9 +123,9 @@ class DataGetter:
         recipes = self.conn.get_recipes_in_dates(date_range=(date_range[0],date_range[1]))
 
         # TODO refactor all of this
-        meal_df = pd.DataFrame({"date_eaten":[r[0] for r in recipes],
-                                "servings": [r[1] for r in recipes],
-                                "name": [r[2] for r in recipes]
+        meal_df = pd.DataFrame({"date_eaten":[r['date'] for r in recipes],
+                                "servings": [r['recipe_servings'] for r in recipes],
+                                "name": [r['name'] for r in recipes]
                                 })
         grouped = meal_df.groupby("date_eaten")
         dates = list(grouped.groups.keys())

@@ -65,13 +65,13 @@ class TestDataLoader(unittest.TestCase):
 
         # Spot check correct load order of columns
         with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
-            carrot_fiber_grams_tuple = dbconn.execute_query("SELECT fiber_grams FROM pantry_items WHERE name=%s",('Carrot',))
-        carrot_fiber_grams = carrot_fiber_grams_tuple[0][0]
+            carrot_fiber_grams_dict = dbconn.execute_query("SELECT fiber_grams FROM pantry_items WHERE name=%s",('Carrot',))
+        carrot_fiber_grams = carrot_fiber_grams_dict[0]['fiber_grams']
         self.assertEqual(carrot_fiber_grams,2.2)
 
         with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
-            tamari_fat_grams_tuple = dbconn.execute_query("SELECT fat_grams FROM pantry_items WHERE name=%s",('Tamari',))
-        tamari_fat_grams = tamari_fat_grams_tuple[0][0]
+            tamari_fat_grams_dict = dbconn.execute_query("SELECT fat_grams FROM pantry_items WHERE name=%s",('Tamari',))
+        tamari_fat_grams = tamari_fat_grams_dict[0]['fat_grams']
         self.assertEqual(tamari_fat_grams,0)
 
     def test_add_recipe_via_staging(self):

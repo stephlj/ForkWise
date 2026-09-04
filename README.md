@@ -204,7 +204,7 @@ TODOs:
 - BUG: If units don't exist on ingredient load, it just silently skips rows
 - BUG: wont allow recipes that are only partial duplicates
 - BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
-- FEATURE: Add recipe as ingredient - add recipe from staging table that doesn't come from csv - in future GUI can add from staging to check for missing ingredients and add if necessary. Started on branch RecipeAsIngr
+- FEATURE: Add recipe as ingredient - add recipe from staging table that doesn't come from csv - in future GUI can add from staging to check for missing ingredients and add if necessary. Started on branch RecipeAsIngr but should probably abandon. Think about refactoring to load into dataclass (from csv or db) -> then to staging.
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour
