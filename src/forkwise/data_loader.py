@@ -81,7 +81,7 @@ class DataLoader:
         # WARN if an ingredient is added under a different name but every other value the same.
         dups = self.conn.check_dup_ingr()
         if len(dups)>0:
-            msg=f"Source file {path_to_ingr_csv} contains rows identical to existing pantry items except for the name: (name in file, name in db) {dups}"
+            msg=f"Source file {path_to_ingr_csv} contains rows identical to existing pantry items except for the name: (name in file, name in db) {[tuple(d.values()) for d in dups]}"
             self._logger.warning(msg)
 
         num_rows_added = self.conn.staging_to_pantry()
@@ -130,9 +130,9 @@ class DataLoader:
         """
     
         self.conn.create_staging(col_defs=INGR_COL_DEFS)
-        rows_staged = self.conn.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=INGR_COL_DEFS)
+        num_rows_staged = self.conn.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=INGR_COL_DEFS)
 
-        if rows_staged == 0:
+        if num_rows_staged == 0:
             self._logger.info(f"No recipe loaded from source file {path_to_recipe_csv} to staging table, will not be added to db")
             return 0
         
@@ -148,13 +148,14 @@ class DataLoader:
         # Check the latter condition first. 
         check_dups = self.conn.check_dup_recipe()
         if len(check_dups) > 0:
-            recipe_id, num_comps = zip(*check_dups)
-            same_comps = sum([x==rows_staged for x in num_comps])
-            if same_comps>0:
-                recipe_name = self.conn.get_recipe_name(recipe_id=recipe_id[0])
-                msg = f"A recipe with ingredients in csv {path_to_recipe_csv} already exists (name: {recipe_name}); nothing will be added"
-                self._logger.error(msg)
-                raise ValueError(msg)
+            # check_dup_recipe doesn't compare number of ingredients that were a match to the length of the staging table;
+            # do that here. Some recipe_id's might have been partial matches.
+            for d in check_dups:
+                if d['count'] == num_rows_staged:
+                    recipe_name = self.conn.get_recipe_name(recipe_id=d['recipe_id'])
+                    msg = f"A recipe with ingredients in csv {path_to_recipe_csv} already exists (name: {recipe_name}); nothing will be added"
+                    self._logger.error(msg)
+                    raise ValueError(msg)
         
         # Insert recipe name and servings into recipe table, unless a recipe by this name already exists:
         num_rows_added = self.conn.staging_to_recipe(name=name, servings=servings, servings_amt=servings_amt, servings_units=servings_units)

@@ -88,7 +88,7 @@ class ForkDB(DBConn):
         ingr_list = self.execute_query(query, (recipe_name,))
         return [i['name'] for i in ingr_list]
     
-    def check_units_exist(self)->List[tuple]:
+    def check_units_exist(self)->List[dict]:
         # Check that all rows in staging have units that match rows in unit_conversions
         # Return is a list of dicts representing (staging.name, staging.units) where staging.units has 
         # no match in unit_conversions
@@ -105,9 +105,10 @@ class ForkDB(DBConn):
         # Check all ingredients in staging have rows in pantry_items and units in unit_conversions
         # Return is a list of dicts of any missing items; 
         # each dict represents (staging.ingr_name, staging.ingredient_units, pantry_items.units)
+        # (keys 'staging_ingredient_name', 'staging_ingredient_units', 'pantry_units')
 
         check_ingr = """
-            SELECT s.ingr_name, s.ingredient_units, p.units
+            SELECT s.ingr_name AS staging_ingredient_name, s.ingredient_units AS staging_ingredient_units, p.units AS pantry_units
             FROM staging AS s
             LEFT JOIN unit_conversions AS su ON
                 LOWER(su.unit) = LOWER(s.ingredient_units)
@@ -120,8 +121,9 @@ class ForkDB(DBConn):
         """
         return self.execute_query(check_ingr)
     
-    def check_recipe_exist(self)->List[tuple]:
-        # Return is a list of tuples of recipe names in staging that aren't in the recipes table in the db
+    def check_recipe_exist(self)->List[dict]:
+        # Return is a list of dicts of recipe names in staging that aren't in the recipes table in the db.
+        # Dict keys are 'recipe_name'
         check_rec = """
             SELECT s.recipe_name
             FROM staging AS s
@@ -131,13 +133,13 @@ class ForkDB(DBConn):
         """
         return self.execute_query(check_rec)
     
-    def check_dup_ingr(self) -> List[tuple]:
+    def check_dup_ingr(self) -> List[dict]:
         # Check if there are any rows in the staging table that are the same as an existing row
         # in pantry_items execept for the name (ie, these items exist under a different name)
-        # Return is a list of tuples: (staging.name, pantry_items.name) for any duplicates
+        # Return is a list of dicts representing (staging.name, pantry_items.name) for any duplicates
         join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in PANTRY_COL_DEFS[3:])
         check_dups = f"""
-            SELECT s.name, p.name
+            SELECT s.name AS staging_name, p.name AS pantry_name
             FROM staging AS s
             INNER JOIN pantry_items p ON
                 p.unitary_amt = s.unitary_amt AND
@@ -147,11 +149,11 @@ class ForkDB(DBConn):
         """
         return self.execute_query(check_dups)
     
-    def check_dup_recipe(self)->List[tuple]:
+    def check_dup_recipe(self)->List[dict]:
         # Check whether staging contains a set of ingredients+amounts that matches an existing recipe under a different name
         # Join pantry_items onto staging to get pantry_item id; then ask whether the ingredients table already has
         # the same combo of (ingredient id, ingredient amt, ingredient units) associated with a single recipe id.
-        # Return is a list of tuples of (recipe_id, count) for any matches
+        # Return is a list of dicts with keys 'recipe_id', 'count' for any matches
 
         join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in INGR_COL_DEFS[1:])
         # Equivalent to: LEFT JOIN pantry_items p ON ... WHERE p.id IS NOT NULL
