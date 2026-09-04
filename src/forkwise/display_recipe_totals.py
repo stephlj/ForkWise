@@ -7,7 +7,7 @@ import logging
 import yaml
 
 from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving
-from forkwise.fork_db import ForkDB
+from forkwise.data_getter import DataGetter
 
 def display_recipe_info(recipe_name: str, username: str, pw: str, path_to_config: str=CONFIG_PATH):
     """
@@ -18,9 +18,8 @@ def display_recipe_info(recipe_name: str, username: str, pw: str, path_to_config
         config = yaml.safe_load(config_file)
         db_name = config["db"]["db_name"]
 
-    conn = ForkDB(user=username, pw=pw, db_name=db_name)
-    recipe = conn.get_recipe_totals(recipe_name=recipe_name)
-    conn.close()
+    with DataGetter(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dg:
+        recipe = dg.get_recipe_totals(recipe_name=recipe_name)
 
     totals = calc_totals_per_serving(recipe=recipe)
 

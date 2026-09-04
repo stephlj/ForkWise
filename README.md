@@ -4,7 +4,7 @@ ForkWise is designed around the principle that the first step towards making a c
 of life, observation and tracking. ForkWise aims for enough accuracy to produce actionable data without such a high burden of data
 entry as to be unuseable.
 
-ForkWise logs daily meals and reports total calories, as well as fiber, sugar, and protein. Meals are recorded as instances of 
+ForkWise logs daily meals and reports total calories, as well as nutritial values like fiber, sugar, and protein. Meals are recorded as instances of 
 recipes that are stored in the database and are constructed from a basic set of ingredients. You can make the data as detailed as you need for your goals: different bagel brands will have slightly different nutritional content, so you can log breakfasts of different kinds of bagels separately; or you can just call them all "bagels" and enter an average amount of calories, etc in the ingredients list.
 
 Progress towards health goals will fall out of the data provided by ForkWise; if I know that 20% of my daily sugar intake comes from 
@@ -58,6 +58,13 @@ In the terminal, run:
 python ./src/forkwise/add_ingredients.py <username> <user pw> <path_to_csv>
 ```
 
+To view a list of ingredients in the db, run in a python session:
+```
+from forkwise.fork_db import ForkDB
+with ForkDB(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dbconn:
+    print(dbconn.list_all_ingredients())
+```
+
 ### Add recipe
 
 A recipe can only be added if all ingredients are already in the db.
@@ -78,6 +85,13 @@ python ./src/forkwise/add_recipe.py <username> <user pw> <path_to_csv> <recipe_n
 (Put `<recipe_name>` in single quotes to accommodate spaces.)
 
 This will fail if a recipe by the same name already exists; or a recipe of a different name but the same exact ingredient list exists.
+
+To view a list of recipes in the db, run in a python session:
+```
+from forkwise.fork_db import ForkDB
+with ForkDB(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dbconn:
+    print(dbconn.list_all_recipes())
+```
 
 ### Add meals
 
@@ -105,7 +119,8 @@ To view nutritional content of a recipe logged in the database:
 ```
 python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
 ```
-If you comment out `test_fork_db.py` teardown method so the testing db persists, and temporarily modify `config.yaml` to point at `test_fork_db`,
+If you comment out `test_data_getter.py`'s db teardown so the testing db persists, 
+run just the `test_data_getter.py` test, and then temporarily modify `config.yaml` to point at `test_fork_db`,
 and run:
 ```
 python ./src/forkwise/display_recipe_totals.py test_fork_user pw hummus
@@ -114,6 +129,7 @@ the result is:
 
 ![Ex nutritional info](img/Ex_NutritionalTotals.png)
 
+(Remember to teardown the testing db manually afterwards, and change the config back!)
 
 To view nutritial totals for meals in a date range: 
 ```
@@ -121,7 +137,8 @@ python ./src/forkwise/display_meal_totals.py <username> <user pw> <start_date> <
 ```
 where `start_date` and `end_date` are in ISO format of YYYY-MM-DD.
 
-If you comment out `test_fork_db.py` teardown method so the testing db persists, and temporarily modify `config.yaml` to point at `test_fork_db`,
+If you comment out `test_data_getter.py`'s db teardown so the testing db persists, 
+run just the `test_data_getter.py` test, and then temporarily modify `config.yaml` to point at `test_fork_db`,
 and run:
 ```
 python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-05-12 2026-07-05
@@ -130,19 +147,24 @@ the result is this plot:
 
 ![Ex meals plot](img/Ex_PlotMeals.png)
 
+(Remember to teardown the testing db manually afterwards, and change the config back!)
+
 To view pie charts breaking down daily nutritional content by recipe for a single `date`:
 ```
 python ./src/forkwise/display_meal_totals.py <username> <user pw> <date> <date>
 ```
 (ie the second two args must be the same; `date` in ISO format of YYYY-MM-DD again).
 
-If you comment out `test_fork_db.py` teardown method so the testing db persists, and temporarily modify `config.yaml` to point at `test_fork_db`,
+If you comment out `test_data_getter.py`'s db teardown so the testing db persists, 
+run just the `test_data_getter.py` test, and then temporarily modify `config.yaml` to point at `test_fork_db`,
 and run:
 ```
 python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-07-05 2026-07-05
 ```
 the result is:
 ![Ex meal breakdown plot](img/Ex_PlotMealBreakdowns.png)
+
+(Remember to teardown the testing db manually afterwards, and change the config back!)
 
 ## Getting started
 
@@ -176,19 +198,18 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
-- REFACTOR: have execute_query in dbcommons return column names - return a dict rather than the raw tuple? or use a row factory?
-- REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay)
+- REFACTOR: Load csv into (pandas df? dataclass?) in BLL, with input handling; insert into staging from dataclass
+- FEATURE: Add recipe as ingredient - add recipe from staging table that doesn't come from csv - in future GUI can add from staging to check for missing ingredients and add if necessary. Started on branch RecipeAsIngr but should probably abandon. See previous refactor which blocks this feature.
+- REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
 - TESTING: Check final cal, etc in plots from testing db data
 - BUG: If units don't exist on ingredient load, it just silently skips rows
 - BUG: wont allow recipes that are only partial duplicates
 - BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
-- REFACTOR: DAL to remove business logic; add recipe from staging table that doesn't come from csv - in future GUI can add from staging to check for missing ingredients and add if necessary
-- FEATURE: Add recipe as ingredient - need to do some refactoring in dbcommons and the refactor DAL item. Started on branch RecipeAsIngr
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour
 - TESTING: switch to "with self.subTest()"? for independent consecutive tests in one test case
-- REFACTOR-DONE: Create a function that plots a pie chart for one attribute. In the UI, will want to click on cal for a day and display that pie chart, or compare across multiple days; similarly for protein per day, etc.
+- FEATURE: In the UI, click on cal for a day and display that pie chart, or compare across multiple days; similarly for protein per day, etc.
 
 ## Dev
 
