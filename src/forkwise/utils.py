@@ -13,6 +13,8 @@ DEFAULT_LOGGING_FORMAT = (
 CONFIG_PATH = os.path.join(os.getcwd(),"src","forkwise","config.yml")
 SCHEMA_PATH = os.path.join(os.getcwd(),"src","forkwise","schema.sql")
 
+DASHBOARD_TITLE = "ForkWise Dashboard"
+
 from forkwise.fork_dataclasses import Recipe, FoodProps
 
 def calc_totals_per_serving(recipe: Recipe)->FoodProps:

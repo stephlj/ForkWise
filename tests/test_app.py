@@ -1,5 +1,3 @@
-# Copyright (c) 2026 Stephanie Johnson
-#
 # Tests for webapp/app.py using Streamlit's AppTest harness.
 #
 # ForkDB and get_meals are mocked throughout: the DB layer already has its
@@ -11,83 +9,84 @@
 # selection is stored under its own widget `key` in session_state, so seeding
 # that key directly (mimicking what a real click would leave behind) exercises
 # the exact same rendering path a real click would.
+#
+# Written by Claude Code
 
 import json
 import os
 import unittest
-from datetime import date
-from unittest.mock import MagicMock, patch
-
 import matplotlib
 
-matplotlib.use("Agg")
-
+from datetime import date
+from unittest.mock import MagicMock, patch
 from streamlit.testing.v1 import AppTest
 
 from forkwise.fork_dataclasses import FoodProps, Meal, Recipe
+from forkwise.utils import DASHBOARD_TITLE
+
+matplotlib.use("Agg")
 
 # Resolved against this file's location, per AppTest.from_file's own convention.
 APP_PATH = os.path.join(os.path.dirname(__file__), "..", "webapp", "app.py")
 
 
-def _make_meal(name, cal, fat, protein, fiber, sugar, carb, servings_eaten, date_eaten):
-    return Meal(
-        recipes=[
-            Recipe(
-                name=name,
-                servings=1.0,
-                servings_amt=1.0,
-                servings_units="unit",
-                props=FoodProps(
-                    cal=cal,
-                    fat_grams=fat,
-                    protein_grams=protein,
-                    fiber_grams=fiber,
-                    sugar_grams=sugar,
-                    carb_grams=carb,
-                    white_flour=False,
-                    animal=False,
-                ),
-            )
-        ],
-        servings_eaten=[servings_eaten],
-        date_eaten=date_eaten,
-    )
-
-
-def _logged_in_app():
-    at = AppTest.from_file(APP_PATH)
-    at.session_state["logged_in"] = True
-    at.session_state["username"] = "me"
-    at.session_state["pw"] = "pw"
-    return at
-
-
-def _set_date_range(at, start, end):
-    if not at.date_input:
-        at.run()  # first run instantiates the widgets
-    at.date_input[0].set_value(start)
-    at.date_input[1].set_value(end)
-    at.run()
-
-
-def _seed_point_selection(at, chart_key_prefix, start, end, x, **extra_point_fields):
-    # Mirrors the shape a real Plotly on_select click leaves behind under a
-    # plotly_chart's own widget key, confirmed empirically to round-trip
-    # correctly through st.plotly_chart(..., key=...)'s return value.
-    key = f"{chart_key_prefix}_{start.isoformat()}_{end.isoformat()}"
-    point = {"x": x.isoformat(), "y": 0, "point_index": 0, "curve_number": 0, **extra_point_fields}
-    at.session_state[key] = {"selection": {"points": [point]}}
-
-
 class TestApp(unittest.TestCase):
+
+    def _make_meal(self, name, cal, fat, protein, fiber, sugar, carb, servings_eaten, date_eaten):
+        return Meal(
+            recipes=[
+                Recipe(
+                    name=name,
+                    servings=1.0,
+                    servings_amt=1.0,
+                    servings_units="unit",
+                    props=FoodProps(
+                        cal=cal,
+                        fat_grams=fat,
+                        protein_grams=protein,
+                        fiber_grams=fiber,
+                        sugar_grams=sugar,
+                        carb_grams=carb,
+                        white_flour=False,
+                        animal=False,
+                    ),
+                )
+            ],
+            servings_eaten=[servings_eaten],
+            date_eaten=date_eaten,
+        )
+
+
+    def _logged_in_app(self):
+        at = AppTest.from_file(APP_PATH)
+        at.session_state["logged_in"] = True
+        at.session_state["username"] = "me"
+        at.session_state["pw"] = "pw"
+        return at
+
+
+    def _set_date_range(self, at, start, end):
+        if not at.date_input:
+            at.run()  # first run instantiates the widgets
+        at.date_input[0].set_value(start)
+        at.date_input[1].set_value(end)
+        at.run()
+
+
+    def _seed_point_selection(self, at, chart_key_prefix, start, end, x, **extra_point_fields):
+        # Mirrors the shape a real Plotly on_select click leaves behind under a
+        # plotly_chart's own widget key, confirmed empirically to round-trip
+        # correctly through st.plotly_chart(..., key=...)'s return value.
+        key = f"{chart_key_prefix}_{start.isoformat()}_{end.isoformat()}"
+        point = {"x": x.isoformat(), "y": 0, "point_index": 0, "curve_number": 0, **extra_point_fields}
+        at.session_state[key] = {"selection": {"points": [point]}}
 
     def test_shows_login_form_when_logged_out(self):
         at = AppTest.from_file(APP_PATH)
         at.run()
 
         self.assertEqual(len(at.exception), 0)
-        self.assertEqual(at.title[0].value, "ForkWise Dashboard")
+        self.assertEqual(at.title[0].value, DASHBOARD_TITLE)
         self.assertEqual(len(at.text_input), 2)  # username, password
         self.assertEqual(len(at.date_input), 0)  # dashboard not shown yet
 
@@ -127,7 +126,7 @@ class TestApp(unittest.TestCase):
 
     @patch("forkwise.display_meal_totals.get_meals")
     def test_start_after_end_shows_error_without_querying(self, mock_get_meals):
-        at = _logged_in_app()
+        at = self._logged_in_app()
         at.run()  # default start == end is valid, so this calls get_meals once
         mock_get_meals.reset_mock()
 
@@ -142,7 +141,7 @@ class TestApp(unittest.TestCase):
     def test_no_meals_shows_info_message(self, mock_get_meals):
         mock_get_meals.return_value = []
 
-        at = _logged_in_app()
+        at = self._logged_in_app()
         at.run()
 
         self.assertEqual(len(at.exception), 0)
@@ -151,13 +150,13 @@ class TestApp(unittest.TestCase):
     @patch("forkwise.display_meal_totals.get_meals")
     def test_dashboard_renders_calories_and_grams_charts(self, mock_get_meals):
         mock_get_meals.return_value = [
-            _make_meal(
+            self._make_meal(
                 "toast", cal=225.0, fat=1.0, protein=1.0, fiber=5.0,
                 sugar=9.25, carb=28.0, servings_eaten=2.0, date_eaten=date(2026, 7, 5),
             ),
         ]
 
-        at = _logged_in_app()
+        at = self._logged_in_app()
         at.run()
 
         self.assertEqual(len(at.exception), 0)
@@ -182,18 +181,18 @@ class TestApp(unittest.TestCase):
         # prevents that: every day gets an equal-width slot regardless of
         # gaps.
         mock_get_meals.return_value = [
-            _make_meal(
+            self._make_meal(
                 "toast", cal=225.0, fat=1.0, protein=1.0, fiber=5.0,
                 sugar=9.25, carb=28.0, servings_eaten=2.0, date_eaten=date(2026, 7, 30),
             ),
-            _make_meal(
+            self._make_meal(
                 "salad", cal=150.0, fat=2.0, protein=3.0, fiber=4.0,
                 sugar=1.0, carb=10.0, servings_eaten=1.0, date_eaten=date(2026, 8, 1),
             ),
         ]
 
-        at = _logged_in_app()
-        _set_date_range(at, date(2026, 7, 28), date(2026, 8, 3))
+        at = self._logged_in_app()
+        self._set_date_range(at, date(2026, 7, 28), date(2026, 8, 3))
 
         self.assertEqual(len(at.exception), 0)
         charts = at.get("plotly_chart")
@@ -205,16 +204,16 @@ class TestApp(unittest.TestCase):
     @patch("forkwise.display_meal_totals.get_meals")
     def test_selecting_a_calories_point_renders_its_own_pie(self, mock_get_meals):
         mock_get_meals.return_value = [
-            _make_meal(
+            self._make_meal(
                 "toast", cal=225.0, fat=1.0, protein=1.0, fiber=5.0,
                 sugar=9.25, carb=28.0, servings_eaten=2.0, date_eaten=date(2026, 7, 5),
             ),
         ]
 
-        at = _logged_in_app()
+        at = self._logged_in_app()
         start, end = date(2026, 7, 1), date(2026, 7, 10)
-        _set_date_range(at, start, end)
-        _seed_point_selection(at, "chart_cal", start, end, x=date(2026, 7, 5))
+        self._set_date_range(at, start, end)
+        self._seed_point_selection(at, "chart_cal", start, end, x=date(2026, 7, 5))
         at.run()
 
         self.assertEqual(len(at.exception), 0)
@@ -228,16 +227,16 @@ class TestApp(unittest.TestCase):
         # clicked bar's customdata, rather than a fixed per-chart label like
         # the calories chart uses. Seeding customdata exercises that lookup.
         mock_get_meals.return_value = [
-            _make_meal(
+            self._make_meal(
                 "toast", cal=225.0, fat=1.0, protein=1.0, fiber=5.0,
                 sugar=9.25, carb=28.0, servings_eaten=2.0, date_eaten=date(2026, 7, 5),
             ),
         ]
 
-        at = _logged_in_app()
+        at = self._logged_in_app()
         start, end = date(2026, 7, 1), date(2026, 7, 10)
-        _set_date_range(at, start, end)
-        _seed_point_selection(
+        self._set_date_range(at, start, end)
+        self._seed_point_selection(
             at, "chart_grams", start, end, x=date(2026, 7, 5), customdata=["sugar_list"]
         )
         at.run()
@@ -250,21 +249,21 @@ class TestApp(unittest.TestCase):
     @patch("forkwise.display_meal_totals.get_meals")
     def test_both_pies_can_show_different_days_at_once(self, mock_get_meals):
         mock_get_meals.return_value = [
-            _make_meal(
+            self._make_meal(
                 "toast", cal=225.0, fat=1.0, protein=1.0, fiber=5.0,
                 sugar=9.25, carb=28.0, servings_eaten=2.0, date_eaten=date(2026, 7, 5),
             ),
-            _make_meal(
+            self._make_meal(
                 "salad", cal=150.0, fat=2.0, protein=3.0, fiber=4.0,
                 sugar=1.0, carb=10.0, servings_eaten=1.0, date_eaten=date(2026, 7, 6),
             ),
         ]
 
-        at = _logged_in_app()
+        at = self._logged_in_app()
         start, end = date(2026, 7, 1), date(2026, 7, 10)
-        _set_date_range(at, start, end)
-        _seed_point_selection(at, "chart_cal", start, end, x=date(2026, 7, 5))
-        _seed_point_selection(
+        self._set_date_range(at, start, end)
+        self._seed_point_selection(at, "chart_cal", start, end, x=date(2026, 7, 5))
+        self._seed_point_selection(
             at, "chart_grams", start, end, x=date(2026, 7, 6), customdata=["fat_list"]
         )
         at.run()
@@ -280,25 +279,21 @@ class TestApp(unittest.TestCase):
         # range gives it a brand new (unselected) widget rather than
         # reinterpreting the old selection against different data.
         mock_get_meals.return_value = [
-            _make_meal(
+            self._make_meal(
                 "toast", cal=225.0, fat=1.0, protein=1.0, fiber=5.0,
                 sugar=9.25, carb=28.0, servings_eaten=2.0, date_eaten=date(2026, 7, 5),
             ),
         ]
 
-        at = _logged_in_app()
+        at = self._logged_in_app()
         start, end = date(2026, 7, 1), date(2026, 7, 10)
-        _set_date_range(at, start, end)
-        _seed_point_selection(at, "chart_cal", start, end, x=date(2026, 7, 5))
+        self._set_date_range(at, start, end)
+        self._seed_point_selection(at, "chart_cal", start, end, x=date(2026, 7, 5))
         at.run()
         self.assertTrue(any("Calories on 2026-07-05" in s.value for s in at.subheader))
 
-        _set_date_range(at, date(2026, 6, 1), date(2026, 6, 10))
+        self._set_date_range(at, date(2026, 6, 1), date(2026, 6, 10))
 
         self.assertEqual(len(at.exception), 0)
         self.assertEqual(len(at.subheader), 0)
         self.assertTrue(any("calories chart" in i.value for i in at.info))
-
-
-if __name__ == "__main__":
-    unittest.main()
