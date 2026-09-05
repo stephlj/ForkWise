@@ -17,14 +17,20 @@ from forkwise.fork_db import ForkDB
 
 st.set_page_config(page_title="ForkWise Dashboard", layout="wide")
 
-# (display label, PropsPerDay field name, plotly chart type)
-NUTRIENTS = [
-    ("Calories", "cal_list", px.scatter),
-    ("Protein (g)", "prot_list", px.bar),
-    ("Sugar (g)", "sugar_list", px.bar),
-    ("Fiber (g)", "fiber_list", px.bar),
-    ("Fat (g)", "fat_list", px.bar),
+CAL_PROP_KEY = "cal_list"
+CAL_LABEL = "Calories"
+
+# The remaining PropsPerDay fields all share units of grams, so they're
+# plotted together as one grouped bar chart rather than one chart each.
+GRAM_NUTRIENTS = [
+    ("Protein (g)", "prot_list"),
+    ("Sugar (g)", "sugar_list"),
+    ("Fiber (g)", "fiber_list"),
+    ("Fat (g)", "fat_list"),
 ]
+
+PROP_LABELS = {CAL_PROP_KEY: CAL_LABEL, **{prop_key: label for label, prop_key in GRAM_NUTRIENTS}}
+ALL_PROP_KEYS = [CAL_PROP_KEY] + [prop_key for _, prop_key in GRAM_NUTRIENTS]
 
 
 def login() -> None:
@@ -59,8 +65,8 @@ def login() -> None:
 def totals_per_day(daily_props: list[PropsPerDay]) -> dict[str, list[float]]:
     # Sum each nutrient's per-recipe breakdown into a single daily total.
     return {
-        field: [sum(getattr(p, field)) for p in daily_props]
-        for _, field, _ in NUTRIENTS
+        prop_key: [sum(getattr(p, prop_key)) for p in daily_props]
+        for prop_key in ALL_PROP_KEYS
     }
 
 
@@ -73,6 +79,27 @@ def render_pie(daily_props: list[PropsPerDay], date_idx: int, prop_key: str, lab
     st.pyplot(fig)
 
 
+def _render_drilldown(points: list[dict], dates: list, daily_props: list[PropsPerDay], prop_key: str, label: str, placeholder: str) -> None:
+    # A chart's own selection is already "sticky" across reruns (Streamlit/
+    # Plotly keep showing it as selected until the user clicks elsewhere on
+    # that same chart), so there's no need to track history ourselves here:
+    # whatever this chart currently reports as selected is exactly what its
+    # own pie panel should show.
+    if not points:
+        st.info(placeholder)
+        return
+
+    clicked_date = pd.to_datetime(points[0]["x"]).date()
+    try:
+        date_idx = dates.index(clicked_date)
+    except ValueError:
+        st.warning("Selected date is no longer in range.")
+        return
+
+    st.subheader(f"{label} on {clicked_date.isoformat()}")
+    render_pie(daily_props, date_idx, prop_key, label)
+
+
 def dashboard() -> None:
     st.title("ForkWise Dashboard")
 
@@ -83,13 +110,6 @@ def dashboard() -> None:
     if start_date > end_date:
         st.error("Start date must be before end date.")
         return
-
-    # Clear any drill-down selection if the date range has changed, since
-    # the previously selected date may no longer be in range.
-    date_range_key = (start_date, end_date)
-    if st.session_state.get("last_range") != date_range_key:
-        st.session_state.last_range = date_range_key
-        st.session_state.selected = None
 
     meals = get_meals(
         date_range=[start_date, end_date],
@@ -104,36 +124,59 @@ def dashboard() -> None:
     dates, daily_props = calc_daily_totals(meals)
     totals = totals_per_day(daily_props)
 
-    chart_col, pie_col = st.columns(2)
+    # Widget keys include the date range so that changing it always starts
+    # each chart with a fresh (empty) selection, rather than carrying over a
+    # click made against a now-different set of dates.
+    range_suffix = f"{start_date.isoformat()}_{end_date.isoformat()}"
 
-    with chart_col:
-        for label, prop_key, plot_fn in NUTRIENTS:
-            df = pd.DataFrame({"date": dates, label: totals[prop_key]})
-            fig = plot_fn(df, x="date", y=label, title=label)
-            event = st.plotly_chart(
-                fig, on_select="rerun", selection_mode="points", key=f"chart_{prop_key}"
-            )
-            points = event["selection"]["points"]
-            if points:
-                clicked_date = pd.to_datetime(points[0]["x"]).date()
-                st.session_state.selected = {
-                    "date": clicked_date,
-                    "prop_key": prop_key,
-                    "label": label,
-                }
+    cal_chart_col, cal_pie_col = st.columns(2)
+    with cal_chart_col:
+        cal_df = pd.DataFrame({"date": dates, CAL_LABEL: totals[CAL_PROP_KEY]})
+        cal_fig = px.scatter(cal_df, x="date", y=CAL_LABEL, title=CAL_LABEL)
+        cal_event = st.plotly_chart(
+            cal_fig, on_select="rerun", selection_mode="points", key=f"chart_cal_{range_suffix}"
+        )
+    with cal_pie_col:
+        _render_drilldown(
+            cal_event["selection"]["points"], dates, daily_props, CAL_PROP_KEY, CAL_LABEL,
+            placeholder="Click a point on the calories chart to see that day's recipe breakdown.",
+        )
 
-    with pie_col:
-        selected = st.session_state.get("selected")
-        if selected is None:
-            st.info("Click a point on a chart to see which recipes contributed that day.")
-        else:
-            try:
-                date_idx = dates.index(selected["date"])
-            except ValueError:
-                st.warning("Selected date is no longer in range.")
-            else:
-                st.subheader(f"{selected['label']} on {selected['date'].isoformat()}")
-                render_pie(daily_props, date_idx, selected["prop_key"], selected["label"])
+    # One grouped bar chart for every gram-based nutrient, colored by
+    # nutrient. custom_data carries the PropsPerDay field name for each bar
+    # so a click can be traced back to the right nutrient regardless of
+    # trace order.
+    grams_chart_col, grams_pie_col = st.columns(2)
+    with grams_chart_col:
+        grams_df = pd.concat(
+            [
+                pd.DataFrame(
+                    {"date": dates, "grams": totals[prop_key], "nutrient": label, "prop_key": prop_key}
+                )
+                for label, prop_key in GRAM_NUTRIENTS
+            ],
+            ignore_index=True,
+        )
+        grams_fig = px.bar(
+            grams_df,
+            x="date",
+            y="grams",
+            color="nutrient",
+            barmode="group",
+            custom_data=["prop_key"],
+            category_orders={"nutrient": [label for label, _ in GRAM_NUTRIENTS]},
+            title="Protein / Sugar / Fiber / Fat (g)",
+        )
+        grams_event = st.plotly_chart(
+            grams_fig, on_select="rerun", selection_mode="points", key=f"chart_grams_{range_suffix}"
+        )
+    with grams_pie_col:
+        grams_points = grams_event["selection"]["points"]
+        grams_prop_key = grams_points[0]["customdata"][0] if grams_points else None
+        _render_drilldown(
+            grams_points, dates, daily_props, grams_prop_key, PROP_LABELS.get(grams_prop_key),
+            placeholder="Click a bar to see that nutrient's recipe breakdown for that day.",
+        )
 
 
 if not st.session_state.get("logged_in"):
