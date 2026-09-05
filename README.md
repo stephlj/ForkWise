@@ -18,7 +18,7 @@ MVP: All inputs via csv. User provides csv of meals eaten on particular dates, c
 
 Later versions: Extract recipes from URLs and/or images, get ingredient nutritional info from web search and/or images. GUI for meal logging.
 
-Security: the database is hosted locally, nothing leaves your machine.
+Security: the database is hosted locally, nothing leaves your machine. *IMPORTANT NOTE* If the local Postgres install uses the single-user local dev default of setting every local connection method to `trust` in `pg_hba.conf`, the user's pw doesn't actually matter.
 
 ## Example usage
 
@@ -181,7 +181,7 @@ Add new users:
 python ./src/forkwise/add_fork_user.py <new_user_name> <new_user_pw> <admin_pw>
 ```
 
-To connect directly to the db via the terminal: TODO why don't I need to pass a pw ... 
+To connect directly to the db via the terminal: (see note under Inputs section above for why no pw is currently needed) 
 ```
 psql -U <user_name> -d fork_db
 ```
