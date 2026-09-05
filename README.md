@@ -115,6 +115,8 @@ python ./src/forkwise/add_meals.py <username> <user pw> <path_to_csv>
 
 ### View nutritional totals
 
+#### CLI interface
+
 To view nutritional content of a recipe logged in the database:
 ```
 python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
@@ -166,6 +168,14 @@ the result is:
 
 (Remember to teardown the testing db manually afterwards, and change the config back!)
 
+#### POC GUI
+
+The POC GUI uses `streamlit` and displays at `localhost`. 
+
+Launch the GUI via the terminal with `streamlit run webapp/app.py`. `uv` environment must be activated.
+
+Note that refreshing or closing the browser window will force a new login and start the session over.
+
 ## Getting started
 
 One-time-only setup: initialize a new db:
@@ -209,7 +219,6 @@ TODOs:
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour
 - TESTING: switch to "with self.subTest()"? for independent consecutive tests in one test case
-- FEATURE: In the UI, click on cal for a day and display that pie chart, or compare across multiple days; similarly for protein per day, etc.
 
 ## Dev
 

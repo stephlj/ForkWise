@@ -12,6 +12,7 @@
 # that key directly (mimicking what a real click would leave behind) exercises
 # the exact same rendering path a real click would.
 
+import json
 import os
 import unittest
 from datetime import date
@@ -168,6 +169,38 @@ class TestApp(unittest.TestCase):
         self.assertTrue(any("calories chart" in i for i in infos))
         self.assertTrue(any("Click a bar" in i for i in infos))
         self.assertEqual(len(at.subheader), 0)
+
+    @patch("forkwise.display_meal_totals.get_meals")
+    def test_grams_chart_uses_categorical_date_axis(self, mock_get_meals):
+        # Regression test: Plotly auto-detects a date-like x column as a
+        # continuous date axis, which for a grouped bar chart positions each
+        # day's bars using real calendar spacing. If some day in the range
+        # has no logged meals at all (a gap, as here on 7/31), that spacing
+        # shifts and a bar can end up reporting the neighboring day when
+        # clicked. Forcing a categorical axis (verified here via the actual
+        # rendered figure spec, not just the app's own intent) is what
+        # prevents that: every day gets an equal-width slot regardless of
+        # gaps.
+        mock_get_meals.return_value = [
+            _make_meal(
+                "toast", cal=225.0, fat=1.0, protein=1.0, fiber=5.0,
+                sugar=9.25, carb=28.0, servings_eaten=2.0, date_eaten=date(2026, 7, 30),
+            ),
+            _make_meal(
+                "salad", cal=150.0, fat=2.0, protein=3.0, fiber=4.0,
+                sugar=1.0, carb=10.0, servings_eaten=1.0, date_eaten=date(2026, 8, 1),
+            ),
+        ]
+
+        at = _logged_in_app()
+        _set_date_range(at, date(2026, 7, 28), date(2026, 8, 3))
+
+        self.assertEqual(len(at.exception), 0)
+        charts = at.get("plotly_chart")
+        self.assertEqual(len(charts), 2)
+        grams_chart = charts[1]  # calories chart is rendered first, grams chart second
+        spec = json.loads(grams_chart.proto.spec)
+        self.assertEqual(spec["layout"]["xaxis"].get("type"), "category")
 
     @patch("forkwise.display_meal_totals.get_meals")
     def test_selecting_a_calories_point_renders_its_own_pie(self, mock_get_meals):

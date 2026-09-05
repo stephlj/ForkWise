@@ -3,7 +3,7 @@
 # Streamlit dashboard: nutrient totals per day over a date range, with
 # click-to-drill-down into a per-day recipe breakdown pie chart.
 #
-# Copyright (c) 2026 Stephanie Johnson
+# Written by Claude Code
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -15,8 +15,10 @@ from forkwise.display_meal_totals import get_meals, calc_daily_totals, plot_pie,
 from forkwise.utils import CONFIG_PATH
 from forkwise.fork_db import ForkDB
 
-st.set_page_config(page_title="ForkWise Dashboard", layout="wide")
+DASHBOARD_TITLE = "ForkWise Dashboard"
+st.set_page_config(page_title=DASHBOARD_TITLE, layout="wide")
 
+# TODO hopefully none of this will be necessary after refactoring my dataclasses...
 CAL_PROP_KEY = "cal_list"
 CAL_LABEL = "Calories"
 
@@ -34,7 +36,7 @@ ALL_PROP_KEYS = [CAL_PROP_KEY] + [prop_key for _, prop_key in GRAM_NUTRIENTS]
 
 
 def login() -> None:
-    st.title("ForkWise Dashboard")
+    st.title(DASHBOARD_TITLE)
     with st.form("login"):
         username = st.text_input("Username")
         pw = st.text_input("Password", type="password")
@@ -64,6 +66,9 @@ def login() -> None:
 
 def totals_per_day(daily_props: list[PropsPerDay]) -> dict[str, list[float]]:
     # Sum each nutrient's per-recipe breakdown into a single daily total.
+    # TODO This rearranges the output of calc_daily_totals; may not be needed
+    # after calc_daily_totals is refactored (or may replace it).
+    # Should be moved to display_meal_totals.py and leave app.py just for plotting.
     return {
         prop_key: [sum(getattr(p, prop_key)) for p in daily_props]
         for prop_key in ALL_PROP_KEYS
@@ -101,7 +106,7 @@ def _render_drilldown(points: list[dict], dates: list, daily_props: list[PropsPe
 
 
 def dashboard() -> None:
-    st.title("ForkWise Dashboard")
+    st.title(DASHBOARD_TITLE)
 
     col_start, col_end = st.columns(2)
     start_date = col_start.date_input("Start date")
@@ -167,6 +172,16 @@ def dashboard() -> None:
             category_orders={"nutrient": [label for label, _ in GRAM_NUTRIENTS]},
             title="Protein / Sugar / Fiber / Fat (g)",
         )
+        # Plotly auto-detects a date-like x column as a continuous date axis.
+        # For a grouped bar chart, the 4 bars for a given day then get
+        # positioned using real calendar spacing between days; if some day in
+        # the range has no logged meals (no bar at all), that spacing math
+        # shifts, and a bar can end up reporting the neighboring day when
+        # clicked. Forcing a categorical axis gives every day an equal-width
+        # slot regardless of calendar gaps, so a bar always reports the exact
+        # date it belongs to. (Confirmed via fig.layout.xaxis.type: without
+        # this, it's left as auto/None; this pins it to "category".)
+        grams_fig.update_xaxes(type="category")
         grams_event = st.plotly_chart(
             grams_fig, on_select="rerun", selection_mode="points", key=f"chart_grams_{range_suffix}"
         )
