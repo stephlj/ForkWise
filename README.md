@@ -219,7 +219,7 @@ TODOs:
 
 This package uses `uv` for package and virtual environment management, based on the very helpful tutorials at [Sebastia Agramunt Puig's blog](https://agramunt.me/posts/python-virtual-environments-with-uv/).
 
-Create the environment with `uv venv .venv` and then run `uv sync --all-extras` (to get developer extras).
+Create the environment with `uv venv .venv` and then run `uv sync --all-extras` (to get developer extras). *IMPORTANT NOTE* Running `uv sync --all-extras` will uninstall DBCommons; see below about how to re-install (or update) it!
 
 Activate with `source .venv/bin/activate`.
 
