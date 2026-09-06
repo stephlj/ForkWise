@@ -13,7 +13,7 @@ from typing import List
 from datetime import date
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -186,6 +186,12 @@ class ForkDB(DBConn):
                 WHERE i.recipe_id=%s;
             """
         return self.execute_scalar(q,(recipe_id,))
+    
+    def ingr_class_to_staging(self, ingr_cls: List[Ingredient]) -> int:
+        # Return num rows inserted into staging
+
+        # TODO use execute_query_with_class here
+        pass
     
     def staging_to_units(self)->int:
         # This will throw a UniqueViolation if any row is already in the conversions table:

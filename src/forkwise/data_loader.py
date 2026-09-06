@@ -7,9 +7,10 @@ Copyright (c) 2026 Stephanie Johnson
 import logging
 
 from functools import wraps
+from typing import List
 
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient
 
 class DataLoader:
     def __init__(self, user: str, pw: str, db_name: str):
@@ -100,19 +101,19 @@ class DataLoader:
 
     @clean_up_staging
     def add_recipe_via_staging(self, 
-                               path_to_recipe_csv: str, 
+                               ingredients: List[Ingredient], 
                                name: str, 
                                servings: float,
                                servings_amt: float,
                                servings_units: str) -> int:
         """
-        Add recipe from csv via a staging table.
+        Add recipe via a staging table, so that we can perform some checks before inserting into db.
 
         Parameters
         ----------
-        path_to_recipe_csv : str
-           Path to a recipe: each row is an ingredient (name, amount, units).
-           Name must already be an ingredient in the db in pantry_items table.
+        ingredients : List[Ingredient]
+           List of Ingredients: name, amount, units.
+           Names must already be in the db in pantry_items table.
            Units don't have to match pantry_items table units (can be converted later)-
            but must match unit type (weight, vol etc).
         name : str
@@ -130,11 +131,11 @@ class DataLoader:
         """
     
         self.conn.create_staging(col_defs=INGR_COL_DEFS)
-        num_rows_staged = self.conn.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=INGR_COL_DEFS)
+        num_rows_staged = self.conn.ingr_class_to_staging(ingr_cls=ingredients)
 
         if num_rows_staged == 0:
-            self._logger.info(f"No recipe loaded from source file {path_to_recipe_csv} to staging table, will not be added to db")
-            return 0
+            self._logger.error(f"Failed to stage recipe, nothing will be added to db!")
+            raise ValueError(f"Failed to stage recipe, nothing will be added to db!")
         
         # A recipe can only be added if all ingredients are already in the db, with units in categories that match pantry_items.
         # Check first, error with a list of missing ingredients:
