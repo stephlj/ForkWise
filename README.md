@@ -224,6 +224,7 @@ v2: GUI for data entry and display
 TODOs:
 - REFACTOR: Load csv into (pandas df? dataclass?) in BLL, with input handling; insert into staging from dataclass
 - FEATURE: Add recipe as ingredient - add recipe from staging table that doesn't come from csv - in future GUI can add from staging to check for missing ingredients and add if necessary. Started on branch RecipeAsIngr but should probably abandon. See previous refactor which blocks this feature.
+- REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
 - TESTING: Check final cal, etc in plots from testing db data
 - BUG: If units don't exist on ingredient load, it just silently skips rows
