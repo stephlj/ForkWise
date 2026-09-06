@@ -182,6 +182,14 @@ a date-like x-column as a continuous date axis.. For a grouped bar chart, that m
 get positioned using real calendar spacing between days" so if there's a gap in the data, bars can show up on the 
 wrong x-position for day.)
 
+Finally, note that `streamlit`'s testing harness can't simulate some things like button clicks in the browser. To test manually:
+
+1. comment out `test_data_getter.py`'s db teardown so the testing db persists
+2. run just the `test_data_getter.py` test
+3. modify `config.yaml` to point at `test_fork_db`.
+4. Compare GUI plots to CLI outputs above (log in with `test_fork_user).
+5. Teardown the testing db manually afterwards, and change the config back!
+
 ## Getting started
 
 One-time-only setup: initialize a new db:

@@ -12,10 +12,9 @@ import streamlit as st
 import yaml
 
 from forkwise.display_meal_totals import get_meals, calc_daily_totals, plot_pie, PropsPerDay
-from forkwise.utils import CONFIG_PATH
+from forkwise.utils import CONFIG_PATH, DASHBOARD_TITLE
 from forkwise.fork_db import ForkDB
 
-DASHBOARD_TITLE = "ForkWise Dashboard"
 st.set_page_config(page_title=DASHBOARD_TITLE, layout="wide")
 
 # TODO hopefully none of this will be necessary after refactoring my dataclasses...
@@ -80,7 +79,7 @@ def render_pie(daily_props: list[PropsPerDay], date_idx: int, prop_key: str, lab
     ax = fig.add_subplot(111)
     plt.sca(ax)
     plot_pie(props_obj=daily_props[date_idx], prop=prop_key)
-    ax.set_title(f"{label} breakdown")
+    #ax.set_title(f"{label} breakdown")
     st.pyplot(fig)
 
 
@@ -170,7 +169,7 @@ def dashboard() -> None:
             barmode="group",
             custom_data=["prop_key"],
             category_orders={"nutrient": [label for label, _ in GRAM_NUTRIENTS]},
-            title="Protein / Sugar / Fiber / Fat (g)",
+            title="Nutrients",
         )
         # Plotly auto-detects a date-like x column as a continuous date axis.
         # For a grouped bar chart, the 4 bars for a given day then get
