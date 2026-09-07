@@ -15,6 +15,10 @@ from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH
 from forkwise.fork_dataclasses import Ingredient
 from forkwise.data_loader import DataLoader
 
+def fix_units(raw_units: str) -> str:
+    # TODO see README for unit checking I need to do here
+    pass
+
 def csv_to_recipe_ingr(path_to_recipe_csv: str)->List[Ingredient]:
     """
     In the db, a recipe is loaded as a list of Ingredients,
@@ -46,17 +50,14 @@ def csv_to_recipe_ingr(path_to_recipe_csv: str)->List[Ingredient]:
         msg = f"{path_to_recipe_csv} must be a csv file"
         logger.error(msg)
         raise ValueError(msg)
-    
-    # TODO Check units (see README)
 
     # TODO overhaul recipe input? Or not bother if I'm moving away from csvs?
     # The way I've actually been logging recipes is as one big csv, not one per recipe
 
     with open(path_to_recipe_csv, mode='r') as f:
         reader = csv.DictReader(f)
-        # TODO can I strip starting and trailing whitespace in this one line?
         # TODO check how it handles type mismatchces
-        ingrs = [Ingredient(ingr_name=r["ingr_name"], ingredient_amt=int(r["ingredient_amt"]), ingredient_units=r["ingredient_units"]) for r in reader]
+        ingrs = [Ingredient(ingr_name=r["ingr_name"], ingredient_amt=int(r["ingredient_amt"]), ingredient_units=fix_units(r["ingredient_units"])) for r in reader]
 
     return ingrs
 

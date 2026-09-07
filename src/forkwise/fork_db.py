@@ -9,11 +9,14 @@ Copyright (c) 2026 Stephanie Johnson
 import logging
 
 from psycopg import errors as psql_errors
-from typing import List
+from typing import List, Any
 from datetime import date
 
+from dataclasses import fields, asdict
+from psycopg import sql
+
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -187,11 +190,13 @@ class ForkDB(DBConn):
             """
         return self.execute_scalar(q,(recipe_id,))
     
-    def ingr_class_to_staging(self, ingr_cls: List[Ingredient]) -> int:
-        # Return num rows inserted into staging
+    def class_to_staging(self, insert_cls: List[Any]) -> int:
+        # Insert the list of (Ingredient/Recipe/Meal, ie any 
+        # dataclass in forkwise.fork_dataclasses, into staging.
+        # Staging must already be created.
+        # Return num rows inserted into staging.
 
-        # TODO use execute_query_with_class here
-        pass
+        return self.insert_many_w_class(tablename='stabing', insert_cls=insert_cls)
     
     def staging_to_units(self)->int:
         # This will throw a UniqueViolation if any row is already in the conversions table:
