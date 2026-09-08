@@ -24,7 +24,7 @@ class ForkDB(DBConn):
         super().__init__(user=user, pw=pw, db_name=db_name)
         self._logger = logging.getLogger(__name__)
     
-    def get_recipe_name(self, recipe_id: int) -> int | None:
+    def get_recipe_name(self, recipe_id: int) -> str | None:
         return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
     
     def get_recipe_servings(self, recipe_name: str)->List[dict]:

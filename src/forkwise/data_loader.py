@@ -154,7 +154,7 @@ class DataLoader:
             for d in check_dups:
                 if d['count'] == num_rows_staged:
                     recipe_name = self.conn.get_recipe_name(recipe_id=d['recipe_id'])
-                    msg = f"A recipe with ingredients in csv {path_to_recipe_csv} already exists (name: {recipe_name}); nothing will be added"
+                    msg = f"A recipe with these ingredients already exists (name: {recipe_name}); nothing will be added for {name}"
                     self._logger.error(msg)
                     raise ValueError(msg)
         
