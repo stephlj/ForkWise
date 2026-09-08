@@ -4,11 +4,14 @@ Class that loads data (from csvs or other sources) into the db.
 Copyright (c) 2026 Stephanie Johnson
 """
 
+import os
 import logging
+import csv
 
 from functools import wraps
 from typing import List
 
+from forkwise.utils import fix_units
 from forkwise.fork_db import ForkDB
 from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient
 
@@ -199,3 +202,66 @@ class DataLoader:
         self._logger.info(f"Added {num_rows_added} rows to meals table")
 
         return num_rows_added
+    
+    def csv_to_recipe_ingr(self, path_to_recipe_csv: str)->List[Ingredient]:
+        """
+        In the db, a recipe is loaded as a list of Ingredients,
+        plus servings amt, servings size, servings units, and
+        a name for the recipe.
+
+        When loaded from a csv, the csv contains only columns for
+        ingredient name, amount, units.
+
+        This function loads a recipe csv and returns a list of Ingredients.
+
+        Parameters
+        ----------
+        path_to_recipe_csv : str
+            Path to a csv with 3 columns: ingredient name, ingredient amount, ingredient units.
+
+        Returns
+        -------
+        List[Ingredient]
+        """
+
+        # Basic input checking
+        if not os.path.isfile(path_to_recipe_csv):
+            msg = f"{path_to_recipe_csv} not a path to a file that exists"
+            self._logger.error(msg)
+            raise ValueError(msg)
+            
+        if not os.path.splitext(path_to_recipe_csv)[1] == ".csv":
+            msg = f"{path_to_recipe_csv} must be a csv file"
+            self._logger.error(msg)
+            raise ValueError(msg)
+
+        # TODO overhaul recipe input? Or not bother if I'm moving away from csvs?
+
+        with open(path_to_recipe_csv, mode='r') as f:
+            reader = csv.DictReader(f)
+            # TODO check header (set equality)
+            # TODO can I generalize this / not hard code Ingredient field names?
+            ingrs = [Ingredient(ingr_name=r["ingr_name"], ingredient_amt=float(r["ingredient_amt"]), ingredient_units=fix_units(r["ingredient_units"])) for r in reader]
+
+        return ingrs
+    
+    def add_recipe_from_pantry(self):
+        # TODO promote a pantry item to a recipe
+        pass
+
+    def add_recipe_from_csv(self, 
+                            path_to_recipe_csv: str, 
+                            recipe_name: str,
+                            servings: float,
+                            servings_amt: float,
+                            servings_units: str,
+                            )-> int:
+        
+        ingrs = self.csv_to_recipe_ingr(path_to_recipe_csv=path_to_recipe_csv)
+
+        return self.add_recipe_via_staging(ingredients=ingrs, 
+                                        name=recipe_name, 
+                                        servings=servings, 
+                                        servings_amt=servings_amt, 
+                                        servings_units=servings_units
+                                        )

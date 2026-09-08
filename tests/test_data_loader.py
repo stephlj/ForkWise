@@ -162,3 +162,14 @@ class TestDataLoader(unittest.TestCase):
                                          )
         # Now adding meals should run:
         self.assertEqual(self.DataLoader.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv),3)
+
+    def test_csv_to_recipe_ingr(self):
+        ingrs = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe.csv"))
+        self.assertEqual(ingrs[0].ingr_name, 'asparagus')
+
+        ingrs_fixunit = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe_fix_units.csv"))
+        self.assertEqual(ingrs_fixunit[1].ingredient_amt, 3.3)
+        self.assertEqual(ingrs_fixunit[0].ingredient_units, 'lbs')
+
+        with self.assertRaises(ValueError):
+            ingrs_unit_mismatch = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv")) 
