@@ -245,9 +245,21 @@ class DataLoader:
 
         return ingrs
     
-    def add_recipe_from_pantry(self):
-        # TODO promote a pantry item to a recipe
-        pass
+    def add_recipe_from_pantry(self, name: str, servings: float, servings_amt: float, servings_units: str) -> int:
+        # Promote a pantry item to a recipe
+        # Note that the servings_amt can be different for a recipe version than for the pantry item itself,
+        # so these have to be passed in as args.
+        # Return is number of rows added to ingredients table (as usual for adding a recipe)
+        
+        # Note all checking that this ingredient exists as a pantry item and that the unit types match is handled
+        # in add_recipe_via_staging
+        ingrs = [Ingredient(ingr_name=name, ingredient_amt=servings_amt, ingredient_units=servings_units)]
+
+        return self.add_recipe_via_staging(ingredients=ingrs,
+                                           name=name,
+                                           servings=servings,
+                                           servings_amt=servings_amt,
+                                           servings_units=servings_units)
 
     def add_recipe_from_csv(self, 
                             path_to_recipe_csv: str, 

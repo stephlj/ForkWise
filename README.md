@@ -76,6 +76,28 @@ python ./src/forkwise/add_recipe.py <username> <user pw> <path_to_csv> <recipe_n
 
 This will fail if a recipe by the same name already exists; or a recipe of a different name but the same exact ingredient list exists.
 
+You can also promote an ingredient to a recipe; for example, "apple" can be both a recipe (ie a meal component) and an ingredient. The recipe
+for apple is just, apple the ingredient. 
+
+To do this, run in a python session:
+```
+from forkwise.data_loader import DataLoader
+with DataLoader(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dl:
+    dl.add_recipe_from_pantry(name='<ingredient name>', servings=<servings>, servings_amt=<servings amount>, servings_units=<servings_units>)
+```
+For example, to make a recipe out of "apple": if "apple" already exists in the db,
+```
+from forkwise.data_loader import DataLoader
+with DataLoader(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dl:
+    dl.add_recipe_from_pantry(name='apple', servings=1, servings_amt=1, servings_units='unit')
+```
+Or, if you want a single-serving of apple recipe to be half an apple:
+```
+from forkwise.data_loader import DataLoader
+with DataLoader(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dl:
+    dl.add_recipe_from_pantry(name='apple', servings=1, servings_amt=0.5, servings_units='unit')
+```
+
 To view a list of recipes in the db, run in a python session:
 ```
 from forkwise.fork_db import ForkDB

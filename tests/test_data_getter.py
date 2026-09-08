@@ -3,7 +3,6 @@
 import unittest
 import os, subprocess
 
-from psycopg import errors as psql_errors
 from datetime import date
 
 import dbcommons.testing_utils as utils
