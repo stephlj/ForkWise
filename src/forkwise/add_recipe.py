@@ -24,12 +24,14 @@ if __name__ == "__main__":
         db_name = config["db"]["db_name"]
 
     with DataLoader(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dl:
-        _ = dl.add_recipe_from_csv(path_to_recipe_csv=sys.argv[3], 
+        num_ingr_rows_added = dl.add_recipe_from_csv(path_to_recipe_csv=sys.argv[3], 
                         recipe_name=sys.argv[4], 
                         servings=sys.argv[5], 
                         servings_amt=sys.argv[6], 
-                        servings_units=sys.argv[7],
-                        username=sys.argv[1],
-                        pw=sys.argv[2],
-                        db_name=db_name)
+                        servings_units=sys.argv[7])
+        
+    if num_ingr_rows_added > 0:
+        print(f"Recipe {sys.argv[4]} successfully loaded into db")
+    else:
+        print(f"Nothing added to db for recipe {sys.argv[4]}")
     
