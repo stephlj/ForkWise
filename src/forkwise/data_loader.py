@@ -131,7 +131,7 @@ class DataLoader:
         """
     
         self.conn.create_staging(col_defs=INGR_COL_DEFS)
-        num_rows_staged = self.conn.ingr_class_to_staging(ingr_cls=ingredients)
+        num_rows_staged = self.conn.class_to_staging(insert_cls=ingredients)
 
         if num_rows_staged == 0:
             self._logger.error(f"Failed to stage recipe, nothing will be added to db!")

@@ -22,16 +22,6 @@ Security: the database is hosted locally, nothing leaves your machine. *IMPORTAN
 
 ## Example usage
 
-### A note about units
-
-Since I don't yet have a BLL that checks/fixes file format, the db will only accept:
-
-- lbs not lb as a unit of weight
-- c not cup
-- no whitespace characters around units
-
-But units are case INsensitive.
-
 ### Add ingredients
 
 Ingredients are loaded from a csv. The csv must have columns (in this order, no header):

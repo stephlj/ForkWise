@@ -192,11 +192,11 @@ class ForkDB(DBConn):
     
     def class_to_staging(self, insert_cls: List[Any]) -> int:
         # Insert the list of (Ingredient/Recipe/Meal, ie any 
-        # dataclass in forkwise.fork_dataclasses, into staging.
+        # dataclass in forkwise.fork_dataclasses), into staging.
         # Staging must already be created.
         # Return num rows inserted into staging.
 
-        return self.insert_many_w_class(tablename='stabing', insert_cls=insert_cls)
+        return self.insert_many_w_class(tablename='staging', insert_cls=insert_cls)
     
     def staging_to_units(self)->int:
         # This will throw a UniqueViolation if any row is already in the conversions table:
