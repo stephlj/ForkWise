@@ -60,7 +60,6 @@ def csv_to_recipe_ingr(path_to_recipe_csv: str)->List[Ingredient]:
 
     with open(path_to_recipe_csv, mode='r') as f:
         reader = csv.DictReader(f)
-        # TODO check how it handles type mismatchces
         ingrs = [Ingredient(ingr_name=r["ingr_name"], ingredient_amt=float(r["ingredient_amt"]), ingredient_units=fix_units(r["ingredient_units"])) for r in reader]
 
     return ingrs
