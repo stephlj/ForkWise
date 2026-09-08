@@ -49,8 +49,8 @@ class TestDataGetter(unittest.TestCase):
         # Add what we need in the db:
         with DataLoader(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dl:
             dl.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_totals_ingr.csv"))
-            dl.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_recipe.csv"),
-                                                name="hot cocoa", 
+            dl.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_recipe.csv"),
+                                                recipe_name="hot cocoa", 
                                                 servings=2,
                                                 servings_amt=1,
                                                 servings_units='c')
@@ -65,8 +65,8 @@ class TestDataGetter(unittest.TestCase):
 
         # Test that unit conversion fails if units in ingredients vs pantry_items are mismatched types:
         # We now check for this on recipe load (so can't even add the recipe here)
-        # self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
-        #                                  name="wrong cocoa",
+        # self.conn.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
+        #                                  recipe_name="wrong cocoa",
         #                                  servings=2,
         #                                  servings_amt=1,
         #                                  servings_units="c")
@@ -83,18 +83,18 @@ class TestDataGetter(unittest.TestCase):
 
         with DataLoader(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dl:
             dl.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv) #has an extraneous ingredient just for extra testing
-            dl.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv,
-                                                name="hummus", 
+            dl.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe_csv,
+                                                recipe_name="hummus", 
                                                 servings=8,
                                                 servings_amt=0.5,
                                                 servings_units='c')
-            dl.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe2_csv, 
-                                                name="toast", 
+            dl.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe2_csv, 
+                                                recipe_name="toast", 
                                                 servings=1,
                                                 servings_amt=1, 
                                                 servings_units='unit')
-            dl.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe3_csv, 
-                                                name="soy cocoa", 
+            dl.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe3_csv, 
+                                                recipe_name="soy cocoa", 
                                                 servings=1,
                                                 servings_amt=1, 
                                                 servings_units='c')

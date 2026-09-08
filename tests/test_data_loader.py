@@ -74,14 +74,15 @@ class TestDataLoader(unittest.TestCase):
         tamari_fat_grams = tamari_fat_grams_dict[0]['fat_grams']
         self.assertEqual(tamari_fat_grams,0)
 
-    def test_add_recipe_via_staging(self):
+    def test_add_recipe_from_csv(self):
+        # Implicit test of add_recipe_via_staging
         path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe.csv")
 
         # Check that we can't add if not all ingredients are in db:
         with self.assertRaises(ValueError):
-            self.DataLoader.add_recipe_via_staging(
+            self.DataLoader.add_recipe_from_csv(
                 path_to_recipe_csv=path_to_recipe_csv, 
-                name="grilled asparagus", 
+                recipe_name="grilled asparagus", 
                 servings=2,
                 servings_amt=0.5,
                 servings_units='lbs'
@@ -94,18 +95,18 @@ class TestDataLoader(unittest.TestCase):
         # Test that we still can't add the recipe if there's a unit category mismatch:
         path_to_recipe_csv_wrong_units = os.path.join(TEST_DATA_PATH, "test_recipe_wrong_units.csv")
         with self.assertRaises(ValueError):
-            self.DataLoader.add_recipe_via_staging(
+            self.DataLoader.add_recipe_from_csv(
                 path_to_recipe_csv=path_to_recipe_csv_wrong_units, 
-                name="grilled asparagus", 
+                recipe_name="grilled asparagus", 
                 servings=2,
                 servings_amt=0.5,
                 servings_units='lbs'
                 )
 
-        # Note that add_recipe_via_staging returns number of rows added to ingredients table
+        # Note that add_recipe_from_csv returns number of rows added to ingredients table
         self.assertEqual(
-            self.DataLoader.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, 
-                                             name="grilled asparagus", 
+            self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe_csv, 
+                                             recipe_name="grilled asparagus", 
                                              servings=2,
                                              servings_amt=0.5,
                                              servings_units='lbs'), 
@@ -117,17 +118,17 @@ class TestDataLoader(unittest.TestCase):
         self.DataLoader.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr2.csv"))
         path_to_recipe_csv2 = os.path.join(TEST_DATA_PATH, "test_recipe2.csv")
         with self.assertRaises(psql_errors.UniqueViolation):
-            self.DataLoader.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, name="grilled asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
+            self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe_csv2, recipe_name="grilled asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
 
         # Test that we can't add the same set of ingredients under a different recipe name
         with self.assertRaises(ValueError):
-            self.DataLoader.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv, name="other asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
+            self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe_csv, recipe_name="other asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
 
         # Test that we can add a recipe with the additional ingredient (but not the same recipe name)
         # should add 3 rows, 2 of them duplicates except for recipe_id, because we allow that
         self.assertEqual(
-            self.DataLoader.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv2, 
-                                             name="onion asparagus", 
+            self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe_csv2, 
+                                             recipe_name="onion asparagus", 
                                              servings=1,
                                              servings_amt=0.5, 
                                              servings_units='lbs'), 
@@ -139,13 +140,13 @@ class TestDataLoader(unittest.TestCase):
 
         # Add everything we need:
         self.DataLoader.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_meals_ingr.csv"))
-        self.DataLoader.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe.csv"),
-                                            name="burger", 
+        self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe.csv"),
+                                            recipe_name="burger", 
                                             servings=4,
                                             servings_amt=0.4,
                                             servings_units='lbs')
-        self.DataLoader.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH,"test_meals_recipe2.csv"), 
-                                             name="steamed broccoli", 
+        self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH,"test_meals_recipe2.csv"), 
+                                             recipe_name="steamed broccoli", 
                                              servings=2,
                                              servings_amt=0.5, 
                                              servings_units='lbs')
@@ -154,8 +155,8 @@ class TestDataLoader(unittest.TestCase):
             self.DataLoader.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv)
 
         # Add missing recipe:
-        self.DataLoader.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe3.csv"),
-                                         name="lemonade",
+        self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe3.csv"),
+                                         recipe_name="lemonade",
                                          servings=6,
                                          servings_amt=1,
                                          servings_units='pint'
