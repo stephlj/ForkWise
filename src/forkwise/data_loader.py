@@ -10,6 +10,7 @@ import csv
 
 from functools import wraps
 from typing import List
+from dataclasses import fields
 
 from forkwise.utils import fix_units
 from forkwise.fork_db import ForkDB
@@ -239,7 +240,10 @@ class DataLoader:
 
         with open(path_to_recipe_csv, mode='r') as f:
             reader = csv.DictReader(f)
-            # TODO check header (set equality)
+            if set(reader.fieldnames) != set([f.name for f in fields(Ingredient)]):
+                msg = f"Wrong header in {path_to_recipe_csv}: needs to be {[f.name for f in fields(Ingredient)]} (instead of {reader.fieldnames})"
+                self._logger.error(msg)
+                raise ValueError(msg)
             # TODO can I generalize this / not hard code Ingredient field names?
             ingrs = [Ingredient(ingr_name=r["ingr_name"], ingredient_amt=float(r["ingredient_amt"]), ingredient_units=fix_units(r["ingredient_units"])) for r in reader]
 
