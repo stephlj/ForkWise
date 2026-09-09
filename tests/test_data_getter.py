@@ -47,7 +47,7 @@ class TestDataGetter(unittest.TestCase):
     def test_get_recipe_totals(self):
         # Add what we need in the db:
         with DataLoader(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dl:
-            dl.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_totals_ingr.csv"))
+            dl.add_ingredients_from_csv(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_totals_ingr.csv"))
             dl.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_recipe.csv"),
                                                 recipe_name="hot cocoa", 
                                                 servings=2,
@@ -81,7 +81,7 @@ class TestDataGetter(unittest.TestCase):
         path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals2.csv")
 
         with DataLoader(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dl:
-            dl.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv) #has an extraneous ingredient just for extra testing
+            dl.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv) #has an extraneous ingredient just for extra testing
             dl.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe_csv,
                                                 recipe_name="hummus", 
                                                 servings=8,

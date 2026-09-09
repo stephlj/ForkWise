@@ -14,7 +14,7 @@ from dataclasses import fields
 
 from forkwise.utils import fix_units
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient, PantryItem, FoodProps
 
 class DataLoader:
     def __init__(self, user: str, pw: str, db_name: str):
@@ -72,21 +72,21 @@ class DataLoader:
         return num_rows_added
     
     @clean_up_staging
-    def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
-        # Will skip any row for which ingredient name is already in the db.
+    def add_ingredients_via_staging(self, pantry_items: List[PantryItem]) -> int:
+        # Will skip any row for which panty_item name is already in the db.
         # Returns number of rows added to pantry_items table.
 
         self.conn.create_staging(col_defs=PANTRY_COL_DEFS)
-        rows_staged = self.conn.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=PANTRY_COL_DEFS)
+        rows_staged = self.conn.class_to_staging(insert_cls=pantry_items)
 
         if rows_staged == 0:
-            self._logger.info(f"No ingredients loaded from source file {path_to_ingr_csv} to staging table; no ingredeints will be added to db")
+            self._logger.info(f"No pantry items were staged; nothing will be added to db")
             return 0
         
         # WARN if an ingredient is added under a different name but every other value the same.
         dups = self.conn.check_dup_ingr()
         if len(dups)>0:
-            msg=f"Source file {path_to_ingr_csv} contains rows identical to existing pantry items except for the name: (name in file, name in db) {[tuple(d.values()) for d in dups]}"
+            msg=f"Input list with names {[p.name for p in pantry_items]} contains rows identical to existing pantry items except for the name: (name in input, name in db) {[tuple(d.values()) for d in dups]}"
             self._logger.warning(msg)
 
         num_rows_added = self.conn.staging_to_pantry()
@@ -204,6 +204,56 @@ class DataLoader:
 
         return num_rows_added
     
+    def csv_to_pantry(self, path_to_ingr_csv: str)->List[PantryItem]:
+        """
+        Load a csv of PantryItems into a list of PantryItems.
+
+        Parameters
+        ----------
+        path_to_recipe_csv : str
+            Path to a csv with header containing columns called the elements of PANTRY_COL_NAMES
+
+        Returns
+        -------
+        List[PantryItems]
+        """
+
+        # Basic input checking
+        if not os.path.isfile(path_to_ingr_csv):
+            msg = f"{path_to_ingr_csv} not a path to a file that exists"
+            self._logger.error(msg)
+            raise ValueError(msg)
+            
+        if not os.path.splitext(path_to_ingr_csv)[1] == ".csv":
+            msg = f"{path_to_ingr_csv} must be a csv file"
+            self._logger.error(msg)
+            raise ValueError(msg)
+
+        with open(path_to_ingr_csv, mode='r') as f:
+            reader = csv.DictReader(f)
+            if set(reader.fieldnames) != set(PANTRY_COL_NAMES):
+                msg = f"Wrong header in {path_to_ingr_csv}: needs to be {PANTRY_COL_NAMES} (instead of {reader.fieldnames})"
+                self._logger.error(msg)
+                raise ValueError(msg)
+            # TODO can I generalize this / not hard code field names?
+            items = [PantryItem(
+                        name=r["name"], 
+                        unitary_amt=float(r["unitary_amt"]), 
+                        units=fix_units(r["units"]),
+                        props=FoodProps(cal=float(r["cal"]),
+                                        fiber_grams=float(r["fiber_grams"]),
+                                        sugar_grams=float(r["sugar_grams"]),
+                                        protein_grams=float(r["protein_grams"]),
+                                        fat_grams=float(r["fat_grams"]),
+                                        carb_grams=float(r["carb_grams"]),
+                                        animal=bool(r["animal"]),
+                                        white_flour=bool(r["animal"])
+                                        )
+                        ) 
+                    for r in reader]
+
+        return items
+
     def csv_to_recipe_ingr(self, path_to_recipe_csv: str)->List[Ingredient]:
         """
         In the db, a recipe is loaded as a list of Ingredients,
@@ -265,6 +315,16 @@ class DataLoader:
                                            servings_amt=servings_amt,
                                            servings_units=servings_units)
 
+    def add_recipe_to_pantry(self):
+        # Convert a recipe to a pantry item
+        pass
+    
+    def add_ingredients_from_csv(self, path_to_ingr_csv: str)-> int:
+        
+        items = self.csv_to_pantry(path_to_ingr_csv=path_to_ingr_csv)
+
+        return self.add_ingredients_via_staging(pantry_items=items)
+    
     def add_recipe_from_csv(self, 
                             path_to_recipe_csv: str, 
                             recipe_name: str,

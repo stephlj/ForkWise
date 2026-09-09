@@ -44,23 +44,24 @@ class TestDataLoader(unittest.TestCase):
         assert exit_code2.returncode==0, "Failed to remove testing user, must now remove manually"
         assert exit_code3.returncode==0, "Failed to remove testing db owner, must now remove manually"
     
-    def test_add_ingredients_via_staging(self):
+    def add_ingredients_from_csv(self):
+        # Implicit test of add_ingredients_via_staging
         path_to_ingr_csv_dups = os.path.join(TEST_DATA_PATH,"test_ingredients_part_dups.csv")
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients_part.csv")
         path_to_ingr_csv_wrong_units = os.path.join(TEST_DATA_PATH, "test_ingredients_wrong_units.csv")
         path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
 
         with self.assertRaises(psql_errors.UniqueViolation):
-            self.DataLoader.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_dups)
+            self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv_dups)
 
-        num_rows_added = self.DataLoader.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv)
+        num_rows_added = self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv)
         # TODO use pandas instead of hard-coding number of lines?
         self.assertEqual(num_rows_added, 8, "Incorrect number of rows added to ingredients table")
 
-        num_rows_added = self.DataLoader.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_wrong_units)
+        num_rows_added = self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv_wrong_units)
         self.assertEqual(num_rows_added, 1, "Failed to properly add only non-duplicate ingredients with correct units")
         
-        num_rows_added = self.DataLoader.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv_some_dups)
+        num_rows_added = self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv_some_dups)
         self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients")
 
         # Spot check correct load order of columns
@@ -90,7 +91,7 @@ class TestDataLoader(unittest.TestCase):
         
         # Now add the missing ingredients:
         # Note there's a deliberate case mismatch between ingredient names here vs test_recipe.csv
-        self.DataLoader.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr.csv"))
+        self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr.csv"))
 
         # Test that we still can't add the recipe if there's a unit category mismatch:
         path_to_recipe_csv_wrong_units = os.path.join(TEST_DATA_PATH, "test_recipe_wrong_units.csv")
@@ -115,7 +116,7 @@ class TestDataLoader(unittest.TestCase):
         
         # Test that we can't add a recipe of the same name
         # First add extra ingredient in test_recipe2:
-        self.DataLoader.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr2.csv"))
+        self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_ingr2.csv"))
         path_to_recipe_csv2 = os.path.join(TEST_DATA_PATH, "test_recipe2.csv")
         with self.assertRaises(psql_errors.UniqueViolation):
             self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe_csv2, recipe_name="grilled asparagus", servings=2, servings_amt=0.5, servings_units='lbs')
@@ -139,7 +140,7 @@ class TestDataLoader(unittest.TestCase):
         path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals.csv")
 
         # Add everything we need:
-        self.DataLoader.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_meals_ingr.csv"))
+        self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_meals_ingr.csv"))
         self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe.csv"),
                                             recipe_name="burger", 
                                             servings=4,
@@ -174,3 +175,8 @@ class TestDataLoader(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             ingrs_unit_mismatch = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv")) 
+
+    def test_add_recipe_from_pantry(self):
+        # Add a pantry item that we will then promote to a recipe
+        # TODO do this after refactoring add_ingredients so I don't have to go through a csv. Apple will work.
+        pass
