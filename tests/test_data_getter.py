@@ -45,6 +45,7 @@ class TestDataGetter(unittest.TestCase):
         assert exit_code3.returncode==0, "Failed to remove testing db owner, must now remove manually"
     
     def test_get_recipe_totals(self):
+        # Implicit test of fork_db.calc_recipe_totals_per_serving, which is the key logic piece here
         # Add what we need in the db:
         with DataLoader(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dl:
             dl.add_ingredients_from_csv(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_totals_ingr.csv"))

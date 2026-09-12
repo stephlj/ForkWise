@@ -10,6 +10,7 @@ from forkwise.fork_init import fork_init
 from forkwise.add_fork_user import add_fork_user
 from forkwise.data_loader import DataLoader
 from forkwise.fork_db import ForkDB
+from forkwise.fork_dataclasses import PantryItem, FoodProps
 
 # TODO might be better to locate these by where the file is? Does this work with CI?
 TEST_CONFIG_PATH = os.path.join(os.getcwd(),"tests","fixtures","test_config.yml")
@@ -174,7 +175,7 @@ class TestDataLoader(unittest.TestCase):
         self.assertEqual(ingrs_fixunit[0].ingredient_units, 'lbs')
 
         with self.assertRaises(ValueError):
-            ingrs_unit_mismatch = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv")) 
+            _ = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv")) 
 
     def test_add_recipe_to_pantry(self):
         # TODO
@@ -182,5 +183,14 @@ class TestDataLoader(unittest.TestCase):
     
     def test_add_recipe_from_pantry(self):
         # Add a pantry item that we will then promote to a recipe
-        # TODO do this after refactoring add_ingredients so I don't have to go through a csv. 'Apple' will work.
-        pass
+        apple_props = FoodProps(cal=95, fiber_grams=4, sugar_grams=19, protein_grams=0, fat_grams=0, carb_grams=25, animal=False, white_flour=False)
+        new_pantry_item = PantryItem(name='apple', unitary_amt=1, units='unit', props=apple_props)
+        _ = self.DataLoader.add_ingredients_via_staging(pantry_items=[new_pantry_item])
+
+        num_rows_added = self.DataLoader.add_recipe_from_pantry(name='apple', servings=1, servings_amt=1, servings_units='unit')
+
+        self.assertEqual(num_rows_added, 1)
+
+        with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
+            new_ingr = dbconn.list_ingredients_per_recipe(recipe_name='apple')
+        self.assertEqual(len(new_ingr),1)
