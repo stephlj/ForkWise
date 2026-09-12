@@ -58,7 +58,7 @@ class DataGetter:
         
         recipe_info = self.conn.get_recipe_servings(recipe_name=recipe_name)
         assert len(recipe_info)==1
-        props_per_serving = self.conn.calc_recipe_totals_per_serving(recipe_id=recipe_info[0]["recipe_id"], recipe_servings=recipe_info[0]["servings"])
+        props_per_serving = self.conn.calc_recipe_totals_per_serving(recipe_id=recipe_info[0]["id"], recipe_servings=recipe_info[0]["servings"])
 
         return Recipe(name=recipe_name, 
                       servings = 1, # Because this is now PER SERVING
