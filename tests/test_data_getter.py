@@ -56,10 +56,11 @@ class TestDataGetter(unittest.TestCase):
 
         totals = self.DataGetter.get_recipe_totals(recipe_name='hot cocoa')
 
-        # Recipe totals are for however many servings the recipe makes, not per serving
-        self.assertEqual(round(totals.props.cal,2), round(2*149 + (4/3)*12,2)) # 2 c milk * 149 cal/1 c + 4 tsp cocoa * 1 Tbsp/3 tsp * 12 cal/1 Tbsp
-        self.assertEqual(round(totals.props.fat_grams,2), round(2*8 + (4/3)*1,2)) # 2 c milk * 8 fat g/1 c + 4 tsp cocoa * 1 Tbsp/3 tsp * 1 fat g/1 Tbsp
+        # Recipe totals are now per serving
+        self.assertEqual(round(totals.props.cal,2), round((2*149 + (4/3)*12)/2,2)) # 2 c milk * 149 cal/1 c + 4 tsp cocoa * 1 Tbsp/3 tsp * 12 cal/1 Tbsp, divided by 2 servings
+        self.assertEqual(round(totals.props.fat_grams,2), round((2*8 + (4/3)*1)/2,2)) # 2 c milk * 8 fat g/1 c + 4 tsp cocoa * 1 Tbsp/3 tsp * 1 fat g/1 Tbsp, divided by 2 servings
         self.assertTrue(totals.props.animal)
+        self.assertEqual(totals.servings, 1)
         self.assertEqual(totals.servings_amt, 1)
 
         # Test that unit conversion fails if units in ingredients vs pantry_items are mismatched types:

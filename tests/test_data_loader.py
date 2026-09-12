@@ -176,7 +176,11 @@ class TestDataLoader(unittest.TestCase):
         with self.assertRaises(ValueError):
             ingrs_unit_mismatch = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv")) 
 
+    def test_add_recipe_to_pantry(self):
+        # TODO
+        pass
+    
     def test_add_recipe_from_pantry(self):
         # Add a pantry item that we will then promote to a recipe
-        # TODO do this after refactoring add_ingredients so I don't have to go through a csv. Apple will work.
+        # TODO do this after refactoring add_ingredients so I don't have to go through a csv. 'Apple' will work.
         pass

@@ -43,8 +43,8 @@ class DataGetter:
 
     def get_recipe_totals(self, recipe_name: str) -> Recipe:
         """
-        Calculate nutritional totals for a recipe. Note that the totals
-        are for however many servings the recipe is for - NOT per serving!
+        Calculate nutritional totals for a recipe, PER SERVING.
+        (This is different from how Recipes are stored in the db!)
 
         Parameters
         ----------
@@ -55,51 +55,16 @@ class DataGetter:
         --------
         Recipe dataclass
         """
-
         
-        recipe_dict_list = self.conn.get_recipe_servings(recipe_name=recipe_name)
-        if len(recipe_dict_list)==0:
-            msg = f"Recipe {recipe_name} does not exist"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        elif len(recipe_dict_list) > 1:
-            msg = f"Query to get recipe from name returned multiple rows, something is wrong!"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        
-        recipe_dict = recipe_dict_list[0]
-
-        totals_list = self.conn.calc_recipe_totals(recipe_id=recipe_dict['id'])
-        if len(totals_list) != 1:
-            msg = f"Query to get recipe totals from recipe {recipe_name} returned multiple rows, something is wrong!"
-            self._logger.error(msg)
-            raise ValueError(msg)
-        totals_dict = totals_list[0]
-        
-
-        # Check that all units matched for conversions - otherwise the return from COUNT won't match
-        # the number of ingredients in the recipe: (note this should be checked on recipe load regardless)
-        correct_rows = self.conn.num_pantry_items_per_recipe(recipe_id=recipe_dict['id'])
-        if correct_rows != totals_dict['count']:
-            msg = "Unit conversions failed in recipe totaling - some rows were dropped"
-            self._logger.error(msg)
-            raise ValueError(msg)
-
-        ingr_props = FoodProps(cal=totals_dict['total_cal'],
-                      fat_grams=totals_dict['total_fat_grams'],
-                      protein_grams=totals_dict['total_protein_grams'],
-                      fiber_grams=totals_dict['total_fiber_grams'],
-                      sugar_grams= totals_dict['total_sugar_grams'],
-                      carb_grams= totals_dict['total_carb_grams'],
-                      white_flour= bool(totals_dict['white_flour']),
-                      animal= bool(totals_dict['animal'])
-                      )
+        recipe_info = self.conn.get_recipe_servings(recipe_name=recipe_name)
+        assert len(recipe_info)==1
+        props_per_serving = self.conn.calc_recipe_totals_per_serving(recipe_id=recipe_info[0]["recipe_id"], recipe_servings=recipe_info[0]["servings"])
 
         return Recipe(name=recipe_name, 
-                      servings = recipe_dict['servings'],
-                      servings_amt=recipe_dict['servings_amt'],
-                      servings_units=recipe_dict['servings_units'],
-                      props = ingr_props
+                      servings = 1, # Because this is now PER SERVING
+                      servings_amt=recipe_info[0]['servings_amt'],
+                      servings_units=recipe_info[0]['servings_units'],
+                      props = props_per_serving
                       )
     
     def get_meals_in_dates(self, date_range: List[date]) -> List[Meal]:

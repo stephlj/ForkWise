@@ -16,7 +16,7 @@ from dataclasses import fields, asdict
 from psycopg import sql
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS, FoodProps
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -44,7 +44,8 @@ class ForkDB(DBConn):
 
         return self.execute_query(query, (date_range[0],date_range[1]))
     
-    def calc_recipe_totals(self, recipe_id: int)->List[dict]:
+    def calc_recipe_totals_per_serving(self, recipe_id: int, recipe_servings: float)->FoodProps:
+        
         # TODO There has got to be a better way ...
         totals_dict_keys = [c for c in PANTRY_COL_NAMES if c not in {'name','unitary_amt','units'}]
         totals_dict_keys.append('count')
@@ -66,7 +67,29 @@ class ForkDB(DBConn):
             WHERE i.recipe_id=%s;
             """
 
-        return self.execute_query(query,(recipe_id,))
+        # Note: Can't use execute_query_w_class and return a class because
+        # we're returning count and not returning things like name
+        totals_dict_list = self.execute_query(query,(recipe_id,))
+        assert len(totals_dict_list)==1
+        totals_dict = totals_dict_list[0]
+
+        # Check that all units matched for conversions - otherwise the return from COUNT won't match
+        # the number of ingredients in the recipe: (note this should be checked on recipe load regardless)
+        correct_rows = self.num_pantry_items_per_recipe(recipe_id=recipe_id)
+        if correct_rows != totals_dict['count']:
+            msg = "Unit conversions failed in recipe totaling - some rows were dropped"
+            self._logger.error(msg)
+            raise ValueError(msg)
+
+        return FoodProps(cal=totals_dict['total_cal']/recipe_servings,
+                      fat_grams=totals_dict['total_fat_grams']/recipe_servings,
+                      protein_grams=totals_dict['total_protein_grams']/recipe_servings,
+                      fiber_grams=totals_dict['total_fiber_grams']/recipe_servings,
+                      sugar_grams= totals_dict['total_sugar_grams']/recipe_servings,
+                      carb_grams= totals_dict['total_carb_grams']/recipe_servings,
+                      white_flour= bool(totals_dict['white_flour'])/recipe_servings,
+                      animal= bool(totals_dict['animal']/recipe_servings)
+                      )
     
     def list_all_recipes(self) -> List[str]:
         name_list = self.execute_query("SELECT name FROM recipes ORDER BY name;")

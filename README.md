@@ -48,6 +48,16 @@ In the terminal, run:
 python ./src/forkwise/add_ingredients.py <username> <user pw> <path_to_csv>
 ```
 
+You can also add a recipe as an ingredient; for example, perhaps there's a recipe for hummus in the db,
+but you also want to include hummus as an ingredient in a different recipe.
+
+To turn a recipe into an ingredient, run in a python session:
+```
+from forkwise.data_loader import DataLoader
+with DataLoader(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dl:
+    dl.add_recipe_to_pantry(recipe_name='<recipe_name>')
+```
+
 To view a list of ingredients in the db, run in a python session:
 ```
 from forkwise.fork_db import ForkDB
@@ -234,10 +244,13 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
-- REFACTOR: Load csv into (pandas df? dataclass?) in BLL, with input handling; insert into staging from dataclass
-- FEATURE: Add recipe as ingredient - add recipe from staging table that doesn't come from csv - in future GUI can add from staging to check for missing ingredients and add if necessary. Started on branch RecipeAsIngr but should probably abandon. See previous refactor which blocks this feature.
+- CURRENT REFACTOR: GET RECIPE TOTALS NOW RETURNS PER SERVING!!
+- CURRENT REFACTOR: CHECK DISPLAY RECIPE TOTALS!
+- CURRENT REFACTOR: delete branch RecipeAsIngr. See if I can generalize csv to dataclass logic.
+- Add Claude.md etc
 - REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
+- FEATURE: start UI for data load
 - TESTING: Check final cal, etc in plots from testing db data
 - BUG: If units don't exist on ingredient load, it just silently skips rows
 - BUG: wont allow recipes that are only partial duplicates

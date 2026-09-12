@@ -315,9 +315,25 @@ class DataLoader:
                                            servings_amt=servings_amt,
                                            servings_units=servings_units)
 
-    def add_recipe_to_pantry(self):
-        # Convert a recipe to a pantry item
-        pass
+    def add_recipe_to_pantry(self, recipe_name: str) -> None:
+        # Convert a recipe to a pantry item.
+
+        recipe_info = self.conn.get_recipe_servings(recipe_name=recipe_name)
+        totals = self.conn.calc_recipe_totals_per_serving(recipe_id=recipe_info["id"], recipe_servings = recipe_info["servings"]) # Returns a FoodProps
+        
+        new_pantry_item =  PantryItem(name=recipe_name, 
+                          unitary_amt=recipe_info["servings_amt"], 
+                          units=recipe_info["servings_units"], 
+                          props = totals)
+    
+        num_rows_pantry_added = self.add_ingredients_via_staging(pantry_items=[new_pantry_item])
+
+        if num_rows_pantry_added == 1:
+            self._logger.info(f"Added {recipe_name} as pantry item")
+        else:
+            msg = f"Failed to add {recipe_name} as a single pantry item"
+            self._logger.error(msg)
+            raise ValueError(msg)
     
     def add_ingredients_from_csv(self, path_to_ingr_csv: str)-> int:
         

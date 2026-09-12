@@ -11,7 +11,7 @@ from forkwise.data_getter import DataGetter
 
 def display_recipe_info(recipe_name: str, username: str, pw: str, path_to_config: str=CONFIG_PATH):
     """
-    Retrieve info on the recipe from the db, calculate info per serving, print info to command line.
+    Retrieve info on the recipe from the db, print info per serving to command line.
     """
 
     with open(path_to_config, "r") as config_file:
@@ -19,15 +19,13 @@ def display_recipe_info(recipe_name: str, username: str, pw: str, path_to_config
         db_name = config["db"]["db_name"]
 
     with DataGetter(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dg:
-        recipe = dg.get_recipe_totals(recipe_name=recipe_name)
-
-    totals = calc_totals_per_serving(recipe=recipe)
+        recipe = dg.get_recipe_totals(recipe_name=recipe_name) # This now returns per serving
 
     print(f"Nutritional values for recipe {recipe_name}, serving size {recipe.servings_amt} {recipe.servings_units}:")
-    print(f"Calories per serving: {round(totals.cal,1)}")
-    print(f"Grams of fat per serving: {round(totals.fat_grams,1)}")
-    print(f"Grams of protein per serving: {round(totals.protein_grams,1)}")
-    print(f"Grams of total carbs per serving: {round(totals.carb_grams,1)}, including {round(totals.fiber_grams,1)} of fiber and {round(totals.sugar_grams,1)} of sugar")
+    print(f"Calories per serving: {round(recipe.props.cal,1)}")
+    print(f"Grams of fat per serving: {round(recipe.props.fat_grams,1)}")
+    print(f"Grams of protein per serving: {round(recipe.props.protein_grams,1)}")
+    print(f"Grams of total carbs per serving: {round(recipe.props.carb_grams,1)}, including {round(recipe.props.fiber_grams,1)} of fiber and {round(recipe.props.sugar_grams,1)} of sugar")
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
