@@ -67,12 +67,12 @@ class TestDataLoader(unittest.TestCase):
 
         # Spot check correct load order of columns
         with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
-            carrot_fiber_grams_dict = dbconn.execute_query("SELECT fiber_grams FROM pantry_items WHERE name=%s",('Carrot',))
+            carrot_fiber_grams_dict = dbconn.execute_query("SELECT fiber_grams FROM pantry_items WHERE name=%s;",('Carrot',))
         carrot_fiber_grams = carrot_fiber_grams_dict[0]['fiber_grams']
         self.assertEqual(carrot_fiber_grams,2.2)
 
         with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
-            tamari_fat_grams_dict = dbconn.execute_query("SELECT fat_grams FROM pantry_items WHERE name=%s",('Tamari',))
+            tamari_fat_grams_dict = dbconn.execute_query("SELECT fat_grams FROM pantry_items WHERE name=%s;",('Tamari',))
         tamari_fat_grams = tamari_fat_grams_dict[0]['fat_grams']
         self.assertEqual(tamari_fat_grams,0)
 
@@ -190,7 +190,19 @@ class TestDataLoader(unittest.TestCase):
 
         self.DataLoader.add_recipe_to_pantry(recipe_name=recipe_name)
 
-        # Add some checks that pantry item props were added correctly
+        # This recipe is 5 carrots, 1 lemon, and 0.3 c olive oil, and makes 2 servings.
+        # Carrot is 31 cal, 0.7 g protein, and 7.3 g carbs; lemon is 17 cal, 0.6 g protein, and 5.4 g carbs.
+        # Those are both per unit so no unit conversion.
+        # Olive oil is 120 cal per Tbsp, 0 protein, 0 carb; will need unit conversion here.
+        per_serv_cal = (5*31+1*17+(0.3*48/3)*120)/2
+        per_serv_prot = (5*0.7+1*0.6+(0.3*48/3)*0)/2
+        per_serv_carb = (5*7.3+1*5.4+(0.3*48/3)*0)/2
+
+        with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
+            vals_dict_list = dbconn.execute_query("SELECT cal, protein_grams, carb_grams FROM pantry_items WHERE name=%s;",(recipe_name,))
+        self.assertEqual(per_serv_cal, vals_dict_list[0]["cal"])
+        self.assertEqual(per_serv_prot, vals_dict_list[0]["protein_grams"])
+        self.assertEqual(per_serv_carb, vals_dict_list[0]["carb_grams"])
     
     def test_add_recipe_from_pantry(self):
         # Add a pantry item that we will then promote to a recipe

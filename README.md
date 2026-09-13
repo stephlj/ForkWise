@@ -252,6 +252,7 @@ TODOs:
 - Add Claude.md etc
 - REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
+- UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
 - FEATURE: start UI for data load
 - TESTING: Check final cal, etc in plots from testing db data
 - BUG: If units don't exist on ingredient load, it just silently skips rows
