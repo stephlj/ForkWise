@@ -171,6 +171,27 @@ class TestDataLoader(unittest.TestCase):
         # Now adding meals should run:
         self.assertEqual(self.DataLoader.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv),3)
 
+    def test_csv_to_pantry(self):
+        items = self.DataLoader.csv_to_pantry(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, 'test_ingrs_to_csv.csv'))
+
+        self.assertEqual(items[0].name, 'Cream cheese')
+        self.assertEqual(items[1].name, 'Strawberries')
+
+        self.assertEqual(items[0].unitary_amt, 2)
+        self.assertEqual(items[1].unitary_amt, 144)
+
+        # Check units were fixed - remove spaces
+        self.assertEqual(items[0].units, 'Tbsp')
+        self.assertEqual(items[1].units, 'G')
+
+        # spot check some columns
+        self.assertEqual(items[0].props.cal, 80)
+        self.assertEqual(items[1].props.sugar_grams, 7)
+
+        # check bool types
+        self.assertTrue(items[0].props.animal)
+        self.assertFalse(items[1].props.animal)
+    
     def test_csv_to_recipe_ingr(self):
         ingrs = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe.csv"))
         self.assertEqual(ingrs[0].ingr_name, 'asparagus')
@@ -213,6 +234,12 @@ class TestDataLoader(unittest.TestCase):
     
     def test_add_recipe_from_pantry(self):
         # Add a pantry item that we will then promote to a recipe
+
+        # First test we get an error if the item to promote isn't in the db already
+        with self.assertRaises(ValueError):
+            _ = self.DataLoader.add_recipe_from_pantry(name='apple', servings=1, servings_amt=1, servings_units='unit')
+
+        # Now add the item
         apple_props = FoodProps(cal=95, fiber_grams=4, sugar_grams=19, protein_grams=0, fat_grams=0, carb_grams=25, animal=False, white_flour=False)
         new_pantry_item = PantryItem(name='apple', unitary_amt=1, units='unit', props=apple_props)
         _ = self.DataLoader.add_ingredients_via_staging(pantry_items=[new_pantry_item])

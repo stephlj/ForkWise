@@ -246,8 +246,8 @@ class DataLoader:
                                         protein_grams=float(r["protein_grams"]),
                                         fat_grams=float(r["fat_grams"]),
                                         carb_grams=float(r["carb_grams"]),
-                                        animal=bool(r["animal"]),
-                                        white_flour=bool(r["animal"])
+                                        animal=bool(int(r["animal"])), # bool of '0' (ie a string) is true!
+                                        white_flour=bool(int(r["white_flour"]))
                                         )
                         ) 
                     for r in reader]
