@@ -45,10 +45,11 @@ class TestDataLoader(unittest.TestCase):
         assert exit_code2.returncode==0, "Failed to remove testing user, must now remove manually"
         assert exit_code3.returncode==0, "Failed to remove testing db owner, must now remove manually"
     
-    def add_ingredients_from_csv(self):
+    def test_add_ingredients_from_csv(self):
         # Implicit test of add_ingredients_via_staging
         path_to_ingr_csv_dups = os.path.join(TEST_DATA_PATH,"test_ingredients_part_dups.csv")
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH,"test_ingredients_part.csv")
+        path_to_ingr_csv_fix_units = os.path.join(TEST_DATA_PATH, "test_ingredients_fix_units.csv")
         path_to_ingr_csv_wrong_units = os.path.join(TEST_DATA_PATH, "test_ingredients_wrong_units.csv")
         path_to_ingr_csv_some_dups = os.path.join(TEST_DATA_PATH,"test_ingredients.csv")
 
@@ -59,22 +60,26 @@ class TestDataLoader(unittest.TestCase):
         # TODO use pandas instead of hard-coding number of lines?
         self.assertEqual(num_rows_added, 8, "Incorrect number of rows added to ingredients table")
 
+        num_rows_added = self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv_fix_units)
+        self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients with units that need fixing (cup->c)")
+
         num_rows_added = self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv_wrong_units)
-        self.assertEqual(num_rows_added, 1, "Failed to properly add only non-duplicate ingredients with correct units")
+        self.assertEqual(num_rows_added, 1, "Failed to properly add only non-duplicate ingredients with wrong units")
         
         num_rows_added = self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv_some_dups)
+        # One of these will be black beans (vs black beans can) which WILL load but with a warning
         self.assertEqual(num_rows_added, 2, "Failed to properly add only non-duplicate ingredients")
 
-        # Spot check correct load order of columns
+        # Spot check correct load order of columns, and handling of boolean inputs
         with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
-            carrot_fiber_grams_dict = dbconn.execute_query("SELECT fiber_grams FROM pantry_items WHERE name=%s;",('Carrot',))
-        carrot_fiber_grams = carrot_fiber_grams_dict[0]['fiber_grams']
-        self.assertEqual(carrot_fiber_grams,2.2)
+            carrot_dict = dbconn.execute_query("SELECT fiber_grams, animal FROM pantry_items WHERE name=%s;",('Carrot',))
+        self.assertEqual(carrot_dict[0]['fiber_grams'],2.2)
+        self.assertFalse(carrot_dict[0]["animal"])
 
         with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
-            tamari_fat_grams_dict = dbconn.execute_query("SELECT fat_grams FROM pantry_items WHERE name=%s;",('Tamari',))
-        tamari_fat_grams = tamari_fat_grams_dict[0]['fat_grams']
-        self.assertEqual(tamari_fat_grams,0)
+            tamari_dict = dbconn.execute_query("SELECT fat_grams, white_flour FROM pantry_items WHERE name=%s;",('Tamari',))
+        self.assertEqual(tamari_dict[0]['fat_grams'],0)
+        self.assertFalse(tamari_dict[0]["white_flour"])
 
     def test_add_recipe_from_csv(self):
         # Implicit test of add_recipe_via_staging
@@ -199,10 +204,12 @@ class TestDataLoader(unittest.TestCase):
         per_serv_carb = (5*7.3+1*5.4+(0.3*48/3)*0)/2
 
         with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
-            vals_dict_list = dbconn.execute_query("SELECT cal, protein_grams, carb_grams FROM pantry_items WHERE name=%s;",(recipe_name,))
+            vals_dict_list = dbconn.execute_query("SELECT unitary_amt, cal, protein_grams, carb_grams, animal FROM pantry_items WHERE name=%s;",(recipe_name,))
         self.assertEqual(per_serv_cal, vals_dict_list[0]["cal"])
         self.assertEqual(per_serv_prot, vals_dict_list[0]["protein_grams"])
         self.assertEqual(per_serv_carb, vals_dict_list[0]["carb_grams"])
+        # self.assertFalse(vals_dict_list[0]["animal"])
+        self.assertEqual(0.5, vals_dict_list[0]["unitary_amt"])
     
     def test_add_recipe_from_pantry(self):
         # Add a pantry item that we will then promote to a recipe
