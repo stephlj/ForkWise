@@ -87,8 +87,8 @@ class ForkDB(DBConn):
                       fiber_grams=totals_dict['total_fiber_grams']/recipe_servings,
                       sugar_grams= totals_dict['total_sugar_grams']/recipe_servings,
                       carb_grams= totals_dict['total_carb_grams']/recipe_servings,
-                      white_flour= bool(totals_dict['white_flour'])/recipe_servings,
-                      animal= bool(totals_dict['animal']/recipe_servings)
+                      white_flour= bool(totals_dict['white_flour']),
+                      animal= bool(totals_dict['animal'])
                       )
     
     def list_all_recipes(self) -> List[str]:

@@ -244,9 +244,11 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
-- CURRENT REFACTOR: GET RECIPE TOTALS NOW RETURNS PER SERVING!!
 - CURRENT REFACTOR: CHECK DISPLAY RECIPE TOTALS!
+- CURRENT REFACTOR: finish test_add_recipe_to_pantry to test_data_loader
+- CURRENT REFACTOR: Refactor add_meals to take more than just a csv
 - CURRENT REFACTOR: delete branch RecipeAsIngr. See if I can generalize csv to dataclass logic.
+- CURRENT REFACTOR: make sure all new functions have appropriate logging
 - Add Claude.md etc
 - REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?

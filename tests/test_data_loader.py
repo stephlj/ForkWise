@@ -178,8 +178,19 @@ class TestDataLoader(unittest.TestCase):
             _ = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv")) 
 
     def test_add_recipe_to_pantry(self):
-        # TODO
-        pass
+        # Add some ingredients - will be skipped if other tests have already run
+        self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_to_pantry_ingrs.csv"))
+        # Add a recipe we'll then convert to a pantry item
+        recipe_name = "Carrot Salad"
+        self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_to_pantry_recipe.csv"),
+                                            recipe_name=recipe_name,
+                                            servings=2,
+                                            servings_amt=0.5,
+                                            servings_units="c")
+
+        self.DataLoader.add_recipe_to_pantry(recipe_name=recipe_name)
+
+        # Add some checks that pantry item props were added correctly
     
     def test_add_recipe_from_pantry(self):
         # Add a pantry item that we will then promote to a recipe

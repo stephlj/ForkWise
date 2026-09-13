@@ -319,11 +319,11 @@ class DataLoader:
         # Convert a recipe to a pantry item.
 
         recipe_info = self.conn.get_recipe_servings(recipe_name=recipe_name)
-        totals = self.conn.calc_recipe_totals_per_serving(recipe_id=recipe_info["id"], recipe_servings = recipe_info["servings"]) # Returns a FoodProps
+        totals = self.conn.calc_recipe_totals_per_serving(recipe_id=recipe_info[0]["id"], recipe_servings = recipe_info[0]["servings"]) # Returns a FoodProps
         
         new_pantry_item =  PantryItem(name=recipe_name, 
-                          unitary_amt=recipe_info["servings_amt"], 
-                          units=recipe_info["servings_units"], 
+                          unitary_amt=recipe_info[0]["servings_amt"], 
+                          units=recipe_info[0]["servings_units"], 
                           props = totals)
     
         num_rows_pantry_added = self.add_ingredients_via_staging(pantry_items=[new_pantry_item])

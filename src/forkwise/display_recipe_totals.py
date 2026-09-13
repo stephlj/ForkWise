@@ -18,7 +18,7 @@ def display_recipe_info(recipe_name: str, username: str, pw: str, path_to_config
         config = yaml.safe_load(config_file)
         db_name = config["db"]["db_name"]
 
-    with DataGetter(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dg:
+    with DataGetter(user=username, pw=pw, db_name=db_name) as dg:
         recipe = dg.get_recipe_totals(recipe_name=recipe_name) # This now returns per serving
 
     print(f"Nutritional values for recipe {recipe_name}, serving size {recipe.servings_amt} {recipe.servings_units}:")
