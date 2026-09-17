@@ -70,7 +70,10 @@ class ForkDB(DBConn):
         # Note: Can't use execute_query_w_class and return a class because
         # we're returning count and not returning things like name
         totals_dict_list = self.execute_query(query,(recipe_id,))
-        assert len(totals_dict_list)==1
+        if len(totals_dict_list)!=1:
+            msg = f"Recipe with id {recipe_id} returned more than one row from the db, which shouldn't be possible! Something is wrong."
+            self._logger.error(msg)
+            raise ValueError(msg)
         totals_dict = totals_dict_list[0]
 
         # Check that all units matched for conversions - otherwise the return from COUNT won't match

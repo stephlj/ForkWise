@@ -57,7 +57,10 @@ class DataGetter:
         """
         
         recipe_info = self.conn.get_recipe_servings(recipe_name=recipe_name)
-        assert len(recipe_info)==1
+        if len(recipe_info)!=1:
+            msg = f"Recipe name {recipe_name} returned more than one row from the db, which shouldn't be possible! Something is wrong."
+            self._logger.error(msg)
+            raise ValueError(msg)
         props_per_serving = self.conn.calc_recipe_totals_per_serving(recipe_id=recipe_info[0]["id"], recipe_servings=recipe_info[0]["servings"])
 
         return Recipe(name=recipe_name, 

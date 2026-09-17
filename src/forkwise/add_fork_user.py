@@ -21,4 +21,6 @@ if __name__ == "__main__":
     logging.basicConfig(level="INFO", format=DEFAULT_LOGGING_FORMAT)
     
     add_fork_user(new_user_name=sys.argv[1], new_user_pw=sys.argv[2], admin_pw=sys.argv[3])
+
+    logger.info(f"Added new user with username {sys.arvg[1]}")
     

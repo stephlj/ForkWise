@@ -244,18 +244,17 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
-- CURRENT REFACTOR: Refactor add_meals to take more than just a csv
+- CURRENT REFACTOR: Refactor add_meals to take more than just a csv. Or merge what I have now and do this after the data_getter refactor?
 - CURRENT REFACTOR: delete branch RecipeAsIngr. See if I can generalize csv to dataclass logic - have already had one bug there.
-- CURRENT REFACTOR: make sure all new functions have appropriate logging and testing coverage
+- CURRENT REFACTOR: make sure all new functions have appropriate logging and testing coverage; remove non-testing asserts
 - Add Claude.md etc
 - REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
 - UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
 - FEATURE: start UI for data load
 - TESTING: Check final cal, etc in plots from testing db data
-- BUG: If units don't exist on ingredient load, it just silently skips rows
-- BUG: wont allow recipes that are only partial duplicates
-- BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
+- BUG?: If units don't exist on ingredient load, it just silently skips rows
+- BUG?: wont allow recipes that are only partial duplicates
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour
