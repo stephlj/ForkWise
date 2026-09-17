@@ -24,5 +24,5 @@ if __name__ == "__main__":
     with DataLoader(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dl:
         num_meals_added = dl.add_meals_via_staging(path_to_meals_csv=sys.argv[3])
 
-    logger.info(f"Added {num_meals_added} meals to the db")
+    logger.info(f"Added {num_meals_added} meals to the db from csv {sys.argv[3]}")
     

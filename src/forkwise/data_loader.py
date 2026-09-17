@@ -80,7 +80,7 @@ class DataLoader:
         rows_staged = self.conn.class_to_staging(insert_cls=pantry_items)
 
         if rows_staged == 0:
-            self._logger.info(f"No pantry items were staged; nothing will be added to db")
+            self._logger.warning(f"No pantry items were staged; nothing will be added to db")
             return 0
         
         # WARN if an ingredient is added under a different name but every other value the same.
@@ -309,11 +309,20 @@ class DataLoader:
         # in add_recipe_via_staging
         ingrs = [Ingredient(ingr_name=name, ingredient_amt=servings_amt, ingredient_units=servings_units)]
 
-        return self.add_recipe_via_staging(ingredients=ingrs,
+        num_ingr_rows_added = self.add_recipe_via_staging(ingredients=ingrs,
                                            name=name,
                                            servings=servings,
                                            servings_amt=servings_amt,
                                            servings_units=servings_units)
+        
+        if num_ingr_rows_added > 0:
+            self._logger.info(f"Added {name} as a recipe")
+        else:
+            msg = f"Failed to add {name} as a recipe"
+            self._logger.error(msg)
+            raise ValueError(msg)
+        
+        return num_ingr_rows_added
 
     def add_recipe_to_pantry(self, recipe_name: str) -> None:
         # Convert a recipe to a pantry item.
