@@ -17,12 +17,12 @@ if __name__ == "__main__":
     
     logging.basicConfig(level="INFO", format=DEFAULT_LOGGING_FORMAT)
     
-    # TODO add csv format checking here
-
     with open(CONFIG_PATH, 'r') as config_file:
         config = yaml.safe_load(config_file)
         db_name = config["db"]["db_name"]
 
     with DataLoader(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dl:
-        _ = dl.add_meals_via_staging(path_to_meals_csv=sys.argv[3])
+        num_meals_added = dl.add_meals_via_staging(path_to_meals_csv=sys.argv[3])
+
+    logger.info(f"Added {num_meals_added} meals to the db from csv {sys.argv[3]}")
     

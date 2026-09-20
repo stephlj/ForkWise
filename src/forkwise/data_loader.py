@@ -4,12 +4,18 @@ Class that loads data (from csvs or other sources) into the db.
 Copyright (c) 2026 Stephanie Johnson
 """
 
+import os
 import logging
+import csv
 
 from functools import wraps
+from typing import List, Type, TypeVar
+from dataclasses import fields, is_dataclass
 
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient, PantryItem, flat_col_defs
+
+T = TypeVar("T")
 
 class DataLoader:
     def __init__(self, user: str, pw: str, db_name: str):
@@ -67,21 +73,21 @@ class DataLoader:
         return num_rows_added
     
     @clean_up_staging
-    def add_ingredients_via_staging(self, path_to_ingr_csv: str) -> int:
-        # Will skip any row for which ingredient name is already in the db.
+    def add_ingredients_via_staging(self, pantry_items: List[PantryItem]) -> int:
+        # Will skip any row for which panty_item name is already in the db.
         # Returns number of rows added to pantry_items table.
 
         self.conn.create_staging(col_defs=PANTRY_COL_DEFS)
-        rows_staged = self.conn.csv_to_staging(csv_path=path_to_ingr_csv, csv_columns=PANTRY_COL_DEFS)
+        rows_staged = self.conn.class_to_staging(insert_cls=pantry_items)
 
         if rows_staged == 0:
-            self._logger.info(f"No ingredients loaded from source file {path_to_ingr_csv} to staging table; no ingredeints will be added to db")
+            self._logger.warning(f"No pantry items were staged; nothing will be added to db")
             return 0
         
         # WARN if an ingredient is added under a different name but every other value the same.
         dups = self.conn.check_dup_ingr()
         if len(dups)>0:
-            msg=f"Source file {path_to_ingr_csv} contains rows identical to existing pantry items except for the name: (name in file, name in db) {[tuple(d.values()) for d in dups]}"
+            msg=f"Input list with names {[p.name for p in pantry_items]} contains rows identical to existing pantry items except for the name: (name in input, name in db) {[tuple(d.values()) for d in dups]}"
             self._logger.warning(msg)
 
         num_rows_added = self.conn.staging_to_pantry()
@@ -100,19 +106,19 @@ class DataLoader:
 
     @clean_up_staging
     def add_recipe_via_staging(self, 
-                               path_to_recipe_csv: str, 
+                               ingredients: List[Ingredient], 
                                name: str, 
                                servings: float,
                                servings_amt: float,
                                servings_units: str) -> int:
         """
-        Add recipe from csv via a staging table.
+        Add recipe via a staging table, so that we can perform some checks before inserting into db.
 
         Parameters
         ----------
-        path_to_recipe_csv : str
-           Path to a recipe: each row is an ingredient (name, amount, units).
-           Name must already be an ingredient in the db in pantry_items table.
+        ingredients : List[Ingredient]
+           List of Ingredients: name, amount, units.
+           Names must already be in the db in pantry_items table.
            Units don't have to match pantry_items table units (can be converted later)-
            but must match unit type (weight, vol etc).
         name : str
@@ -130,11 +136,11 @@ class DataLoader:
         """
     
         self.conn.create_staging(col_defs=INGR_COL_DEFS)
-        num_rows_staged = self.conn.csv_to_staging(csv_path=path_to_recipe_csv, csv_columns=INGR_COL_DEFS)
+        num_rows_staged = self.conn.class_to_staging(insert_cls=ingredients)
 
         if num_rows_staged == 0:
-            self._logger.info(f"No recipe loaded from source file {path_to_recipe_csv} to staging table, will not be added to db")
-            return 0
+            self._logger.error(f"Failed to stage recipe, nothing will be added to db!")
+            raise ValueError(f"Failed to stage recipe, nothing will be added to db!")
         
         # A recipe can only be added if all ingredients are already in the db, with units in categories that match pantry_items.
         # Check first, error with a list of missing ingredients:
@@ -153,7 +159,7 @@ class DataLoader:
             for d in check_dups:
                 if d['count'] == num_rows_staged:
                     recipe_name = self.conn.get_recipe_name(recipe_id=d['recipe_id'])
-                    msg = f"A recipe with ingredients in csv {path_to_recipe_csv} already exists (name: {recipe_name}); nothing will be added"
+                    msg = f"A recipe with these ingredients already exists (name: {recipe_name}); nothing will be added for {name}"
                     self._logger.error(msg)
                     raise ValueError(msg)
         
@@ -198,3 +204,128 @@ class DataLoader:
         self._logger.info(f"Added {num_rows_added} rows to meals table")
 
         return num_rows_added
+    
+    def csv_to_dataclass(self, path_to_csv: str, cls: Type[T]) -> List[T]:
+        """
+        Load a csv into a list of `cls` objects, one per row.
+
+        Correspondence is by name: every csv column must match a field name of `cls`
+        (or, for a nested dataclass field like PantryItem.props, a field name of that
+        nested dataclass). Each field's metadata['csv_parser'] turns the string cell
+        into the field's value, so there's no hand-written column->field mapping.
+
+        Parameters
+        ----------
+        path_to_csv : str
+            Path to a csv whose header holds every (flattened) field name of `cls`.
+        cls : Type[T]
+            A dataclass whose fields carry 'csv_parser' metadata.
+
+        Returns
+        -------
+        List[T]
+        """
+
+        # Basic input checking
+        if not os.path.isfile(path_to_csv):
+            msg = f"{path_to_csv} not a path to a file that exists"
+            self._logger.error(msg)
+            raise ValueError(msg)
+
+        if not os.path.splitext(path_to_csv)[1] == ".csv":
+            msg = f"{path_to_csv} must be a csv file"
+            self._logger.error(msg)
+            raise ValueError(msg)
+
+        # Expected columns are cls's (flattened) field names - the single source of
+        # truth shared with the db staging col defs.
+        expected_cols = [name for name, _ in flat_col_defs(cls)]
+
+        with open(path_to_csv, mode='r') as f:
+            reader = csv.DictReader(f)
+            if set(reader.fieldnames or []) != set(expected_cols):
+                msg = f"Wrong header in {path_to_csv}: needs to be {expected_cols} (instead of {reader.fieldnames})"
+                self._logger.error(msg)
+                raise ValueError(msg)
+
+            objs = []
+            for r in reader:
+                kwargs = {}
+                for field_ in fields(cls):
+                    if is_dataclass(field_.type):
+                        # Nested dataclass (e.g. props): build from its own fields in this row.
+                        kwargs[field_.name] = field_.type(**{nf.name: nf.metadata['csv_parser'](r[nf.name])
+                                                              for nf in fields(field_.type)})
+                    else:
+                        kwargs[field_.name] = field_.metadata['csv_parser'](r[field_.name])
+                objs.append(cls(**kwargs))
+
+        return objs
+
+    def add_recipe_from_pantry(self, name: str, servings: float, servings_amt: float, servings_units: str) -> int:
+        # Promote a pantry item to a recipe
+        # Note that the servings_amt can be different for a recipe version than for the pantry item itself,
+        # so these have to be passed in as args.
+        # Return is number of rows added to ingredients table (as usual for adding a recipe)
+        
+        # Note all checking that this ingredient exists as a pantry item and that the unit types match is handled
+        # in add_recipe_via_staging
+        ingrs = [Ingredient(ingr_name=name, ingredient_amt=servings_amt, ingredient_units=servings_units)]
+
+        num_ingr_rows_added = self.add_recipe_via_staging(ingredients=ingrs,
+                                           name=name,
+                                           servings=servings,
+                                           servings_amt=servings_amt,
+                                           servings_units=servings_units)
+        
+        if num_ingr_rows_added > 0:
+            self._logger.info(f"Added {name} as a recipe")
+        else:
+            msg = f"Failed to add {name} as a recipe"
+            self._logger.error(msg)
+            raise ValueError(msg)
+        
+        return num_ingr_rows_added
+
+    def add_recipe_to_pantry(self, recipe_name: str) -> None:
+        # Convert a recipe to a pantry item.
+
+        recipe_info = self.conn.get_recipe_servings(recipe_name=recipe_name)
+        totals = self.conn.calc_recipe_totals_per_serving(recipe_id=recipe_info[0]["id"], recipe_servings = recipe_info[0]["servings"]) # Returns a FoodProps
+        
+        new_pantry_item =  PantryItem(name=recipe_name, 
+                          unitary_amt=recipe_info[0]["servings_amt"], 
+                          units=recipe_info[0]["servings_units"], 
+                          props = totals)
+    
+        num_rows_pantry_added = self.add_ingredients_via_staging(pantry_items=[new_pantry_item])
+
+        if num_rows_pantry_added == 1:
+            self._logger.info(f"Added {recipe_name} as pantry item")
+        else:
+            msg = f"Failed to add {recipe_name} as a single pantry item"
+            self._logger.error(msg)
+            raise ValueError(msg)
+    
+    def add_ingredients_from_csv(self, path_to_ingr_csv: str)-> int:
+        
+        items = self.csv_to_dataclass(path_to_csv=path_to_ingr_csv, cls=PantryItem)
+
+        return self.add_ingredients_via_staging(pantry_items=items)
+    
+    def add_recipe_from_csv(self, 
+                            path_to_recipe_csv: str, 
+                            recipe_name: str,
+                            servings: float,
+                            servings_amt: float,
+                            servings_units: str,
+                            )-> int:
+        
+        ingrs = self.csv_to_dataclass(path_to_csv=path_to_recipe_csv, cls=Ingredient)
+
+        return self.add_recipe_via_staging(ingredients=ingrs, 
+                                        name=recipe_name, 
+                                        servings=servings, 
+                                        servings_amt=servings_amt, 
+                                        servings_units=servings_units
+                                        )

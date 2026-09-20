@@ -9,11 +9,14 @@ Copyright (c) 2026 Stephanie Johnson
 import logging
 
 from psycopg import errors as psql_errors
-from typing import List
+from typing import List, Any
 from datetime import date
 
+from dataclasses import fields, asdict
+from psycopg import sql
+
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
+from forkwise.fork_dataclasses import PANTRY_COL_NAMES, INGR_COL_DEFS, FOODPROPS_COL_DEFS, FOODPROPS_COL_NAMES, FoodProps
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -21,7 +24,7 @@ class ForkDB(DBConn):
         super().__init__(user=user, pw=pw, db_name=db_name)
         self._logger = logging.getLogger(__name__)
     
-    def get_recipe_name(self, recipe_id: int) -> int | None:
+    def get_recipe_name(self, recipe_id: int) -> str | None:
         return self.execute_scalar("SELECT name FROM recipes WHERE id=%s;", (recipe_id,))
     
     def get_recipe_servings(self, recipe_name: str)->List[dict]:
@@ -41,9 +44,10 @@ class ForkDB(DBConn):
 
         return self.execute_query(query, (date_range[0],date_range[1]))
     
-    def calc_recipe_totals(self, recipe_id: int)->List[dict]:
+    def calc_recipe_totals_per_serving(self, recipe_id: int, recipe_servings: float)->FoodProps:
+        
         # TODO There has got to be a better way ...
-        totals_dict_keys = [c for c in PANTRY_COL_NAMES if c not in {'name','unitary_amt','units'}]
+        totals_dict_keys = list(FOODPROPS_COL_NAMES)
         totals_dict_keys.append('count')
         select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in totals_dict_keys if c not in {'white_flour','animal', 'count'})
 
@@ -63,7 +67,32 @@ class ForkDB(DBConn):
             WHERE i.recipe_id=%s;
             """
 
-        return self.execute_query(query,(recipe_id,))
+        # Note: Can't use execute_query_w_class and return a class because
+        # we're returning count and not returning things like name
+        totals_dict_list = self.execute_query(query,(recipe_id,))
+        if len(totals_dict_list)!=1:
+            msg = f"Recipe with id {recipe_id} returned more than one row from the db, which shouldn't be possible! Something is wrong."
+            self._logger.error(msg)
+            raise ValueError(msg)
+        totals_dict = totals_dict_list[0]
+
+        # Check that all units matched for conversions - otherwise the return from COUNT won't match
+        # the number of ingredients in the recipe: (note this should be checked on recipe load regardless)
+        correct_rows = self.num_pantry_items_per_recipe(recipe_id=recipe_id)
+        if correct_rows != totals_dict['count']:
+            msg = "Unit conversions failed in recipe totaling - some rows were dropped"
+            self._logger.error(msg)
+            raise ValueError(msg)
+
+        return FoodProps(cal=totals_dict['total_cal']/recipe_servings,
+                      fat_grams=totals_dict['total_fat_grams']/recipe_servings,
+                      protein_grams=totals_dict['total_protein_grams']/recipe_servings,
+                      fiber_grams=totals_dict['total_fiber_grams']/recipe_servings,
+                      sugar_grams= totals_dict['total_sugar_grams']/recipe_servings,
+                      carb_grams= totals_dict['total_carb_grams']/recipe_servings,
+                      white_flour= bool(totals_dict['white_flour']),
+                      animal= bool(totals_dict['animal'])
+                      )
     
     def list_all_recipes(self) -> List[str]:
         name_list = self.execute_query("SELECT name FROM recipes ORDER BY name;")
@@ -137,7 +166,7 @@ class ForkDB(DBConn):
         # Check if there are any rows in the staging table that are the same as an existing row
         # in pantry_items execept for the name (ie, these items exist under a different name)
         # Return is a list of dicts representing (staging.name, pantry_items.name) for any duplicates
-        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in PANTRY_COL_DEFS[3:])
+        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in FOODPROPS_COL_DEFS)
         check_dups = f"""
             SELECT s.name AS staging_name, p.name AS pantry_name
             FROM staging AS s
@@ -155,7 +184,7 @@ class ForkDB(DBConn):
         # the same combo of (ingredient id, ingredient amt, ingredient units) associated with a single recipe id.
         # Return is a list of dicts with keys 'recipe_id', 'count' for any matches
 
-        join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in INGR_COL_DEFS[1:])
+        join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in INGR_COL_DEFS if a != 'ingr_name')
         # Equivalent to: LEFT JOIN pantry_items p ON ... WHERE p.id IS NOT NULL
         check_dup_ingredients = f"""
             WITH joined1 AS (
@@ -186,6 +215,14 @@ class ForkDB(DBConn):
                 WHERE i.recipe_id=%s;
             """
         return self.execute_scalar(q,(recipe_id,))
+    
+    def class_to_staging(self, insert_cls: List[Any]) -> int:
+        # Insert the list of (Ingredient/Recipe/Meal, ie any 
+        # dataclass in forkwise.fork_dataclasses), into staging.
+        # Staging must already be created.
+        # Return num rows inserted into staging.
+
+        return self.insert_many_w_class(tablename='staging', insert_cls=insert_cls)
     
     def staging_to_units(self)->int:
         # This will throw a UniqueViolation if any row is already in the conversions table:

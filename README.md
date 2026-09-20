@@ -22,16 +22,6 @@ Security: the database is hosted locally, nothing leaves your machine. *IMPORTAN
 
 ## Example usage
 
-### A note about units
-
-Since I don't yet have a BLL that checks/fixes file format, the db will only accept:
-
-- lbs not lb as a unit of weight
-- c not cup
-- no whitespace characters around units
-
-But units are case INsensitive.
-
 ### Add ingredients
 
 Ingredients are loaded from a csv. The csv must have columns (in this order, no header):
@@ -56,6 +46,16 @@ In the terminal, run:
 
 ```
 python ./src/forkwise/add_ingredients.py <username> <user pw> <path_to_csv>
+```
+
+You can also add a recipe as an ingredient; for example, perhaps there's a recipe for hummus in the db,
+but you also want to include hummus as an ingredient in a different recipe.
+
+To turn a recipe into an ingredient, run in a python session:
+```
+from forkwise.data_loader import DataLoader
+with DataLoader(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dl:
+    dl.add_recipe_to_pantry(recipe_name='<recipe_name>')
 ```
 
 To view a list of ingredients in the db, run in a python session:
@@ -85,6 +85,28 @@ python ./src/forkwise/add_recipe.py <username> <user pw> <path_to_csv> <recipe_n
 (Put `<recipe_name>` in single quotes to accommodate spaces.)
 
 This will fail if a recipe by the same name already exists; or a recipe of a different name but the same exact ingredient list exists.
+
+You can also promote an ingredient to a recipe; for example, "apple" can be both a recipe (ie a meal component) and an ingredient. The recipe
+for apple is just, apple the ingredient. 
+
+To do this, run in a python session:
+```
+from forkwise.data_loader import DataLoader
+with DataLoader(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dl:
+    dl.add_recipe_from_pantry(name='<ingredient name>', servings=<servings>, servings_amt=<servings amount>, servings_units=<servings_units>)
+```
+For example, to make a recipe out of "apple": if "apple" already exists in the db,
+```
+from forkwise.data_loader import DataLoader
+with DataLoader(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dl:
+    dl.add_recipe_from_pantry(name='apple', servings=1, servings_amt=1, servings_units='unit')
+```
+Or, if you want a single-serving of apple recipe to be half an apple:
+```
+from forkwise.data_loader import DataLoader
+with DataLoader(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as dl:
+    dl.add_recipe_from_pantry(name='apple', servings=1, servings_amt=0.5, servings_units='unit')
+```
 
 To view a list of recipes in the db, run in a python session:
 ```
@@ -222,13 +244,17 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
-- REFACTOR: Load csv into (pandas df? dataclass?) in BLL, with input handling; insert into staging from dataclass
-- FEATURE: Add recipe as ingredient - add recipe from staging table that doesn't come from csv - in future GUI can add from staging to check for missing ingredients and add if necessary. Started on branch RecipeAsIngr but should probably abandon. See previous refactor which blocks this feature.
+- CURRENT REFACTOR: Refactor add_meals to take more than just a csv. Or merge what I have now and do this after the data_getter refactor?
+- CURRENT REFACTOR: delete branch RecipeAsIngr. 
+- Add Claude.md etc
+- REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
+- UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
+- FEATURE: start UI for data load
 - TESTING: Check final cal, etc in plots from testing db data
-- BUG: If units don't exist on ingredient load, it just silently skips rows
-- BUG: wont allow recipes that are only partial duplicates
-- BUG: got "contains rows identical to existing pantry items except for the name" when that isn't true
+- TESTING: Add test for add_conversions in data_loader
+- BUG?: If units don't exist on ingredient load, it just silently skips rows
+- BUG?: wont allow recipes that are only partial duplicates
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour

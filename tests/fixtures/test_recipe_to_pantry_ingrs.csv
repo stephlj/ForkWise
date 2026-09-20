@@ -1,5 +1,4 @@
 name,unitary_amt,units,cal,fiber_grams,sugar_grams,protein_grams,fat_grams,carb_grams,animal,white_flour
+Carrot,1,Unit,31,2.2,0,0.7,0.1,7.3,0,0
 lemon,1,unit,17,1.6,1.5,0.6,0.2,5.4,0,0
-sugar,1,c,774,0,200,0,0,200,0,0
-broccoli,1,lbs,154,12,8,13,2,30,0,0
-ground beef 95/5,1,lbs,593,0,0,97,23,0,0,1
+Olive oil,1,Tbsp,120,0,0,0,14,0,0,0

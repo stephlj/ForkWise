@@ -1,7 +1,7 @@
 import unittest
 
 from forkwise.utils import calc_totals_per_serving, calc_totals_eaten
-from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe
+from forkwise.fork_dataclasses import FoodProps, Recipe
 
 class TestUtils(unittest.TestCase):
 
@@ -25,7 +25,7 @@ class TestUtils(unittest.TestCase):
                    servings_amt=0.25,
                    servings_units="c",
                    props=cls.test_props)
-
+    
     def test_calc_totals_per_serving(self):
         
         totals = calc_totals_per_serving(recipe = self.r)

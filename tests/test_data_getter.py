@@ -3,7 +3,6 @@
 import unittest
 import os, subprocess
 
-from psycopg import errors as psql_errors
 from datetime import date
 
 import dbcommons.testing_utils as utils
@@ -46,27 +45,29 @@ class TestDataGetter(unittest.TestCase):
         assert exit_code3.returncode==0, "Failed to remove testing db owner, must now remove manually"
     
     def test_get_recipe_totals(self):
+        # Implicit test of fork_db.calc_recipe_totals_per_serving, which is the key logic piece here
         # Add what we need in the db:
         with DataLoader(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dl:
-            dl.add_ingredients_via_staging(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_totals_ingr.csv"))
-            dl.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_recipe.csv"),
-                                                name="hot cocoa", 
+            dl.add_ingredients_from_csv(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_totals_ingr.csv"))
+            dl.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_recipe.csv"),
+                                                recipe_name="hot cocoa", 
                                                 servings=2,
                                                 servings_amt=1,
                                                 servings_units='c')
 
         totals = self.DataGetter.get_recipe_totals(recipe_name='hot cocoa')
 
-        # Recipe totals are for however many servings the recipe makes, not per serving
-        self.assertEqual(round(totals.props.cal,2), round(2*149 + (4/3)*12,2)) # 2 c milk * 149 cal/1 c + 4 tsp cocoa * 1 Tbsp/3 tsp * 12 cal/1 Tbsp
-        self.assertEqual(round(totals.props.fat_grams,2), round(2*8 + (4/3)*1,2)) # 2 c milk * 8 fat g/1 c + 4 tsp cocoa * 1 Tbsp/3 tsp * 1 fat g/1 Tbsp
+        # Recipe totals are now per serving
+        self.assertEqual(round(totals.props.cal,2), round((2*149 + (4/3)*12)/2,2)) # 2 c milk * 149 cal/1 c + 4 tsp cocoa * 1 Tbsp/3 tsp * 12 cal/1 Tbsp, divided by 2 servings
+        self.assertEqual(round(totals.props.fat_grams,2), round((2*8 + (4/3)*1)/2,2)) # 2 c milk * 8 fat g/1 c + 4 tsp cocoa * 1 Tbsp/3 tsp * 1 fat g/1 Tbsp, divided by 2 servings
         self.assertTrue(totals.props.animal)
+        self.assertEqual(totals.servings, 1)
         self.assertEqual(totals.servings_amt, 1)
 
         # Test that unit conversion fails if units in ingredients vs pantry_items are mismatched types:
         # We now check for this on recipe load (so can't even add the recipe here)
-        # self.conn.add_recipe_via_staging(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
-        #                                  name="wrong cocoa",
+        # self.conn.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_totals_wrongunits.csv"),
+        #                                  recipe_name="wrong cocoa",
         #                                  servings=2,
         #                                  servings_amt=1,
         #                                  servings_units="c")
@@ -82,19 +83,19 @@ class TestDataGetter(unittest.TestCase):
         path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals2.csv")
 
         with DataLoader(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dl:
-            dl.add_ingredients_via_staging(path_to_ingr_csv=path_to_ingr_csv) #has an extraneous ingredient just for extra testing
-            dl.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe_csv,
-                                                name="hummus", 
+            dl.add_ingredients_from_csv(path_to_ingr_csv=path_to_ingr_csv) #has an extraneous ingredient just for extra testing
+            dl.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe_csv,
+                                                recipe_name="hummus", 
                                                 servings=8,
                                                 servings_amt=0.5,
                                                 servings_units='c')
-            dl.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe2_csv, 
-                                                name="toast", 
+            dl.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe2_csv, 
+                                                recipe_name="toast", 
                                                 servings=1,
                                                 servings_amt=1, 
                                                 servings_units='unit')
-            dl.add_recipe_via_staging(path_to_recipe_csv=path_to_recipe3_csv, 
-                                                name="soy cocoa", 
+            dl.add_recipe_from_csv(path_to_recipe_csv=path_to_recipe3_csv, 
+                                                recipe_name="soy cocoa", 
                                                 servings=1,
                                                 servings_amt=1, 
                                                 servings_units='c')
