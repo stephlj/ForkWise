@@ -1,7 +1,7 @@
 import unittest
 
-from forkwise.utils import fix_units, calc_totals_per_serving, calc_totals_eaten
-from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe
+from forkwise.utils import calc_totals_per_serving, calc_totals_eaten
+from forkwise.fork_dataclasses import FoodProps, Recipe
 
 class TestUtils(unittest.TestCase):
 
@@ -25,15 +25,6 @@ class TestUtils(unittest.TestCase):
                    servings_amt=0.25,
                    servings_units="c",
                    props=cls.test_props)
-
-    def test_fix_units(self):
-        self.assertEqual(fix_units('lb'), 'lbs')
-        self.assertEqual(fix_units('lb '), 'lbs')
-        self.assertEqual(fix_units('cup'), 'c')
-        self.assertEqual(fix_units(' cup'), 'c')
-        self.assertEqual(fix_units('unit'), 'unit')
-        self.assertEqual(fix_units(' unit '), 'unit')
-        self.assertEqual(fix_units(' not a real unit but'),'not a real unit but')
     
     def test_calc_totals_per_serving(self):
         

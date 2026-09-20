@@ -245,14 +245,14 @@ v2: GUI for data entry and display
 
 TODOs:
 - CURRENT REFACTOR: Refactor add_meals to take more than just a csv. Or merge what I have now and do this after the data_getter refactor?
-- CURRENT REFACTOR: delete branch RecipeAsIngr. See if I can generalize csv to dataclass logic - have already had one bug there.
-- CURRENT REFACTOR: make sure all new functions have appropriate logging and testing coverage; remove non-testing asserts
+- CURRENT REFACTOR: delete branch RecipeAsIngr. 
 - Add Claude.md etc
 - REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
 - UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
 - FEATURE: start UI for data load
 - TESTING: Check final cal, etc in plots from testing db data
+- TESTING: Add test for add_conversions in data_loader
 - BUG?: If units don't exist on ingredient load, it just silently skips rows
 - BUG?: wont allow recipes that are only partial duplicates
 - FEATURE: Edit pantry items, recipes, meals

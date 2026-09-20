@@ -1,7 +1,9 @@
 # Copyright (c) 2026 Stephanie Johnson
 
 import unittest
-import os, subprocess
+import os, subprocess, tempfile
+
+from dataclasses import dataclass, field
 
 from psycopg import errors as psql_errors
 
@@ -10,7 +12,18 @@ from forkwise.fork_init import fork_init
 from forkwise.add_fork_user import add_fork_user
 from forkwise.data_loader import DataLoader
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import PantryItem, FoodProps
+from forkwise.fork_dataclasses import PantryItem, FoodProps, Ingredient, fix_units
+
+
+@dataclass
+class _Gizmo:
+    # A throwaway dataclass unrelated to anything in fork_dataclasses, used to prove
+    # csv_to_dataclass is generic. Carries the same metadata contract (sql_type +
+    # csv_parser) that fork_dataclasses fields do.
+    label: str = field(metadata={'sql_type': 'text', 'csv_parser': lambda s: s})
+    weight: float = field(metadata={'sql_type': 'real', 'csv_parser': lambda s: float(s)})
+    shiny: bool = field(metadata={'sql_type': 'boolean', 'csv_parser': lambda s: bool(int(s))})
+    size_units: str = field(metadata={'sql_type': 'text', 'csv_parser': fix_units})
 
 # TODO might be better to locate these by where the file is? Does this work with CI?
 TEST_CONFIG_PATH = os.path.join(os.getcwd(),"tests","fixtures","test_config.yml")
@@ -44,6 +57,17 @@ class TestDataLoader(unittest.TestCase):
         assert exit_code.returncode==0, "Failed to remove testing db, must now remove manually"
         assert exit_code2.returncode==0, "Failed to remove testing user, must now remove manually"
         assert exit_code3.returncode==0, "Failed to remove testing db owner, must now remove manually"
+    
+    def _write_tmp_csv(self, text: str) -> str:
+        # Write `text` to a throwaway .csv and return its path (cleaned up after the test).
+
+        f = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
+        f.write(text)
+        f.close()
+
+        self.addCleanup(os.remove, f.name)
+        
+        return f.name
     
     def test_add_ingredients_from_csv(self):
         # Implicit test of add_ingredients_via_staging
@@ -171,8 +195,49 @@ class TestDataLoader(unittest.TestCase):
         # Now adding meals should run:
         self.assertEqual(self.DataLoader.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv),3)
 
-    def test_csv_to_pantry(self):
-        items = self.DataLoader.csv_to_pantry(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, 'test_ingrs_to_csv.csv'))
+    def test_csv_to_dataclass(self):
+        # First: test generic behavior on a dataclass that looks nothing like fork_dataclasses.
+        # Note the csv columns are in a different order than _Gizmo's fields: correspondence
+        # is by name, so order shouldn't matter.
+        gizmos = self.DataLoader.csv_to_dataclass(
+            path_to_csv=os.path.join(TEST_DATA_PATH, "test_arbitrary_dataclass.csv"), cls=_Gizmo)
+
+        self.assertEqual(gizmos[0].label, "Sprocket")     # str passthrough
+        self.assertEqual(gizmos[0].weight, 2.5)           # float parser
+        self.assertTrue(gizmos[0].shiny)                  # '1' -> bool(int) -> True
+        self.assertFalse(gizmos[1].shiny)                 # '0' -> False (not the truthy-string bug)
+        self.assertEqual(gizmos[0].size_units, "c")       # ' cup' -> fix_units -> 'c'
+        self.assertEqual(gizmos[1].size_units, "lbs")     # 'lb'   -> fix_units -> 'lbs'
+
+        # Wrong value type in a row: non-numeric where float is expected -> ValueError.
+        with self.subTest("wrong value type"):
+            path = self._write_tmp_csv("shiny,size_units,label,weight\n1,cup,Sprocket,heavy\n")
+            with self.assertRaises(ValueError):
+                self.DataLoader.csv_to_dataclass(path_to_csv=path, cls=_Gizmo)
+
+        # No header: DictReader treats the first (data) row as the header, so the column
+        # names won't match the expected fields -> ValueError.
+        with self.subTest("no header"):
+            path = self._write_tmp_csv("1,cup,Sprocket,2.5\n0,lb,Widget,10\n")
+            with self.assertRaises(ValueError):
+                self.DataLoader.csv_to_dataclass(path_to_csv=path, cls=_Gizmo)
+
+        # Wrong header - easy-to-miss trailing whitespace in a column name.
+        with self.subTest("whitespace in header name"):
+            path = self._write_tmp_csv("shiny,size_units,label,weight \n1,cup,Sprocket,2.5\n")
+            with self.assertRaises(ValueError):
+                self.DataLoader.csv_to_dataclass(path_to_csv=path, cls=_Gizmo)
+
+        # Empty file: reader.fieldnames is None -> guarded by `or []` -> ValueError, not TypeError.
+        with self.subTest("empty file"):
+            path = self._write_tmp_csv("")
+            with self.assertRaises(ValueError):
+                self.DataLoader.csv_to_dataclass(path_to_csv=path, cls=_Gizmo)
+
+        # Now test cases that match actual Forkwise loads
+        # Check loading pantry items from csv
+        items = self.DataLoader.csv_to_dataclass(
+            path_to_csv=os.path.join(TEST_DATA_PATH, 'test_ingrs_to_csv.csv'), cls=PantryItem)
 
         self.assertEqual(items[0].name, 'Cream cheese')
         self.assertEqual(items[1].name, 'Strawberries')
@@ -184,24 +249,27 @@ class TestDataLoader(unittest.TestCase):
         self.assertEqual(items[0].units, 'Tbsp')
         self.assertEqual(items[1].units, 'G')
 
-        # spot check some columns
+        # spot check some (nested) columns
         self.assertEqual(items[0].props.cal, 80)
         self.assertEqual(items[1].props.sugar_grams, 7)
 
         # check bool types
         self.assertTrue(items[0].props.animal)
         self.assertFalse(items[1].props.animal)
-    
-    def test_csv_to_recipe_ingr(self):
-        ingrs = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe.csv"))
+
+        # Check loading ingredients from csv
+        ingrs = self.DataLoader.csv_to_dataclass(
+            path_to_csv=os.path.join(TEST_DATA_PATH, "test_recipe.csv"), cls=Ingredient)
         self.assertEqual(ingrs[0].ingr_name, 'asparagus')
 
-        ingrs_fixunit = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_recipe_fix_units.csv"))
+        ingrs_fixunit = self.DataLoader.csv_to_dataclass(
+            path_to_csv=os.path.join(TEST_DATA_PATH, "test_recipe_fix_units.csv"), cls=Ingredient)
         self.assertEqual(ingrs_fixunit[1].ingredient_amt, 3.3)
         self.assertEqual(ingrs_fixunit[0].ingredient_units, 'lbs')
 
         with self.assertRaises(ValueError):
-            _ = self.DataLoader.csv_to_recipe_ingr(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv")) 
+            self.DataLoader.csv_to_dataclass(
+                path_to_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv"), cls=Ingredient)
 
     def test_add_recipe_to_pantry(self):
         # Add some ingredients - will be skipped if other tests have already run

@@ -17,15 +17,6 @@ DASHBOARD_TITLE = "ForkWise Dashboard"
 
 from forkwise.fork_dataclasses import Recipe, FoodProps
 
-def fix_units(raw_units: str) -> str:
-    raw_units=raw_units.strip()
-    if raw_units=='lb':
-        return 'lbs'
-    elif raw_units=='cup':
-        return 'c'
-    else:
-        return raw_units
-
 def calc_totals_per_serving(recipe: Recipe)->FoodProps:
     """
     Given a Recipe, calculate totals per serving, returning as a FoodProps object.

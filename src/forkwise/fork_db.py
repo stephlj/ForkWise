@@ -16,7 +16,7 @@ from dataclasses import fields, asdict
 from psycopg import sql
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS, FoodProps
+from forkwise.fork_dataclasses import PANTRY_COL_NAMES, INGR_COL_DEFS, FOODPROPS_COL_DEFS, FOODPROPS_COL_NAMES, FoodProps
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -47,7 +47,7 @@ class ForkDB(DBConn):
     def calc_recipe_totals_per_serving(self, recipe_id: int, recipe_servings: float)->FoodProps:
         
         # TODO There has got to be a better way ...
-        totals_dict_keys = [c for c in PANTRY_COL_NAMES if c not in {'name','unitary_amt','units'}]
+        totals_dict_keys = list(FOODPROPS_COL_NAMES)
         totals_dict_keys.append('count')
         select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in totals_dict_keys if c not in {'white_flour','animal', 'count'})
 
@@ -166,7 +166,7 @@ class ForkDB(DBConn):
         # Check if there are any rows in the staging table that are the same as an existing row
         # in pantry_items execept for the name (ie, these items exist under a different name)
         # Return is a list of dicts representing (staging.name, pantry_items.name) for any duplicates
-        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in PANTRY_COL_DEFS[3:])
+        join_statements = " AND ".join(f'p.{a} = s.{a}' for a, _ in FOODPROPS_COL_DEFS)
         check_dups = f"""
             SELECT s.name AS staging_name, p.name AS pantry_name
             FROM staging AS s
@@ -184,7 +184,7 @@ class ForkDB(DBConn):
         # the same combo of (ingredient id, ingredient amt, ingredient units) associated with a single recipe id.
         # Return is a list of dicts with keys 'recipe_id', 'count' for any matches
 
-        join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in INGR_COL_DEFS[1:])
+        join_statements = " AND ".join(f'i.{a} = j.{a}' for a, _ in INGR_COL_DEFS if a != 'ingr_name')
         # Equivalent to: LEFT JOIN pantry_items p ON ... WHERE p.id IS NOT NULL
         check_dup_ingredients = f"""
             WITH joined1 AS (
