@@ -26,5 +26,5 @@ if __name__ == "__main__":
     with DataLoader(user=sys.argv[1], pw=sys.argv[2], db_name=db_name) as dl:
         num_rows_added = dl.add_ingredients_from_csv(path_to_ingr_csv=sys.argv[3])
 
-    logger.info(f"Added {num_rows_added} rows to pantry items table from csv {sys.arvg[3]}")
+    logger.info(f"Added {num_rows_added} rows to pantry items table from csv {sys.argv[3]}")
     

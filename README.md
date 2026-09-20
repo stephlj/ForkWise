@@ -244,10 +244,9 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
-- CURRENT REFACTOR: Refactor add_meals to take more than just a csv. Or merge what I have now and do this after the data_getter refactor?
-- CURRENT REFACTOR: delete branch RecipeAsIngr. 
 - Add Claude.md etc
 - REFACTOR: Use a db query to do daily totals rather than janky python logic
+- REFACTOR: Refactor add_meals to take more than just a csv, after the totals refactor
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
 - UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
 - FEATURE: start UI for data load
