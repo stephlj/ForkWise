@@ -28,6 +28,7 @@ matplotlib.use("Agg")
 
 # Resolved against this file's location, per AppTest.from_file's own convention.
 APP_PATH = os.path.join(os.path.dirname(__file__), "..", "webapp", "app.py")
+TEST_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "test_config.yml")
 
 
 class TestApp(unittest.TestCase):
@@ -200,6 +201,55 @@ class TestApp(unittest.TestCase):
         grams_chart = charts[1]  # calories chart is rendered first, grams chart second
         spec = json.loads(grams_chart.proto.spec)
         self.assertEqual(spec["layout"]["xaxis"].get("type"), "category")
+
+    @patch("forkwise.display_meal_totals.get_meals")
+    @patch("forkwise.utils.CONFIG_PATH", TEST_CONFIG_PATH)
+    def test_calories_chart_draws_target_line_matching_series_color(self, mock_get_meals):
+        mock_get_meals.return_value = [
+            self._make_meal(
+                "toast", cal=225.0, fat=1.0, protein=1.0, fiber=5.0,
+                sugar=9.25, carb=28.0, servings_eaten=2.0, date_eaten=date(2026, 7, 5),
+            ),
+        ]
+
+        at = self._logged_in_app()
+        at.run()
+
+        self.assertEqual(len(at.exception), 0)
+        cal_spec = json.loads(at.get("plotly_chart")[0].proto.spec)
+        shapes = cal_spec["layout"]["shapes"]
+        self.assertEqual(len(shapes), 1)
+        self.assertEqual(shapes[0]["y0"], 2000)  # fixtures/test_config.yml targets.cal
+        self.assertEqual(shapes[0]["line"]["dash"], "dash")
+        self.assertEqual(shapes[0]["line"]["color"], cal_spec["data"][0]["marker"]["color"])
+
+    @patch("forkwise.display_meal_totals.get_meals")
+    @patch("forkwise.utils.CONFIG_PATH", TEST_CONFIG_PATH)
+    def test_grams_chart_draws_target_lines_for_configured_nutrients_only(self, mock_get_meals):
+        mock_get_meals.return_value = [
+            self._make_meal(
+                "toast", cal=225.0, fat=1.0, protein=1.0, fiber=5.0,
+                sugar=9.25, carb=28.0, servings_eaten=2.0, date_eaten=date(2026, 7, 5),
+            ),
+        ]
+
+        at = self._logged_in_app()
+        at.run()
+
+        self.assertEqual(len(at.exception), 0)
+        grams_spec = json.loads(at.get("plotly_chart")[1].proto.spec)
+        trace_colors = {trace["name"]: trace["marker"]["color"] for trace in grams_spec["data"]}
+        shapes = grams_spec["layout"]["shapes"]
+
+        # fixtures/test_config.yml only sets targets for protein_grams (60) and
+        # fiber_grams (30); sugar and fat have no configured target, so should
+        # draw no line.
+        self.assertEqual(len(shapes), 2)
+        shapes_by_y = {shape["y0"]: shape for shape in shapes}
+        self.assertEqual(shapes_by_y[60]["line"]["color"], trace_colors["Protein (g)"])
+        self.assertEqual(shapes_by_y[30]["line"]["color"], trace_colors["Fiber (g)"])
+        for shape in shapes:
+            self.assertEqual(shape["line"]["dash"], "dash")
 
     @patch("forkwise.display_meal_totals.get_meals")
     def test_selecting_a_calories_point_renders_its_own_pie(self, mock_get_meals):

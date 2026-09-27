@@ -1,3 +1,8 @@
 db:
   db_name: fork_db
   admin_name: forkwise_admin
+
+targets:
+  cal: 2400
+  protein_grams: 50
+  fiber_grams: 25

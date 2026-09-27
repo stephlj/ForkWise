@@ -21,7 +21,7 @@ def fork_init(admin_pw: str, path_to_config: str=CONFIG_PATH)->None:
     
     # Add conversions table as admin
     with DataLoader(user=admin, pw=admin_pw, db_name=db_name) as dl:
-        dl.add_conversions(path_to_conversions_csv=os.path.join(os.getcwd(), "src", "forkwise", "conversions.csv"))
+        dl.add_conversions(path_to_conversions_csv=os.path.join(os.path.dirname(__file__), "conversions.csv"))
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)

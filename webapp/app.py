@@ -33,6 +33,16 @@ GRAM_NUTRIENTS = [
 PROP_LABELS = {CAL_PROP_KEY: CAL_LABEL, **{prop_key: label for label, prop_key in GRAM_NUTRIENTS}}
 ALL_PROP_KEYS = [CAL_PROP_KEY] + [prop_key for _, prop_key in GRAM_NUTRIENTS]
 
+# config.yml's "targets" section keys are named after FoodProps fields, which
+# don't match the PropsPerDay prop_keys above, so map one to the other here.
+TARGET_TO_PROP_KEY = {
+    "cal": CAL_PROP_KEY,
+    "protein_grams": "prot_list",
+    "sugar_grams": "sugar_list",
+    "fiber_grams": "fiber_list",
+    "fat_grams": "fat_list",
+}
+
 
 def login() -> None:
     st.title(DASHBOARD_TITLE)
@@ -128,6 +138,14 @@ def dashboard() -> None:
     dates, daily_props = calc_daily_totals(meals)
     totals = totals_per_day(daily_props)
 
+    with open(CONFIG_PATH, "r") as config_file:
+        targets = yaml.safe_load(config_file).get("targets", {})
+    targets_by_prop_key = {
+        TARGET_TO_PROP_KEY[key]: value
+        for key, value in targets.items()
+        if key in TARGET_TO_PROP_KEY
+    }
+
     # Widget keys include the date range so that changing it always starts
     # each chart with a fresh (empty) selection, rather than carrying over a
     # click made against a now-different set of dates.
@@ -137,6 +155,9 @@ def dashboard() -> None:
     with cal_chart_col:
         cal_df = pd.DataFrame({"date": dates, CAL_LABEL: totals[CAL_PROP_KEY]})
         cal_fig = px.scatter(cal_df, x="date", y=CAL_LABEL, title=CAL_LABEL)
+        cal_target = targets_by_prop_key.get(CAL_PROP_KEY)
+        if cal_target is not None:
+            cal_fig.add_hline(y=cal_target, line_dash="dash", line_color=cal_fig.data[0].marker.color)
         cal_event = st.plotly_chart(
             cal_fig, on_select="rerun", selection_mode="points", key=f"chart_cal_{range_suffix}"
         )
@@ -171,6 +192,12 @@ def dashboard() -> None:
             category_orders={"nutrient": [label for label, _ in GRAM_NUTRIENTS]},
             title="Nutrients",
         )
+        grams_colors = {trace.name: trace.marker.color for trace in grams_fig.data}
+        for label, prop_key in GRAM_NUTRIENTS:
+            grams_target = targets_by_prop_key.get(prop_key)
+            if grams_target is not None:
+                grams_fig.add_hline(y=grams_target, line_dash="dash", line_color=grams_colors[label])
+
         # Plotly auto-detects a date-like x column as a continuous date axis.
         # For a grouped bar chart, the 4 bars for a given day then get
         # positioned using real calendar spacing between days; if some day in

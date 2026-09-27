@@ -11,10 +11,9 @@ from forkwise.add_fork_user import add_fork_user
 from forkwise.data_loader import DataLoader
 from forkwise.data_getter import DataGetter
 
-# TODO might be better to locate these by where the file is? Does this work with CI?
-TEST_CONFIG_PATH = os.path.join(os.getcwd(),"tests","fixtures","test_config.yml")
-TEST_DATA_PATH = os.path.join(os.getcwd(),"tests","fixtures")
-SCHEMA_PATH = os.path.join(os.getcwd(), "src", "forkwise", "schema.sql")
+TEST_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "test_config.yml")
+TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), "fixtures")
+SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "src", "forkwise", "schema.sql")
 
 class TestDataGetter(unittest.TestCase):
     # Implicit tests of fork_db

@@ -10,8 +10,8 @@ DEFAULT_LOGGING_FORMAT = (
     "%(levelname)s %(asctime)-15s @ %(module)s.%(funcName)s.%(lineno)d - %(msg)s"
 )
 
-CONFIG_PATH = os.path.join(os.getcwd(),"src","forkwise","config.yml")
-SCHEMA_PATH = os.path.join(os.getcwd(),"src","forkwise","schema.sql")
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yml")
+SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 
 DASHBOARD_TITLE = "ForkWise Dashboard"
 

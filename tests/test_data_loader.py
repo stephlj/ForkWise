@@ -14,6 +14,9 @@ from forkwise.data_loader import DataLoader
 from forkwise.fork_db import ForkDB
 from forkwise.fork_dataclasses import PantryItem, FoodProps, Ingredient, fix_units
 
+TEST_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "test_config.yml")
+TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), "fixtures")
+SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "src", "forkwise", "schema.sql")
 
 @dataclass
 class _Gizmo:
@@ -24,11 +27,6 @@ class _Gizmo:
     weight: float = field(metadata={'sql_type': 'real', 'csv_parser': lambda s: float(s)})
     shiny: bool = field(metadata={'sql_type': 'boolean', 'csv_parser': lambda s: bool(int(s))})
     size_units: str = field(metadata={'sql_type': 'text', 'csv_parser': fix_units})
-
-# TODO might be better to locate these by where the file is? Does this work with CI?
-TEST_CONFIG_PATH = os.path.join(os.getcwd(),"tests","fixtures","test_config.yml")
-TEST_DATA_PATH = os.path.join(os.getcwd(),"tests","fixtures")
-SCHEMA_PATH = os.path.join(os.getcwd(), "src", "forkwise", "schema.sql")
 
 class TestDataLoader(unittest.TestCase):
     # Implicit tests of fork_db
