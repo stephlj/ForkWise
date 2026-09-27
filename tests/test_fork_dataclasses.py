@@ -7,8 +7,11 @@ class TestForkDataclasses(unittest.TestCase):
     def test_fix_units(self):
         self.assertEqual(fix_units('lb'), 'lbs')
         self.assertEqual(fix_units('lb '), 'lbs')
+        self.assertEqual(fix_units('Lb '), 'lbs')
+        self.assertEqual(fix_units('LB'), 'lbs')
         self.assertEqual(fix_units('cup'), 'c')
         self.assertEqual(fix_units(' cup'), 'c')
+        self.assertEqual(fix_units('Cup'), 'c')
         self.assertEqual(fix_units('unit'), 'unit')
         self.assertEqual(fix_units(' unit '), 'unit')
         self.assertEqual(fix_units(' not a real unit but'), 'not a real unit but')

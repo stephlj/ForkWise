@@ -28,9 +28,9 @@ from datetime import date
 
 def fix_units(raw_units: str) -> str:
     raw_units=raw_units.strip()
-    if raw_units=='lb':
+    if raw_units.lower()=='lb':
         return 'lbs'
-    elif raw_units=='cup':
+    elif raw_units.lower()=='cup':
         return 'c'
     else:
         return raw_units

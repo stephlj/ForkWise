@@ -244,6 +244,7 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
+- Move csv to dataclass to dbcommons so FinTracker can use it?
 - Add Claude.md etc
 - REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Refactor add_meals to take more than just a csv, after the totals refactor
