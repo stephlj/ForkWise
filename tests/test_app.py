@@ -24,11 +24,12 @@ from streamlit.testing.v1 import AppTest
 from forkwise.fork_dataclasses import FoodProps, Meal, Recipe
 from forkwise.utils import DASHBOARD_TITLE
 
+from utils_for_tests import TEST_CONFIG_PATH
+
 matplotlib.use("Agg")
 
 # Resolved against this file's location, per AppTest.from_file's own convention.
 APP_PATH = os.path.join(os.path.dirname(__file__), "..", "webapp", "app.py")
-TEST_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "test_config.yml")
 
 
 class TestApp(unittest.TestCase):

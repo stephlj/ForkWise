@@ -1,6 +1,11 @@
 import unittest
+import os
 
-from forkwise.fork_dataclasses import fix_units, flat_col_defs, FoodProps, PantryItem, Ingredient
+from dbcommons.dataclass_utils import csv_to_dataclass
+from forkwise.fork_dataclasses import fix_units
+from forkwise.fork_dataclasses import fix_units, PantryItem, Ingredient
+
+from utils_for_tests import TEST_DATA_PATH
 
 class TestForkDataclasses(unittest.TestCase):
 
@@ -16,43 +21,27 @@ class TestForkDataclasses(unittest.TestCase):
         self.assertEqual(fix_units(' unit '), 'unit')
         self.assertEqual(fix_units(' not a real unit but'), 'not a real unit but')
 
-    def test_flat_col_defs_flattens_nested_dataclass(self):
-        # PantryItem.props is a nested FoodProps: flat_col_defs should splice the
-        # FoodProps columns into the parent, in order, with no 'props' column.
-        # This also guards the is_dataclass(f.type) dependency: adding
-        # `from __future__ import annotations` to fork_dataclasses would stringize
-        # f.type, props would stop flattening, and this test would fail.
-        defs = flat_col_defs(PantryItem)
+    def test_csv_to_pantry_item(self):
+        # Tests ForkWise's csv_parser metadata in fork_dataclasses on PantryItem: nested props, bools, fix_units on units.
+        items = csv_to_dataclass(path_to_csv=os.path.join(TEST_DATA_PATH, 'test_ingrs_to_csv.csv'), cls=PantryItem)
 
-        self.assertEqual(defs, [
-            ('name', 'text'),
-            ('unitary_amt', 'real'),
-            ('units', 'text'),
-            ('cal', 'real'),
-            ('fiber_grams', 'real'),
-            ('sugar_grams', 'real'),
-            ('protein_grams', 'real'),
-            ('fat_grams', 'real'),
-            ('carb_grams', 'real'),
-            ('animal', 'boolean'),
-            ('white_flour', 'boolean'),
-        ])
-        self.assertNotIn('props', [name for name, _ in defs])
+        self.assertEqual([i.name for i in items], ['Cream cheese', 'Strawberries'])
+        self.assertEqual(items[1].unitary_amt, 144)
+        self.assertEqual(items[0].units, 'Tbsp')         # ' Tbsp' -> fix_units strips
+        self.assertEqual(items[1].units, 'G')            # case preserved for non-aliased units
+        self.assertEqual(items[0].props.cal, 80)         # nested FoodProps
+        self.assertEqual(items[1].props.sugar_grams, 7)
+        self.assertTrue(items[0].props.animal)           # '1' -> True
+        self.assertFalse(items[1].props.animal)          # '0' -> False
 
-    def test_flat_col_defs_no_nesting(self):
-        # A dataclass with no nested dataclass field is just its own (name, sql_type) pairs.
-        self.assertEqual(flat_col_defs(Ingredient), [
-            ('ingr_name', 'text'),
-            ('ingredient_amt', 'real'),
-            ('ingredient_units', 'text'),
-        ])
-        self.assertEqual(flat_col_defs(FoodProps), [
-            ('cal', 'real'),
-            ('fiber_grams', 'real'),
-            ('sugar_grams', 'real'),
-            ('protein_grams', 'real'),
-            ('fat_grams', 'real'),
-            ('carb_grams', 'real'),
-            ('animal', 'boolean'),
-            ('white_flour', 'boolean'),
-        ])
+    def test_csv_to_ingredient(self):
+        ingrs = csv_to_dataclass(path_to_csv=os.path.join(TEST_DATA_PATH, "test_recipe.csv"), cls=Ingredient)
+        self.assertEqual(ingrs[0].ingr_name, 'asparagus')
+
+        ingrs_fixunit = csv_to_dataclass(path_to_csv=os.path.join(TEST_DATA_PATH, "test_recipe_fix_units.csv"), cls=Ingredient)
+        self.assertEqual(ingrs_fixunit[0].ingredient_units, 'lbs')   # ' lb' -> 'lbs'
+        self.assertEqual(ingrs_fixunit[1].ingredient_amt, 3.3)
+
+        with self.assertRaises(ValueError):                           
+            # 'one' (in the csv) isn't a float (expected by the dataclass)
+            csv_to_dataclass(path_to_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv"), cls=Ingredient)

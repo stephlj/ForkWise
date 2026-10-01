@@ -11,9 +11,7 @@ from forkwise.add_fork_user import add_fork_user
 from forkwise.data_loader import DataLoader
 from forkwise.data_getter import DataGetter
 
-TEST_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "test_config.yml")
-TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), "fixtures")
-SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "src", "forkwise", "schema.sql")
+from utils_for_tests import TEST_CONFIG_PATH, TEST_DATA_PATH
 
 class TestDataGetter(unittest.TestCase):
     # Implicit tests of fork_db

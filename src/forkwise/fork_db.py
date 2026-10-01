@@ -12,7 +12,6 @@ from psycopg import errors as psql_errors
 from typing import List, Any
 from datetime import date
 
-from dataclasses import fields, asdict
 from psycopg import sql
 
 from dbcommons.db_conn import DBConn

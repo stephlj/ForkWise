@@ -11,8 +11,7 @@ from datetime import date
 from typing import List
 
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import FoodProps, PantryItem, Ingredient, Recipe, Meal
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, PANTRY_COL_NAMES, INGR_COL_DEFS, MEAL_COL_DEFS
+from forkwise.fork_dataclasses import Recipe, Meal
 
 class DataGetter:
     def __init__(self, user: str, pw: str, db_name: str):

@@ -4,18 +4,15 @@ Class that loads data (from csvs or other sources) into the db.
 Copyright (c) 2026 Stephanie Johnson
 """
 
-import os
 import logging
-import csv
 
 from functools import wraps
-from typing import List, Type, TypeVar
-from dataclasses import fields, is_dataclass
+from typing import List
+
+from dbcommons.dataclass_utils import csv_to_dataclass
 
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient, PantryItem, flat_col_defs
-
-T = TypeVar("T")
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient, PantryItem
 
 class DataLoader:
     def __init__(self, user: str, pw: str, db_name: str):
@@ -204,63 +201,6 @@ class DataLoader:
         self._logger.info(f"Added {num_rows_added} rows to meals table")
 
         return num_rows_added
-    
-    def csv_to_dataclass(self, path_to_csv: str, cls: Type[T]) -> List[T]:
-        """
-        Load a csv into a list of `cls` objects, one per row.
-
-        Correspondence is by name: every csv column must match a field name of `cls`
-        (or, for a nested dataclass field like PantryItem.props, a field name of that
-        nested dataclass). Each field's metadata['csv_parser'] turns the string cell
-        into the field's value, so there's no hand-written column->field mapping.
-
-        Parameters
-        ----------
-        path_to_csv : str
-            Path to a csv whose header holds every (flattened) field name of `cls`.
-        cls : Type[T]
-            A dataclass whose fields carry 'csv_parser' metadata.
-
-        Returns
-        -------
-        List[T]
-        """
-
-        # Basic input checking
-        if not os.path.isfile(path_to_csv):
-            msg = f"{path_to_csv} not a path to a file that exists"
-            self._logger.error(msg)
-            raise ValueError(msg)
-
-        if not os.path.splitext(path_to_csv)[1] == ".csv":
-            msg = f"{path_to_csv} must be a csv file"
-            self._logger.error(msg)
-            raise ValueError(msg)
-
-        # Expected columns are cls's (flattened) field names - the single source of
-        # truth shared with the db staging col defs.
-        expected_cols = [name for name, _ in flat_col_defs(cls)]
-
-        with open(path_to_csv, mode='r') as f:
-            reader = csv.DictReader(f)
-            if set(reader.fieldnames or []) != set(expected_cols):
-                msg = f"Wrong header in {path_to_csv}: needs to be {expected_cols} (instead of {reader.fieldnames})"
-                self._logger.error(msg)
-                raise ValueError(msg)
-
-            objs = []
-            for r in reader:
-                kwargs = {}
-                for field_ in fields(cls):
-                    if is_dataclass(field_.type):
-                        # Nested dataclass (e.g. props): build from its own fields in this row.
-                        kwargs[field_.name] = field_.type(**{nf.name: nf.metadata['csv_parser'](r[nf.name])
-                                                              for nf in fields(field_.type)})
-                    else:
-                        kwargs[field_.name] = field_.metadata['csv_parser'](r[field_.name])
-                objs.append(cls(**kwargs))
-
-        return objs
 
     def add_recipe_from_pantry(self, name: str, servings: float, servings_amt: float, servings_units: str) -> int:
         # Promote a pantry item to a recipe
@@ -309,7 +249,7 @@ class DataLoader:
     
     def add_ingredients_from_csv(self, path_to_ingr_csv: str)-> int:
         
-        items = self.csv_to_dataclass(path_to_csv=path_to_ingr_csv, cls=PantryItem)
+        items = csv_to_dataclass(path_to_csv=path_to_ingr_csv, cls=PantryItem)
 
         return self.add_ingredients_via_staging(pantry_items=items)
     
@@ -321,7 +261,7 @@ class DataLoader:
                             servings_units: str,
                             )-> int:
         
-        ingrs = self.csv_to_dataclass(path_to_csv=path_to_recipe_csv, cls=Ingredient)
+        ingrs = csv_to_dataclass(path_to_csv=path_to_recipe_csv, cls=Ingredient)
 
         return self.add_recipe_via_staging(ingredients=ingrs, 
                                         name=recipe_name, 
