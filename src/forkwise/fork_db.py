@@ -12,8 +12,6 @@ from psycopg import errors as psql_errors
 from typing import List, Any
 from datetime import date
 
-from psycopg import sql
-
 from dbcommons.db_conn import DBConn
 from forkwise.fork_dataclasses import PANTRY_COL_NAMES, INGR_COL_DEFS, FOODPROPS_COL_DEFS, FOODPROPS_COL_NAMES, FoodProps
 
@@ -253,9 +251,10 @@ class ForkDB(DBConn):
         # Return is number of rows inserted into pantry_items.
 
         col_names_str = ", ".join(PANTRY_COL_NAMES)
+        staging_cols_str = ", ".join(f"s.{c}" for c in PANTRY_COL_NAMES)
         ingr_query = f"""
             INSERT INTO pantry_items ({col_names_str})
-            SELECT s.*
+            SELECT {staging_cols_str}
                 FROM staging AS s
                 LEFT JOIN pantry_items p ON
                     LOWER(p.name) = LOWER(s.name)
