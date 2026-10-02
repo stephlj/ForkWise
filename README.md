@@ -144,7 +144,7 @@ To view nutritional content of a recipe logged in the database:
 python ./src/forkwise/display_recipe_totals.py <username> <user pw> <recipe name>
 ```
 If you comment out `test_data_getter.py`'s db teardown so the testing db persists, 
-run just the `test_data_getter.py` test, and then temporarily modify `config.yaml` to point at `test_fork_db`,
+run just the `test_data_getter.py` test, and then temporarily modify `config.yml` to point at `test_fork_db`,
 and run:
 ```
 python ./src/forkwise/display_recipe_totals.py test_fork_user pw hummus
@@ -162,7 +162,7 @@ python ./src/forkwise/display_meal_totals.py <username> <user pw> <start_date> <
 where `start_date` and `end_date` are in ISO format of YYYY-MM-DD.
 
 If you comment out `test_data_getter.py`'s db teardown so the testing db persists, 
-run just the `test_data_getter.py` test, and then temporarily modify `config.yaml` to point at `test_fork_db`,
+run just the `test_data_getter.py` test, and then temporarily modify `config.yml` to point at `test_fork_db`,
 and run:
 ```
 python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-05-12 2026-07-05
@@ -180,7 +180,7 @@ python ./src/forkwise/display_meal_totals.py <username> <user pw> <date> <date>
 (ie the second two args must be the same; `date` in ISO format of YYYY-MM-DD again).
 
 If you comment out `test_data_getter.py`'s db teardown so the testing db persists, 
-run just the `test_data_getter.py` test, and then temporarily modify `config.yaml` to point at `test_fork_db`,
+run just the `test_data_getter.py` test, and then temporarily modify `config.yml` to point at `test_fork_db`,
 and run:
 ```
 python ./src/forkwise/display_meal_totals.py test_fork_user pw 2026-07-05 2026-07-05
@@ -208,7 +208,7 @@ Finally, note that `streamlit`'s testing harness can't simulate some things like
 
 1. comment out `test_data_getter.py`'s db teardown so the testing db persists
 2. run just the `test_data_getter.py` test
-3. modify `config.yaml` to point at `test_fork_db`.
+3. modify `config.yml` to point at `test_fork_db`.
 4. Compare GUI plots to CLI outputs above (log in with `test_fork_user).
 5. Teardown the testing db manually afterwards, and change the config back!
 
