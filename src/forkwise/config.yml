@@ -5,4 +5,4 @@ db:
 targets:
   cal: 2000
   protein_grams: 50
-  fiber_grams: 25
+  fiber_grams: 30

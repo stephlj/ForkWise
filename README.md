@@ -244,13 +244,13 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
-- Move csv to dataclass to dbcommons so FinTracker can use it?
-- Add Claude.md etc
+- FEATURE: start UI for data load
 - REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Refactor add_meals to take more than just a csv, after the totals refactor
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
+- AGENTS.md: `command` that runs the manual tests in README?
+- REFACTOR: Remove column-order dependencies and other fragilities for unit conversions and meals, after I've figured out how I'm going to represent meals in the python layer
 - UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
-- FEATURE: start UI for data load
 - TESTING: Check final cal, etc in plots from testing db data
 - TESTING: Add test for add_conversions in data_loader
 - BUG?: If units don't exist on ingredient load, it just silently skips rows

@@ -5,7 +5,7 @@ from datetime import date
 from forkwise.display_meal_totals import PropsPerDay, calc_daily_totals, display_meals_info, display_meal_breakdown
 from forkwise.fork_dataclasses import Meal, Recipe, FoodProps
 
-class TestUtils(unittest.TestCase):
+class DisplayMealTotals(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
