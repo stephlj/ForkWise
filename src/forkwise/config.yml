@@ -6,3 +6,4 @@ targets:
   cal: 2000
   protein_grams: 50
   fiber_grams: 30
+  sugar_grams: 75 # NOT added sugar - total

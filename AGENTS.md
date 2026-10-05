@@ -32,6 +32,7 @@ Before working in `tests/` or `webapp/`, read the `AGENTS.md` in that directory.
 
 # Planning
 - When proposing a plan, include pros and cons and design tradeoffs.
+- When asking me to choose between options, spell out the pros and cons of each option.
 - Be concise. Plans do not need extensive repetition.
 - Check that you're not proposing to reimplement functionality that exists elsewhere in the codebase. If existing code would work with some changes, propose those changes as part of the plan, rather than creating separate but nearly identical functionality.
 
