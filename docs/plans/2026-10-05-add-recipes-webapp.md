@@ -10,8 +10,9 @@ Decisions so far:
 
 ## 1. New queries in [fork_db.py](src/forkwise/fork_db.py)
 These follow the `list_all_ingredients` pattern (simple methods on `ForkDB`).
-- `list_all_units() -> List[str]`: distinct units in `unit_conversions`, alphabetical. Used for the serving-units dropdown.
-- `list_compatible_units() -> dict[str, List[str]]`: maps **every** pantry item in the db to the units in its category, e.g. `{"Soy milk": ["c", "Tbsp", "tsp", ...], "Butter": [...], ...}`.
+- `list_all_units() -> List[str]`: units in `unit_conversions`, grouped by category and smallest to largest within each category (`ORDER BY category, factor`), e.g. `["unit", "tsp", "Tbsp", "c", ..., "g", "oz", "lbs"]`. Used for the serving-units dropdown.
+  - Why not alphabetical: grouping keeps all units of one kind together, and size order is how people think about units. Alphabetical scatters them (`c`, `g`, `gallon`, `lbs`, ...).
+- `list_compatible_units() -> dict[str, List[str]]`: maps **every** pantry item in the db to the units in its category, smallest to largest (same `factor` order as `list_all_units`), e.g. `{"Soy milk": ["tsp", "Tbsp", "c", ...], "Butter": [...], ...}`.
   - It doesn't depend on what the user has picked. It's a lookup table for all pantry items, built in one query that joins `pantry_items` → `unit_conversions` (matching the item's units, case-insensitive like `check_ingr_exist`) → `unit_conversions` (same category).
   - It's fetched once when the page loads. When the user picks an ingredient in a row, that row's unit dropdown immediately shows `compatible_units[ingredient]`, with no db call.
   - Tradeoff: querying per row instead would always be fresh, but would hit the db on every ingredient change. The table is small (pantry items × about 10 units per category), so loading it all at once is fine. Since this form can't add pantry items, it can't go stale while the page is open.
@@ -19,7 +20,7 @@ These follow the `list_all_ingredients` pattern (simple methods on `ForkDB`).
   - `list_all_units`: probably too simple to need a test, like `list_all_ingredients`.
   - `list_compatible_units`: standalone `test_list_compatible_units` in `test_data_getter.py`, where `ForkDB` queries are tested indirectly.
     - Seed it with new fixture pantry items that have distinctive names (one each in a weight, volume and "unit" unit, including a case mismatch such as "C" vs "c").
-    - Assert the exact unit list for each seeded item. Only assert on the seeded items, so the result doesn't depend on test order.
+    - Assert the exact unit list, in order, for each seeded item. Only assert on the seeded items, so the result doesn't depend on test order.
 
 ## 2. Navigation ([app.py](webapp/app.py))
 - After login, `st.navigation([st.Page(dashboard, title="Dashboard"), st.Page(add_data, title="Add data")])`.

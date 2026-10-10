@@ -114,6 +114,13 @@ class ForkDB(DBConn):
         ingr_list = self.execute_query(query, (recipe_name,))
         return [i['name'] for i in ingr_list]
     
+    def list_all_units(self) -> List[str]:
+        unit_list = self.execute_query("SELECT unit, category, factor FROM unit_conversions ORDER BY LOWER(category), factor;")
+        return [a['unit'] for a in unit_list]
+
+    def list_compatible_units(self) -> dict[str, List[str]]:
+        pass
+    
     def check_units_exist(self)->List[dict]:
         # Check that all rows in staging have units that match rows in unit_conversions
         # Return is a list of dicts representing (staging.name, staging.units) where staging.units has 
