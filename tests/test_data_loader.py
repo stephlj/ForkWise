@@ -42,6 +42,24 @@ class TestDataLoader(unittest.TestCase):
         assert exit_code2.returncode==0, "Failed to remove testing user, must now remove manually"
         assert exit_code3.returncode==0, "Failed to remove testing db owner, must now remove manually"
     
+    def test_add_conversions(self):
+        # Test that we can't add units with the same name as existing units:
+        path_to_one_dup = os.path.join(TEST_DATA_PATH,"test_dup_units.csv")
+        nrows = self.DataLoader.add_conversions(path_to_conversions_csv=path_to_one_dup)
+        self.assertEqual(nrows,1,f"Should have added only one non-duplicate row from {path_to_one_dup}")
+        # Check we didn't change the row with the same name as an existing unit:
+        with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
+            oz_factor = dbconn.execute_scalar("SELECT factor FROM unit_conversions WHERE unit=%s",('oz',))
+            self.assertEqual(oz_factor,1,"unit_conversions was updated when it should have ignored a duplicate-name row")
+
+        path_to_diff_case = os.path.join(TEST_DATA_PATH, "test_dup_units2.csv")
+        nrows2 = self.DataLoader.add_conversions(path_to_conversions_csv=path_to_diff_case)
+        self.assertEqual(nrows2, 0, f"Should add nothing from {path_to_diff_case}")
+
+        path_to_bad_csv = os.path.join(TEST_DATA_PATH, "test_dup_units3.csv")
+        with self.assertRaises(psql_errors.UniqueViolation):
+            self.DataLoader.add_conversions(path_to_conversions_csv=path_to_bad_csv)
+    
     def test_col_defs_match_schema(self):
         # ForkWise matches dataclass fields to db columns by name (staging_to_pantry,
         # check_dup_ingr, check_dup_recipe, calc_recipe_totals_per_serving), so check

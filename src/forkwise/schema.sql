@@ -20,9 +20,11 @@ CREATE TABLE unit_conversions(
     id SERIAL PRIMARY key,
     unit text NOT NULL,
     category text NOT NULL CHECK (category IN ('weight','volume','unit')), /* 'unit' is unitary like one carrot */
-    factor real NOT NULL,
-    UNIQUE (unit, category, factor)
+    factor real NOT NULL
 );
+
+/* Unit names must be unique, ignoring case (no "c" and "C") */
+CREATE UNIQUE INDEX unit_conversions_unit_lower_key ON unit_conversions (LOWER(unit));
 
 CREATE TABLE pantry_items(
     id SERIAL PRIMARY KEY,
