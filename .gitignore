@@ -5,6 +5,7 @@ src/forkwise/schema_EDL.txt
 data/*
 tests/quick_test_script.py
 nested_dataclass_query_notes.md
+.claude/worktrees/
 
 # Python-generated files
 __pycache__/

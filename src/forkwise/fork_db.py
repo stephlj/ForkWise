@@ -114,6 +114,13 @@ class ForkDB(DBConn):
         ingr_list = self.execute_query(query, (recipe_name,))
         return [i['name'] for i in ingr_list]
     
+    def list_all_units(self) -> List[str]:
+        unit_list = self.execute_query("SELECT unit FROM unit_conversions ORDER BY category, factor;")
+        return [a['unit'] for a in unit_list]
+
+    def list_compatible_units(self) -> dict[str, List[str]]:
+        pass
+    
     def check_units_exist(self)->List[dict]:
         # Check that all rows in staging have units that match rows in unit_conversions
         # Return is a list of dicts representing (staging.name, staging.units) where staging.units has 
@@ -222,18 +229,19 @@ class ForkDB(DBConn):
         return self.insert_many_w_class(tablename='staging', insert_cls=insert_cls)
     
     def staging_to_units(self)->int:
-        # This will throw a UniqueViolation if any row is already in the conversions table:
-        # conv_query = "INSERT INTO unit_conversions (unit_from, unit_to, factor) SELECT * FROM staging RETURNING *;"
-        # Instead, just don't add duplicates:
+        # We don't allow units with the same name (case insensitive)
+        # so any rows in staging with the same unit name as a row 
+        # existing in the db are skipped on insert.
+        # This WILL error if the staged table contains multiple rows
+        # with the same unit name, case insensitive (e.g. `c` and `C`) -
+        # which you shouldn't be trying to load!
         conv_query = f"""
             WITH joined AS (
                 SELECT s.*
                 FROM staging AS s
                 LEFT JOIN unit_conversions u ON
-                    u.unit = s.unit AND
-                    u.category = s.category AND
-                    u.factor = s.factor
-                    WHERE u.id IS NULL
+                    LOWER(u.unit) = LOWER(s.unit)
+                WHERE u.id IS NULL
                 )
             INSERT INTO unit_conversions (unit, category, factor)
             SELECT *

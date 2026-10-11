@@ -26,12 +26,14 @@ Before working in `tests/` or `webapp/`, read the `AGENTS.md` in that directory.
 # Safety
 - Never edit `src/forkwise/config.yml` (it points at my real db). Tests use `tests/fixtures/test_config.yml`.
 - Never run the CLIs in `/src` against the real db, and never drop or modify any db other than the test db (`db_name` in `tests/fixtures/test_config.yml`).
+- `schema.sql` is only applied when a db is created. Tests build a fresh test db from it, so passing tests don't mean my prod db matches. Any change to `schema.sql` also needs a script in `migrations/` (see "Db migrations" in the README) that I'll run on prod. Never run migrations yourself.
 
 # Finishing a task
 - Run the full test suite before saying a task is complete, and report any failures.
 
 # Planning
 - When proposing a plan, include pros and cons and design tradeoffs.
+- When asking me to choose between options, spell out the pros and cons of each option.
 - Be concise. Plans do not need extensive repetition.
 - Check that you're not proposing to reimplement functionality that exists elsewhere in the codebase. If existing code would work with some changes, propose those changes as part of the plan, rather than creating separate but nearly identical functionality.
 

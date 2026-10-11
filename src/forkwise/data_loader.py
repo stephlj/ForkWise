@@ -52,8 +52,10 @@ class DataLoader:
     
     @clean_up_staging
     def add_conversions(self, path_to_conversions_csv: str) -> int:
-        # Add new unit conversions from a csv (mostly used during db init)
-        # In future versions of Forkwise this will be pulled from the internet
+        # Add NEW unit conversions from a csv (mostly used during db init)
+        # Updating an existing unit's `category` or `factor` requires a 
+        # manual UPDATE. Units with the same name (case insensitive) as a 
+        # unit already in the db are skipped.
         # Returns number of rows added to conversions table.
 
         col_defs = [('unit','text'),('category','text'),('factor','real')]

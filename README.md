@@ -252,13 +252,13 @@ TODOs:
 - REFACTOR: Remove column-order dependencies and other fragilities for unit conversions and meals, after I've figured out how I'm going to represent meals in the python layer
 - UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
 - TESTING: Check final cal, etc in plots from testing db data
-- TESTING: Add test for add_conversions in data_loader
 - BUG?: If units don't exist on ingredient load, it just silently skips rows
 - BUG?: wont allow recipes that are only partial duplicates
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - FEATURE: display g protein from animal sources, carbs from white flour
-- TESTING: switch to "with self.subTest()"? for independent consecutive tests in one test case
+- TESTING: switch to "with self.subTest()" everywhere for independent consecutive tests in one test case
+- REFACTOR: Use dataclass loading for units so I can catch `c` vs `cup`
 
 ## Dev
 
@@ -291,4 +291,38 @@ Use `pytest` to run the tests. (For quick debugging: Add `-s` or `--capture=no` 
 If you comment out the teardown, you can connect to the test db for debugging via the terminal:
 ```
 psql -U test_fork_user -d test_fork_db
+```
+
+### Db migrations
+
+Schema changes are rare for ForkWise and there's no dev or staging db to keep in sync with prod, so no migration tool is recommended at this time.
+
+NOTE: The test suite builds a testing db from scratch from `schema.sql`; if changes to that file aren't propagated to the prod db, the tests may pass even though they could fail on prod, if the prod schema drifts!
+
+Procedure for propagating schema changes to prod db:
+
+1. Back up the db (it's small enough that we can take the safer route of backing everything up, instead of just the table(s) that changed). Note we save the backup elsewhere than the git repo, so as not to accidentally commit sensitive info that should stay local:
+```
+pg_dump -Fc -f ~/backups/forkwise/forkwise_backup_<date>.dump fork_db
+```
+2. Check the schema changes won't invalidate or delete existing data (e.g. writing a rename as `DROP COLUMN + ADD COLUMN` deletes that column's data; use `RENAME COLUMN`).
+
+3. Check in a script in `/migrations` for schema changes - this keeps a record of what changed, and should be committed alongside the code change that requires it. The script should use a transaction so that any failed step will roll back the whole set of changes and produce an error. 
+
+4. Run the script:
+```
+psql -v ON_ERROR_STOP=1 -d fork_db -f migrations/<file>.sql
+```
+Check the result (e.g., check a changed table with `\d <table>`).
+
+5. If the migration succeeds but turns out to have been wrong:
+To restore into a new db:
+```
+createdb fork_db_restored
+pg_restore -d fork_db_restored ~/backups/forkwise/forkwise_backup_<date>.dump
+```
+
+To convert this to an editable file that can be restored with `psql` rather than `pg_restore`:
+```
+pg_restore -f backup.sql ~/backups/forkwise/forkwise_backup_<date>.dump
 ```
