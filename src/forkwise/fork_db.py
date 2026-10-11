@@ -119,7 +119,26 @@ class ForkDB(DBConn):
         return [a['unit'] for a in unit_list]
 
     def list_compatible_units(self) -> dict[str, List[str]]:
-        pass
+        # For all pantry items, list compatible units by category. E.g. if the pantry item is units of oz, 
+        # list all weight units in the unit_conversions table. Dict key in return is pantry item name.
+        q = """
+            WITH joined AS (
+                SELECT u.unit, u.category, p.name
+                FROM unit_conversions AS u
+                INNER JOIN pantry_items p ON
+                    LOWER(u.unit) = LOWER(p.units)
+            )
+            SELECT STRING_AGG(uu.unit, ', ' ORDER BY uu.factor) AS units_list, j.name 
+            FROM joined AS j
+            INNER JOIN unit_conversions AS uu ON
+                uu.category = j.category
+            GROUP BY j.name;
+        """
+        compatible_units = self.execute_query(q) 
+        # compatible_units is a List[dict], one dict per row, key is column names (units_list, name)
+        # Convert to a dict with keys: name
+        return {d['name']: d['units_list'] for d in compatible_units}
+
     
     def check_units_exist(self)->List[dict]:
         # Check that all rows in staging have units that match rows in unit_conversions
