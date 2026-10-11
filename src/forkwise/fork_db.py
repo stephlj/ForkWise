@@ -128,7 +128,7 @@ class ForkDB(DBConn):
                 INNER JOIN pantry_items p ON
                     LOWER(u.unit) = LOWER(p.units)
             )
-            SELECT STRING_AGG(uu.unit, ', ' ORDER BY uu.factor) AS units_list, j.name 
+            SELECT ARRAY_AGG(uu.unit ORDER BY uu.factor) AS units_list, j.name 
             FROM joined AS j
             INNER JOIN unit_conversions AS uu ON
                 uu.category = j.category
