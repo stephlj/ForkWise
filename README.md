@@ -244,21 +244,23 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
-- FEATURE: start UI for data load
+v2:
+- FEATURE: UI for data load. May leave meals as csv via CLI, that's not too bad right now.
+- FEATURE: Recipe explorer/info display
+- FEATURE: display g protein from animal sources, carbs from white flour per day
 - REFACTOR: Use a db query to do daily totals rather than janky python logic
 - REFACTOR: Refactor add_meals to take more than just a csv, after the totals refactor
 - REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
+- REFACTOR: Remove column-order dependencies and other fragilities for unit conversions and meals, after I've figured out how I'm going to represent meals in the python layer. Use dataclass loading for units so I can catch `c` vs `cup`?
+Nice to have/later:
 - AGENTS.md: `command` that runs the manual tests in README?
-- REFACTOR: Remove column-order dependencies and other fragilities for unit conversions and meals, after I've figured out how I'm going to represent meals in the python layer
 - UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
 - TESTING: Check final cal, etc in plots from testing db data
-- BUG?: If units don't exist on ingredient load, it just silently skips rows
-- BUG?: wont allow recipes that are only partial duplicates
+- TESTING: Make sure I have testing for: If units don't exist on ingredient load, it just silently skips rows
+- TESTING: Make sure I hvae testing for: allow recipes that are only partial duplicates
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
-- FEATURE: display g protein from animal sources, carbs from white flour
 - TESTING: switch to "with self.subTest()" everywhere for independent consecutive tests in one test case
-- REFACTOR: Use dataclass loading for units so I can catch `c` vs `cup`
 
 ## Dev
 
