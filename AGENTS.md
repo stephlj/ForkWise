@@ -26,6 +26,7 @@ Before working in `tests/` or `webapp/`, read the `AGENTS.md` in that directory.
 # Safety
 - Never edit `src/forkwise/config.yml` (it points at my real db). Tests use `tests/fixtures/test_config.yml`.
 - Never run the CLIs in `/src` against the real db, and never drop or modify any db other than the test db (`db_name` in `tests/fixtures/test_config.yml`).
+- `schema.sql` is only applied when a db is created. Tests build a fresh test db from it, so passing tests don't mean my prod db matches. Any change to `schema.sql` also needs a script in `migrations/` (see "Db migrations" in the README) that I'll run on prod. Never run migrations yourself.
 
 # Finishing a task
 - Run the full test suite before saying a task is complete, and report any failures.
