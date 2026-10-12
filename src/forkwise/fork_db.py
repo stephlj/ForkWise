@@ -312,7 +312,7 @@ class ForkDB(DBConn):
         # Return is number of rows added to meals table.
         q = """
             INSERT INTO meals (date_eaten, recipe_id, recipe_servings)
-            SELECT s.date, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.recipe_servings
+            SELECT s.date_eaten, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.recipe_servings
             FROM staging AS s
             RETURNING *;
         """
