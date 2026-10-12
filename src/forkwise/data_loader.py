@@ -12,7 +12,7 @@ from typing import List
 from dbcommons.dataclass_utils import csv_to_dataclass
 
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import PANTRY_COL_DEFS, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient, PantryItem
+from forkwise.fork_dataclasses import PANTRY_COL_DEFS, INGR_COL_DEFS, MEAL_COL_DEFS, Ingredient, PantryItem, Meal
 
 class DataLoader:
     def __init__(self, user: str, pw: str, db_name: str):
@@ -77,7 +77,7 @@ class DataLoader:
         # Returns number of rows added to pantry_items table.
 
         self.conn.create_staging(col_defs=PANTRY_COL_DEFS)
-        rows_staged = self.conn.class_to_staging(insert_cls=pantry_items)
+        rows_staged = self.conn.class_to_staging(insert_obj_list=pantry_items)
 
         if rows_staged == 0:
             self._logger.warning(f"No pantry items were staged; nothing will be added to db")
@@ -135,7 +135,7 @@ class DataLoader:
         """
     
         self.conn.create_staging(col_defs=INGR_COL_DEFS)
-        num_rows_staged = self.conn.class_to_staging(insert_cls=ingredients)
+        num_rows_staged = self.conn.class_to_staging(insert_obj_list=ingredients)
 
         if num_rows_staged == 0:
             self._logger.error(f"Failed to stage recipe, nothing will be added to db!")
@@ -169,33 +169,22 @@ class DataLoader:
         return num_rows_added
     
     @clean_up_staging
-    def add_meals_via_staging(self, path_to_meals_csv: str)->int:
-        """
-        Add meals from csv via a staging table.
-
-        Parameters
-        ----------
-        path_to_meals_csv : str
-           Path to a list of meals csvs. Each row is one recipe eaten on a date.
-           Columns (no header) are: date, recipe name, servings.
-
-        Returns
-        -------
-        int, number of rows added to meals table
-        """
+    def add_meals_via_staging(self, meals: List[Meal])->int:
+        # Skip any row that's already identically in the db. TODO Test, this is new behavior
+        # Returns number of rows added to meals table.
         
         self.conn.create_staging(col_defs=MEAL_COL_DEFS)
-        rows_staged = self.conn.csv_to_staging(csv_path=path_to_meals_csv, csv_columns=MEAL_COL_DEFS)
+        rows_staged = self.conn.class_to_staging(insert_obj_list=meals)
 
         if rows_staged == 0:
-            self._logger.info(f"No meals loaded from source file {path_to_meals_csv} to staging table, will not be added to db")
+            self._logger.info(f"No meals were staged, nothing will be added to db")
             return 0
         
         # Meals can only be added if all recipes are already in the db.
         # Check first, error with a list of missing recipes:
         recipe_missing = self.conn.check_recipe_exist()
         if len(recipe_missing) > 0:
-            msg = f"Cannot load meals from {path_to_meals_csv}. Recipes missing from db: {[r['recipe_name'] for r in recipe_missing]}"
+            msg = f"Cannot load meals from staging; recipes missing from db: {[r['recipe_name'] for r in recipe_missing]}"
             self._logger.error(msg)
             raise ValueError(msg)
 
@@ -271,3 +260,9 @@ class DataLoader:
                                         servings_amt=servings_amt, 
                                         servings_units=servings_units
                                         )
+
+    def add_meals_from_csv(self, path_to_meals_csv: str) -> int:
+
+        meals = csv_to_dataclass(path_to_csv=path_to_meals_csv, cls=Meal)
+
+        return self.add_meals_via_staging(meals=meals)

@@ -239,14 +239,6 @@ class ForkDB(DBConn):
             """
         return self.execute_scalar(q,(recipe_id,))
     
-    def class_to_staging(self, insert_cls: List[Any]) -> int:
-        # Insert the list of (Ingredient/Recipe/Meal, ie any 
-        # dataclass in forkwise.fork_dataclasses), into staging.
-        # Staging must already be created.
-        # Return num rows inserted into staging.
-
-        return self.insert_many_w_class(tablename='staging', insert_cls=insert_cls)
-    
     def staging_to_units(self)->int:
         # We don't allow units with the same name (case insensitive)
         # so any rows in staging with the same unit name as a row 
@@ -319,8 +311,8 @@ class ForkDB(DBConn):
         # Add meals from staging to meals table.
         # Return is number of rows added to meals table.
         q = """
-            INSERT INTO meals (date, recipe_id, recipe_servings)
-            SELECT s.date, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.servings
+            INSERT INTO meals (date_eaten, recipe_id, recipe_servings)
+            SELECT s.date, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.recipe_servings
             FROM staging AS s
             RETURNING *;
         """
