@@ -10,7 +10,7 @@ from dbcommons.dataclass_utils import flat_col_defs
 
 from dataclasses import dataclass, field
 from typing import List
-from datetime import date
+from datetime import datetime, date
 
 def fix_units(raw_units: str) -> str:
     raw_units=raw_units.strip()
@@ -20,6 +20,20 @@ def fix_units(raw_units: str) -> str:
         return 'c'
     else:
         return raw_units
+
+def format_date(raw_date: str) -> date:
+    # Forkwise's db uses PostgreSQL standard `datestyle` of `ISO, MDY`,
+    # ie, YYYY-MM-DD. Accept nearby alternative MM/DD/YY (what I've been
+    # using for manual data entry via csv).
+    try:
+        formated_date = datetime.strptime(raw_date, "%m/%d/%y").date()
+    except:
+        try: 
+            formated_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+        except:
+            raise ValueError("Accepted date formats: MM/DD/YY and YYYY-MM-DD")
+
+    return formated_date
 
 @dataclass
 class FoodProps:
@@ -62,9 +76,17 @@ class Recipe:
 
 @dataclass
 class Meal:
-    recipes: List[Recipe]
-    servings_eaten: List[float]
-    date_eaten: date
+    # For data loading: a meal is an amount of a recipe eaten on a day
+    recipe_name: str = field(metadata={'sql_type':'text', 'csv_parser': lambda s: s})
+    servings_eaten: float = field(metadata={'sql_type':'real', 'csv_parser': lambda s: float(s)})
+    date_eaten: date = field(metadata={'sql_type':'date', 'csv_parser': format_date})
+
+@dataclass
+class Totals:
+    # For data viz: get nutritional info per meal, and a daily total, from the db
+    recipe_name: str = field(metadata={'sql_type':'text'}) # Special case: "total", for a daily total. TODO block a recipe called "total" on data load
+    date_eaten: date = field(metadata={'sql_type':'date'})
+    props: FoodProps
 
 
 # Col defs for interaction with the db layer - the data representation in the python and sql layers are not identical.

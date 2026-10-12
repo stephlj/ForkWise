@@ -1,9 +1,10 @@
 import unittest
 import os
 
+from datetime import date
+
 from dbcommons.dataclass_utils import csv_to_dataclass
-from forkwise.fork_dataclasses import fix_units
-from forkwise.fork_dataclasses import fix_units, PantryItem, Ingredient
+from forkwise.fork_dataclasses import fix_units, format_date, PantryItem, Ingredient
 
 from utils_for_tests import TEST_DATA_PATH
 
@@ -20,6 +21,18 @@ class TestForkDataclasses(unittest.TestCase):
         self.assertEqual(fix_units('unit'), 'unit')
         self.assertEqual(fix_units(' unit '), 'unit')
         self.assertEqual(fix_units(' not a real unit but'), 'not a real unit but')
+
+    def test_format_date(self):
+        self.assertEqual(format_date("10/05/26"),date(year=2026, month=10, day=5))
+        self.assertEqual(format_date("10/5/26"),date(year=2026, month=10, day=5))
+        self.assertEqual(format_date("2026-10-05"),date(year=2026, month=10, day=5))
+        with self.assertRaises(ValueError):
+            format_date("10-5-26")
+        with self.assertRaises(ValueError):
+            format_date("10/5/2026")
+        with self.assertRaises(ValueError):
+            format_date("not a date")
+        
 
     def test_csv_to_pantry_item(self):
         # Tests ForkWise's csv_parser metadata in fork_dataclasses on PantryItem: nested props, bools, fix_units on units.

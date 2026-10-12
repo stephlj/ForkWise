@@ -118,8 +118,8 @@ def dashboard() -> None:
     st.title(DASHBOARD_TITLE)
 
     col_start, col_end = st.columns(2)
-    start_date = col_start.date_input("Start date")
-    end_date = col_end.date_input("End date")
+    start_date = col_start.date_input("Start date", format="YYYY-MM-DD") # Return ISO format
+    end_date = col_end.date_input("End date", format="YYYY-MM-DD")
 
     if start_date > end_date:
         st.error("Start date must be before end date.")
@@ -149,7 +149,7 @@ def dashboard() -> None:
     # Widget keys include the date range so that changing it always starts
     # each chart with a fresh (empty) selection, rather than carrying over a
     # click made against a now-different set of dates.
-    range_suffix = f"{start_date.isoformat()}_{end_date.isoformat()}"
+    range_suffix = f"{start_date}_{end_date}"
 
     cal_chart_col, cal_pie_col = st.columns(2)
     with cal_chart_col:
