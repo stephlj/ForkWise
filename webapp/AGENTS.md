@@ -4,4 +4,4 @@
   - Not OK: summing nutrients, unit conversion, filtering by business rules.
 
 # Structure
-- `app.py` is the single Streamlit entry point. It gets data and calculations only from `/src` (currently `ForkDB` and `display_meal_totals`).
+- `app.py` is the single Streamlit entry point: login, then `st.navigation` over the pages in `pages/` (one file per page). Pages get data and calculations only from `/src` (currently `ForkDB`, `DataLoader` and `display_meal_totals`).
