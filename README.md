@@ -254,6 +254,7 @@ v2:
 - REFACTOR: Remove column-order dependencies and other fragilities for unit conversions and meals, after I've figured out how I'm going to represent meals in the python layer. Use dataclass loading for units so I can catch `c` vs `cup`?
 Nice to have/later:
 - AGENTS.md: `command` that runs the manual tests in README?
+- UPGRADE/SAFETY: commit hook on schema.sql file change reminding to do a prod db migration
 - UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
 - TESTING: Check final cal, etc in plots from testing db data
 - TESTING: Make sure I have testing for: If units don't exist on ingredient load, it just silently skips rows

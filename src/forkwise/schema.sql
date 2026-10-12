@@ -60,7 +60,7 @@ CREATE TABLE ingredients(
 
 CREATE TABLE meals(
     id SERIAL PRIMARY KEY,
-    date date NOT NULL,
+    date_eaten date NOT NULL,
     recipe_id integer NOT NULL REFERENCES recipes(id),
     recipe_servings real NOT NULL
 );
