@@ -174,9 +174,9 @@ class DataLoader:
         # Returns number of rows added to meals table.
         
         self.conn.create_staging(col_defs=MEAL_COL_DEFS)
-        rows_staged = self.conn.class_to_staging(insert_obj_list=meals)
+        num_rows_staged = self.conn.class_to_staging(insert_obj_list=meals)
 
-        if rows_staged == 0:
+        if num_rows_staged == 0:
             self._logger.info(f"No meals were staged, nothing will be added to db")
             return 0
         
@@ -190,6 +190,28 @@ class DataLoader:
 
         num_rows_added = self.conn.staging_to_meals()
         self._logger.info(f"Added {num_rows_added} rows to meals table")
+
+        if num_rows_added != num_rows_staged:
+            # Either there were duplicate entries in staging, or these entries are already in the db;
+            # check both. (Note that a duplicate entry with one in the db doesn't consider recipe_servings,
+            # only date_eaten and recipe_name)
+            dup_meals_staging = self.conn.check_dup_meals_in_staging()
+            if len(dup_meals_staging) == (num_rows_staged - num_rows_added):
+                msg = f"Multiple entries of the following exist in staging and weren't loaded: recipes {[s['recipe_name'] for s in dup_meals_staging]} on dates {[s['date_eaten'] for s in dup_meals_staging]}"
+                self._logger.warning(msg)
+            else:
+                dup_meals_w_db = self.conn.check_dup_meals()
+                if len(dup_meals_w_db) == (num_rows_staged - num_rows_added):
+                    msg = f"Meals already in the db were skipped: recipes {[s['recipe_name'] for s in dup_meals_w_db]} on dates {[s['date_eaten'] for s in dup_meals_w_db]}"
+                    self._logger.warning(msg)
+                else:
+                    msg = f"""
+                        Number of rows added to meals ({num_rows_added}) 
+                        doesn't match number of rows in staging ({num_rows_staged}), 
+                        but not (only?) because of duplicate entries in staging or db
+                        """
+                    self._logger.error(msg)
+                    raise ValueError(msg)
 
         return num_rows_added
 

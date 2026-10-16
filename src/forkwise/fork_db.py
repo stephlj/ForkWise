@@ -18,7 +18,8 @@ from forkwise.fork_dataclasses import (
     INGR_COL_DEFS, 
     FOODPROPS_COL_DEFS, 
     FOODPROPS_COL_NAMES, 
-    FoodProps
+    FoodProps,
+    Meal
 )
 
 class ForkDB(DBConn):
@@ -269,6 +270,34 @@ class ForkDB(DBConn):
         """
         return self.execute_query(check_dup_ingredients)
         
+    def check_dup_meals_in_staging(self)->List[dict]:
+        # Check whether staging has more than one row with the same (date_eaten, recipe_name)
+        # Note that staging for meals will have recipe_name, where the meals table has recipe_id
+        
+        q = f"""
+            SELECT recipe_name, date_eaten, COUNT(*)
+            FROM staging
+            GROUP BY recipe_name, date_eaten
+            HAVING COUNT(*) > 1;
+        """
+
+        return self.execute_query(query=q)
+
+    def check_dup_meals(self)->List[dict]:
+        # Check whether meals in staging already exist in the db (ignoring servings, just matching on date_eaten, recipe_name)
+        # Note that staging for meals will have recipe_name, where the meals table has recipe_id, so we can't use execute_query_w_class
+        
+        q = f"""
+            SELECT s.recipe_name, s.date_eaten
+            FROM staging AS s
+            INNER JOIN meals m ON
+                (SELECT name FROM recipes r WHERE r.id = m.recipe_id) = s.name AND
+                m.date_eaten = s.date_eaten
+            ;
+        """
+
+        return self.execute_query(query=q)
+    
     def num_pantry_items_per_recipe(self, recipe_id: int)->int:
         q=f"""
                 SELECT COUNT(*)
