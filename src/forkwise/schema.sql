@@ -62,5 +62,6 @@ CREATE TABLE meals(
     id SERIAL PRIMARY KEY,
     date_eaten date NOT NULL,
     recipe_id integer NOT NULL REFERENCES recipes(id),
-    recipe_servings real NOT NULL
+    recipe_servings real NOT NULL/*,*/
+    /* UNIQUE (date_eaten, recipe_id)*/
 );

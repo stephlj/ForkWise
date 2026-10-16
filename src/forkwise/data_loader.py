@@ -170,7 +170,7 @@ class DataLoader:
     
     @clean_up_staging
     def add_meals_via_staging(self, meals: List[Meal])->int:
-        # Skip any row that's already identically in the db. TODO Test, this is new behavior
+        # Skip any row that's already identically in the db.
         # Returns number of rows added to meals table.
         
         self.conn.create_staging(col_defs=MEAL_COL_DEFS)

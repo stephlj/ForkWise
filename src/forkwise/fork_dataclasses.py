@@ -80,17 +80,9 @@ class Recipe:
 @dataclass
 class Meal:
     # For data loading: a meal is an amount of a recipe eaten on a day
-    recipe_name: str = field(metadata={'sql_type':'text', 'csv_parser': lambda s: s}) # The db actually stores recipe_id
+    recipe_name: str = field(metadata={'sql_type':'text', 'csv_parser': lambda s: s}) # The db actually stores recipe_id - so this is a mismatch (handled by data_loader)
     recipe_servings: float = field(metadata={'sql_type':'real', 'csv_parser': lambda s: float(s)})
     date_eaten: date = field(metadata={'sql_type':'date', 'csv_parser': format_date})
-
-@dataclass
-class Totals:
-    # For data viz: get nutritional info per meal, and a daily total, from the db
-    recipe_name: str = field(metadata={'sql_type':'text'}) # Special case: "total", for a daily total. TODO block a recipe called "total" on data load
-    date_eaten: date = field(metadata={'sql_type':'date'})
-    props: FoodProps
-
 
 # Col defs for interaction with the db layer - the data representation in the python and sql layers are not identical.
 FOODPROPS_COL_DEFS = flat_col_defs(FoodProps)
@@ -99,5 +91,5 @@ PANTRY_COL_DEFS = flat_col_defs(PantryItem)
 PANTRY_COL_NAMES = [n for n, _ in PANTRY_COL_DEFS]
 INGR_COL_DEFS = flat_col_defs(Ingredient)
 MEAL_COL_DEFS = flat_col_defs(Meal) # TODO THIS REQUIRES A DB MIGRATION - CHANGED THE SCHEMA!!
-MEAL_COL_NAMES = [n for n, _ in MEAL_COL_DEFS] # TODO mismatch between csv col name (recipe_name) and db col name (recipe_id) ...
+MEAL_COL_NAMES = [n for n, _ in MEAL_COL_DEFS]
     
