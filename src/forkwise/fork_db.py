@@ -36,7 +36,7 @@ class ForkDB(DBConn):
         return self.execute_query(f"SELECT id, servings, servings_amt, servings_units FROM recipes WHERE name=%s;", (recipe_name,))
     
     def get_totals_per_date_range(self, date_range: tuple[date])->List[dict]:
-        # Returns a list of dicts, with keys 'date_eaten', 'recipe_servings', and PANTRY_COL_NAMES
+        # Returns a list of dicts, with keys 'date_eaten', 'servings_eaten', and PANTRY_COL_NAMES
         # Each element of the list is a row from the db query.
         # Values for each PANTRY_COL_NAMES is, e.g, cal from servings eaten of a recipe on that day (per recipe per day)
 
@@ -47,7 +47,7 @@ class ForkDB(DBConn):
         
         sum_statements = ", ".join(totals_statements)
 
-        select_statements_list = [f't.{c} / r.servings * m.recipe_servings AS {c}' for c in FOODPROPS_COL_NAMES if c not in {'white_flour','animal'}]
+        select_statements_list = [f't.{c} / r.servings * m.servings_eaten AS {c}' for c in FOODPROPS_COL_NAMES if c not in {'white_flour','animal'}]
         select_statements_list.append('t.animal')
         select_statements_list.append('t.white_flour')
         select_statements = ", ".join(select_statements_list)
@@ -382,8 +382,8 @@ class ForkDB(DBConn):
         # Assumes input handling is done elsewhere - will incur a UniqueViolation if duplicates are attempted to be added, for example.
 
         q = """
-            INSERT INTO meals (date_eaten, recipe_id, recipe_servings)
-            SELECT s.date_eaten, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.recipe_servings
+            INSERT INTO meals (date_eaten, recipe_id, servings_eaten)
+            SELECT s.date_eaten, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.servings_eaten
             FROM staging AS s
             RETURNING *;
         """

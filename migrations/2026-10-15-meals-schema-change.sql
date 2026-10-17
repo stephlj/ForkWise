@@ -1,10 +1,10 @@
 /*
 In conjunction with a new way to load meal info from db:
 
-1. Change meals column name: date -> date_eaten
+1. Change meals column names: date -> date_eaten, recipe_servings->servings_eaten
 2. Ad unique constraint to meals table UNIQUE (date_eaten, recipe_id)
 
-Applied to prod: 2026-10-15.
+Applied to prod: 2026-10-18.
 
 Run with: psql -v ON_ERROR_STOP=1 -d <db> -f <this file>
 
@@ -27,6 +27,7 @@ BEGIN
 END $$;
 
 ALTER TABLE meals RENAME COLUMN date TO date_eaten;
+ALTER TABLE meals RENAME COLUMN recipe_servings TO servings_eaten;
 ALTER TABLE meals ADD CONSTRAINT date_eaten_recipe_id_key UNIQUE (date_eaten, recipe_id)
 
 COMMIT;

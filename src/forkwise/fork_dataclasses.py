@@ -81,7 +81,7 @@ class Recipe:
 class Meal:
     # For data loading: a meal is an amount of a recipe eaten on a day
     recipe_name: str = field(metadata={'sql_type':'text', 'csv_parser': lambda s: s}) # The db actually stores recipe_id - so this is a mismatch (handled by data_loader)
-    recipe_servings: float = field(metadata={'sql_type':'real', 'csv_parser': lambda s: float(s)})
+    servings_eaten: float = field(metadata={'sql_type':'real', 'csv_parser': lambda s: float(s)})
     date_eaten: date = field(metadata={'sql_type':'date', 'csv_parser': format_date})
 
 # Col defs for interaction with the db layer - the data representation in the python and sql layers are not identical.

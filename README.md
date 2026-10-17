@@ -123,7 +123,7 @@ Meals are added from a csv. A meals csv must have the columns (in this order, wi
 
 - `date_eaten`: date recipe was eaten. Format: mm/dd/yyyy
 - `recipe_name`: must match a recipe in the db
-- `recipe_servings`: how many servings of this recipe were eaten on this date.
+- `servings_eaten`: how many servings of this recipe were eaten on this date.
 
 A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated,
 although I think this would work fine if times-per-day are entered in ISO format - TODO check). One row per recipe eaten,

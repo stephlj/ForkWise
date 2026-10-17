@@ -67,7 +67,7 @@ class TestForkDataclasses(unittest.TestCase):
         meals = csv_to_dataclass(path_to_csv=os.path.join(TEST_DATA_PATH, 'test_meals.csv'), cls=Meal)
         self.assertEqual(meals[0].date_eaten, date(year=2022,month=9,day=2)) # Checks date was handled correctly
         self.assertEqual(meals[1].recipe_name, 'lemonade')
-        self.assertEqual(meals[2].recipe_servings, 2.0)
+        self.assertEqual(meals[2].servings_eaten, 2.0)
 
         with self.assertRaises(ValueError):
             csv_to_dataclass(path_to_csv=os.path.join(TEST_DATA_PATH, "test_meals_wrongdatetype.csv"), cls=Meal)
