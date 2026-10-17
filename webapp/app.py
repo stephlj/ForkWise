@@ -50,5 +50,5 @@ else:
     # Using st.navigation means Streamlit doesn't also auto-list pages/ in the sidebar.
     st.navigation([
         st.Page("pages/dashboard.py", title="Dashboard"),
-        st.Page("pages/add_data.py", title="Add data"),
+        st.Page("pages/add_data.py", title="Add recipes"),
     ]).run()

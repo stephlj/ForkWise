@@ -1,6 +1,6 @@
 # add_data.py
 #
-# Add data page: form for adding a recipe from existing pantry items.
+# Add recipes page: form for adding a recipe from existing pantry items.
 #
 # Written by Claude Code
 
@@ -58,7 +58,8 @@ def recipe_header_inputs() -> tuple[str, float | None, float | None, str | None]
     name = st.text_input("Recipe name", key="recipe_name")
     servings_col, amt_col, units_col = st.columns(3)
     # value=None leaves the box empty until filled in; 0 is caught on save
-    servings = servings_col.number_input("Servings", min_value=0.0, value=None, key="servings")
+    # +/- change servings by half a serving (the default step is 0.01)
+    servings = servings_col.number_input("Servings that the recipe makes:", min_value=0.0, value=None, step=0.5, key="servings")
     servings_amt = amt_col.number_input("Amount per serving", min_value=0.0, value=None, key="servings_amt")
     servings_units = units_col.selectbox("Servings units", options=st.session_state.all_units, index=None, key="servings_units")
     return name, servings, servings_amt, servings_units

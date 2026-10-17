@@ -111,6 +111,10 @@ class TestAddData(unittest.TestCase):
             self.assertIsNone(at.selectbox(key="units_0").value)  # tsp isn't a weight unit
 
         loader.reset_mock()
+        with self.subTest("The servings +/- buttons step by half a serving"):
+            at = self._add_data_app()
+            self.assertEqual(at.number_input(key="servings").step, 0.5)
+
         with self.subTest("An incomplete row shows an error and nothing is saved"):
             at = self._add_data_app()
             self._fill_recipe_header(at, "Pancakes")
