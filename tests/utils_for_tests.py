@@ -14,4 +14,5 @@ def logged_in_app() -> AppTest:
     at.session_state["logged_in"] = True
     at.session_state["username"] = "me"
     at.session_state["pw"] = "pw"
+    at.session_state["db_name"] = "my_db"
     return at

@@ -5,12 +5,10 @@
 # Written by Claude Code
 
 import streamlit as st
-import yaml
 
 from forkwise.data_loader import DataLoader
 from forkwise.fork_dataclasses import Ingredient
 from forkwise.fork_db import ForkDB
-from forkwise.utils import CONFIG_PATH
 
 
 def add_data() -> None:
@@ -21,21 +19,18 @@ def add_data() -> None:
     # also the page layout, top to bottom.
     st.title("Add a recipe")
 
-    with open(CONFIG_PATH, "r") as config_file:
-        db_name = yaml.safe_load(config_file)["db"]["db_name"]
-
-    load_units(db_name)
-    show_saved_message()
+    load_units()
+    show_saved_message() # Show a message if a recipe was saved
     name, servings, servings_amt, servings_units = recipe_header_inputs()
-    rows = ingredient_rows()
+    ingrs = ingredient_rows()
 
     if not st.button("Save recipe", type="primary"):
         return
-    if save_recipe(db_name, name.strip(), servings, servings_amt, servings_units, rows):
+    if save_recipe(name.strip(), servings, servings_amt, servings_units, ingrs):
         clear_form(name.strip())
 
 
-def load_units(db_name: str) -> None:
+def load_units() -> None:
     # Sets st.session_state.all_units and st.session_state.compatible_units,
     # which recipe_header_inputs and ingredient_rows read.
     # When adding an ingredient for a recipe, provide a drop-down of compatible units for that pantry
@@ -45,7 +40,7 @@ def load_units(db_name: str) -> None:
     # Nothing on this page changes these lists. A future page that adds pantry items or
     # units should delete st.session_state.compatible_units so they're refetched here.
     if "compatible_units" not in st.session_state:
-        with ForkDB(user=st.session_state.username, pw=st.session_state.pw, db_name=db_name) as db:
+        with ForkDB(user=st.session_state.username, pw=st.session_state.pw, db_name=st.session_state.db_name) as db:
             st.session_state.all_units = db.list_all_units()
             st.session_state.compatible_units = db.list_compatible_units()
 
@@ -108,7 +103,7 @@ def ingredient_rows() -> list[tuple[str | None, float | None, str | None]]:
     return rows
 
 
-def save_recipe(db_name: str, name: str, servings: float | None, servings_amt: float | None,
+def save_recipe(name: str, servings: float | None, servings_amt: float | None,
                 servings_units: str | None, rows: list[tuple[str | None, float | None, str | None]]) -> bool:
     # Checks that everything is filled in, then saves the recipe. Returns True if it was saved;
     # otherwise shows an error and returns False, leaving the form as entered.
@@ -120,7 +115,7 @@ def save_recipe(db_name: str, name: str, servings: float | None, servings_amt: f
 
     ingredients = [Ingredient(ingr_name=ingr, ingredient_amt=amt, ingredient_units=units) for ingr, amt, units in rows]
     try:
-        with DataLoader(user=st.session_state.username, pw=st.session_state.pw, db_name=db_name) as loader:
+        with DataLoader(user=st.session_state.username, pw=st.session_state.pw, db_name=st.session_state.db_name) as loader:
             loader.add_recipe_via_staging(ingredients=ingredients, name=name, servings=servings,
                                           servings_amt=servings_amt, servings_units=servings_units)
     except Exception as e:

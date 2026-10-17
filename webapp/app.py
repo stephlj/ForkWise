@@ -33,6 +33,7 @@ def login() -> None:
             st.session_state.logged_in = True
             st.session_state.username = username
             st.session_state.pw = pw
+            st.session_state.db_name = db_name
             # Without this, the dashboard wouldn't render until some other
             # widget interaction triggered a second script run: setting
             # session_state here doesn't retroactively change which branch

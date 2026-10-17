@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from forkwise.fork_dataclasses import Ingredient
 
-from utils_for_tests import TEST_CONFIG_PATH, logged_in_app
+from utils_for_tests import logged_in_app
 
 
 class TestAddData(unittest.TestCase):
@@ -39,7 +39,6 @@ class TestAddData(unittest.TestCase):
         at.selectbox(key=f"units_{row_id}").set_value(units).run()
 
 
-    @patch("forkwise.utils.CONFIG_PATH", TEST_CONFIG_PATH)
     @patch("forkwise.data_loader.DataLoader")
     @patch("forkwise.fork_db.ForkDB")
     def test_add_data(self, mock_forkdb, mock_dataloader):
@@ -72,7 +71,8 @@ class TestAddData(unittest.TestCase):
             self._click(at, "Save recipe")
 
             self.assertEqual(len(at.exception), 0)
-            self.assertEqual(mock_dataloader.call_args.kwargs["db_name"], "test_fork_db")
+            # db_name set at login (by logged_in_app here) is the one written to
+            self.assertEqual(mock_dataloader.call_args.kwargs["db_name"], "my_db")
             loader.add_recipe_via_staging.assert_called_once_with(
                 ingredients=[
                     Ingredient(ingr_name="Soy milk", ingredient_amt=1.5, ingredient_units="c"),
