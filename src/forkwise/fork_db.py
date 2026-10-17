@@ -291,7 +291,7 @@ class ForkDB(DBConn):
             SELECT s.recipe_name, s.date_eaten
             FROM staging AS s
             INNER JOIN meals m ON
-                (SELECT name FROM recipes r WHERE r.id = m.recipe_id) = s.name AND
+                (SELECT name FROM recipes r WHERE r.id = m.recipe_id) = s.recipe_name AND
                 m.date_eaten = s.date_eaten
             ;
         """
@@ -379,8 +379,8 @@ class ForkDB(DBConn):
     def staging_to_meals(self)->int:
         # Add meals from staging to meals table.
         # Return is number of rows added to meals table.
+        # Assumes input handling is done elsewhere - will incur a UniqueViolation if duplicates are attempted to be added, for example.
 
-        # TODO Prevent duplicates from being added (and add testing coverage)
         q = """
             INSERT INTO meals (date_eaten, recipe_id, recipe_servings)
             SELECT s.date_eaten, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.recipe_servings

@@ -188,30 +188,34 @@ class DataLoader:
             self._logger.error(msg)
             raise ValueError(msg)
 
+        # We don't allow duplicate meals to be added. Check first whether the input
+        # is malformed, ie has duplicate (date_eaten, recipe_name) rows.
+        dup_meals_staging = self.conn.check_dup_meals_in_staging()
+        if len(dup_meals_staging) > 0:
+            msg = f"Multiple entries of the following exist in staging, aborting meal load: recipes {[s['recipe_name'] for s in dup_meals_staging]} on dates {[s['date_eaten'] for s in dup_meals_staging]}"
+            self._logger.error(msg)
+            raise ValueError(msg)
+
+        # We also don't allow duplicates with existing db entries, because it's ambiguous whether 
+        # that's intentional and they should count towards daily totals, or an accident:
+        dup_meals_w_db = self.conn.check_dup_meals()
+        if len(dup_meals_w_db) >0:
+            msg = f"Some meals are already in the db, aborting meal load: recipes {[s['recipe_name'] for s in dup_meals_w_db]} on dates {[s['date_eaten'] for s in dup_meals_w_db]}"
+            self._logger.error(msg)
+            raise ValueError(msg)
+
         num_rows_added = self.conn.staging_to_meals()
         self._logger.info(f"Added {num_rows_added} rows to meals table")
 
         if num_rows_added != num_rows_staged:
-            # Either there were duplicate entries in staging, or these entries are already in the db;
-            # check both. (Note that a duplicate entry with one in the db doesn't consider recipe_servings,
-            # only date_eaten and recipe_name)
-            dup_meals_staging = self.conn.check_dup_meals_in_staging()
-            if len(dup_meals_staging) == (num_rows_staged - num_rows_added):
-                msg = f"Multiple entries of the following exist in staging and weren't loaded: recipes {[s['recipe_name'] for s in dup_meals_staging]} on dates {[s['date_eaten'] for s in dup_meals_staging]}"
-                self._logger.warning(msg)
-            else:
-                dup_meals_w_db = self.conn.check_dup_meals()
-                if len(dup_meals_w_db) == (num_rows_staged - num_rows_added):
-                    msg = f"Meals already in the db were skipped: recipes {[s['recipe_name'] for s in dup_meals_w_db]} on dates {[s['date_eaten'] for s in dup_meals_w_db]}"
-                    self._logger.warning(msg)
-                else:
-                    msg = f"""
-                        Number of rows added to meals ({num_rows_added}) 
-                        doesn't match number of rows in staging ({num_rows_staged}), 
-                        but not (only?) because of duplicate entries in staging or db
-                        """
-                    self._logger.error(msg)
-                    raise ValueError(msg)
+            msg = f"""
+                Number of rows added to meals ({num_rows_added}) 
+                doesn't match number of rows in staging ({num_rows_staged}), 
+                but not because of duplicate entries in staging or db
+                """
+            self._logger.error(msg)
+            raise ValueError(msg)
+                    
 
         return num_rows_added
 

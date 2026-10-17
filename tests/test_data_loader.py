@@ -229,6 +229,15 @@ class TestDataLoader(unittest.TestCase):
         # Now adding meals should run:
         self.assertEqual(self.DataLoader.add_meals_from_csv(path_to_meals_csv=path_to_meals_csv),3)
 
+        # We can't add the same set of meals again:
+        with self.assertRaises(ValueError):
+            self.DataLoader.add_meals_from_csv(path_to_meals_csv=path_to_meals_csv)
+
+        # And we can't add a meals csv that's malformed (duplicate (date_eaten, recipe_name))
+        path_to_meals_csv_dups = os.path.join(TEST_DATA_PATH,"test_meals_dups.csv")
+        with self.assertRaises(ValueError):
+            self.DataLoader.add_meals_from_csv(path_to_meals_csv=path_to_meals_csv_dups)
+
     def test_add_recipe_to_pantry(self):
         # Add some ingredients - will be skipped if other tests have already run
         self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_to_pantry_ingrs.csv"))
