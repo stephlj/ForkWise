@@ -58,9 +58,9 @@ def recipe_header_inputs() -> tuple[str, float | None, float | None, str | None]
     name = st.text_input("Recipe name", key="recipe_name")
     servings_col, amt_col, units_col = st.columns(3)
     # value=None leaves the box empty until filled in; 0 is caught on save
-    # +/- change servings by half a serving (the default step is 0.01)
+    # +/- change these by 0.5 (the default step, 0.01, is too fine)
     servings = servings_col.number_input("Servings that the recipe makes:", min_value=0.0, value=None, step=0.5, key="servings")
-    servings_amt = amt_col.number_input("Amount per serving", min_value=0.0, value=None, key="servings_amt")
+    servings_amt = amt_col.number_input("Amount per serving", min_value=0.0, value=None, step=0.5, key="servings_amt")
     servings_units = units_col.selectbox("Servings units", options=st.session_state.all_units, index=None, key="servings_units")
     return name, servings, servings_amt, servings_units
 
@@ -82,7 +82,7 @@ def ingredient_rows() -> list[tuple[str | None, float | None, str | None]]:
         ingr_col, amt_col, units_col, remove_col = st.columns([3, 1, 1, 0.3], vertical_alignment="bottom")
         ingr = ingr_col.selectbox("Ingredient", options=pantry_names, index=None,
                                   placeholder="Type to search", key=f"ingr_{row_id}")
-        amt = amt_col.number_input("Amount", min_value=0.0, value=None, key=f"amt_{row_id}")
+        amt = amt_col.number_input("Amount", min_value=0.0, value=None, step=0.1, key=f"amt_{row_id}")
 
         unit_options = st.session_state.compatible_units.get(ingr, [])
         # If the ingredient changed to one in a different category, the old unit is no longer valid
