@@ -22,6 +22,9 @@ def add_data() -> None:
     with open(CONFIG_PATH, "r") as config_file:
         db_name = yaml.safe_load(config_file)["db"]["db_name"]
 
+    # When adding an ingredient for a recipe, provide a drop-down of compatible units for that pantry
+    # item. And provide a drop-down of allowed units when creating the recipe.
+    # So first get all allowed units and per-ingredient compatible units from the db.
     # Fetched once per session rather than on every rerun (each widget change reruns the page).
     # Nothing on this page changes these lists. A future page that adds pantry items or
     # units should delete st.session_state.compatible_units so they're refetched here.
@@ -45,7 +48,7 @@ def add_data() -> None:
     # value=None leaves the box empty until filled in; 0 is caught on save
     servings = servings_col.number_input("Servings", min_value=0.0, value=None, key="servings")
     servings_amt = amt_col.number_input("Amount per serving", min_value=0.0, value=None, key="servings_amt")
-    servings_units = units_col.selectbox("Serving units", options=st.session_state.all_units, index=None, key="servings_units")
+    servings_units = units_col.selectbox("Servings units", options=st.session_state.all_units, index=None, key="servings_units")
 
     st.subheader("Ingredients")
     # Widget keys use a row id rather than the row's position, so removing a
