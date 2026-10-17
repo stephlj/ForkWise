@@ -29,9 +29,7 @@ def add_data() -> None:
         with ForkDB(user=st.session_state.username, pw=st.session_state.pw, db_name=db_name) as db:
             st.session_state.all_units = db.list_all_units()
             st.session_state.compatible_units = db.list_compatible_units()
-    all_units = st.session_state.all_units
-    compatible_units = st.session_state.compatible_units
-    pantry_names = sorted(compatible_units, key=str.lower)
+    pantry_names = sorted(st.session_state.compatible_units, key=str.lower)
 
     # Set by a successful save on the previous run, which then cleared the form and reran.
     saved_name = st.session_state.pop("saved_recipe_name", None)
@@ -47,7 +45,7 @@ def add_data() -> None:
     # value=None leaves the box empty until filled in; 0 is caught on save
     servings = servings_col.number_input("Servings", min_value=0.0, value=None, key="servings")
     servings_amt = amt_col.number_input("Amount per serving", min_value=0.0, value=None, key="servings_amt")
-    servings_units = units_col.selectbox("Serving units", options=all_units, index=None, key="servings_units")
+    servings_units = units_col.selectbox("Serving units", options=st.session_state.all_units, index=None, key="servings_units")
 
     st.subheader("Ingredients")
     # Widget keys use a row id rather than the row's position, so removing a
@@ -59,7 +57,7 @@ def add_data() -> None:
                                   placeholder="Type to search", key=f"ingr_{row_id}")
         amt = amt_col.number_input("Amount", min_value=0.0, value=None, key=f"amt_{row_id}")
 
-        unit_options = compatible_units.get(ingr, [])
+        unit_options = st.session_state.compatible_units.get(ingr, [])
         # If the ingredient changed to one in a different category, the old unit is no longer valid
         if st.session_state.get(f"units_{row_id}") not in unit_options:
             st.session_state[f"units_{row_id}"] = None
