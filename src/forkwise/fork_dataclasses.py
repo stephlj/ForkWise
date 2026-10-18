@@ -90,6 +90,6 @@ FOODPROPS_COL_NAMES = [n for n, _ in FOODPROPS_COL_DEFS]
 PANTRY_COL_DEFS = flat_col_defs(PantryItem)
 PANTRY_COL_NAMES = [n for n, _ in PANTRY_COL_DEFS]
 INGR_COL_DEFS = flat_col_defs(Ingredient)
-MEAL_COL_DEFS = flat_col_defs(Meal) # TODO THIS REQUIRES A DB MIGRATION - CHANGED THE SCHEMA!!
+MEAL_COL_DEFS = flat_col_defs(Meal)
 MEAL_COL_NAMES = [n for n, _ in MEAL_COL_DEFS]
     

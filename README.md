@@ -246,8 +246,9 @@ v2: GUI for data entry and display
 TODOs:
 v2:
 - FEATURE: Finish UI for data load (add pantry items). May leave meals as csv via CLI, that's not too bad right now.
-- Check outstanding TODOs. Migrate prod db.
+- Migrate prod db.
 - Code review of webapp.py.
+- Todos in test_display_meal_totals.py
 Nice to have/later:
 - REFACTOR: Create a view that does nutritional totaling for get_totals_per_date_range and calc_recipe_totals_per_serving
 - FEATURE: Recipe explorer/info display
