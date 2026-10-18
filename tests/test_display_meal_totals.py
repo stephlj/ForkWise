@@ -26,11 +26,13 @@ class DisplayMealTotals(unittest.TestCase):
         # Implicit test of plot_pie
         # just a does-it-run test, doesn't check plotted output - do that manually!
 
+        # TODO test empty df
         display_meal_breakdown(self.meals_df[self.meals_df["date_eaten"]=='2026-06-02'], test=True)
         plt.close('all')
 
     def test_display_meals_info(self):
         # just a does-it-run test, doesn't check plotted output - do that manually!
 
+        # TODO test empty df
         display_meals_info(self.meals_df, test=True)
 

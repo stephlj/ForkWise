@@ -17,7 +17,7 @@ DASHBOARD_TITLE = "ForkWise Dashboard"
 PROPS_DISPLAY_NAMES = {"cal" : "Calories",
                        "fiber_grams": "Sugar (g)",
                        "sugar_grams" : "Sugar (g)",
-                       "protein_grams" : "Protein (g)",
+                       "protein_grams" : "Sugar (g)",
                         "fat_grams" : "Fat (g)",
                         "animal" : "Animal sources",
                         "white_flour" : "White flour"

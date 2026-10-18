@@ -38,16 +38,16 @@ def display_meal_breakdown(meals_df: pd.DataFrame, test: bool=False) -> None:
     ax00.set_title(PROPS_DISPLAY_NAMES["cal"])
     ax01 = plt.subplot2grid((2,3),(0,1))
     plot_pie(prop_totals = meals_df["protein_grams"].to_list(), recipe_names=meals_df["recipe_name"].to_list())
-    ax00.set_title(PROPS_DISPLAY_NAMES["protein_grams"])
+    ax01.set_title(PROPS_DISPLAY_NAMES["protein_grams"])
     ax02 = plt.subplot2grid((2,3),(0,2))
     plot_pie(prop_totals = meals_df["sugar_grams"].to_list(), recipe_names=meals_df["recipe_name"].to_list())
-    ax00.set_title(PROPS_DISPLAY_NAMES["sugar_grams"])
+    ax02.set_title(PROPS_DISPLAY_NAMES["sugar_grams"])
     ax10 = plt.subplot2grid((2,3),(1,0))
     plot_pie(prop_totals = meals_df["fiber_grams"].to_list(), recipe_names=meals_df["recipe_name"].to_list())
-    ax00.set_title(PROPS_DISPLAY_NAMES["fiber_grams"])
+    ax10.set_title(PROPS_DISPLAY_NAMES["fiber_grams"])
     ax11 = plt.subplot2grid((2,3),(1,1))
     plot_pie(prop_totals = meals_df["fat_grams"].to_list(), recipe_names=meals_df["recipe_name"].to_list())
-    ax00.set_title(PROPS_DISPLAY_NAMES["fat_grams"])
+    ax11.set_title(PROPS_DISPLAY_NAMES["fat_grams"])
 
     if not test:
         plt.show()
@@ -99,4 +99,4 @@ if __name__ == "__main__":
     if date.fromisoformat(sys.argv[3])==date.fromisoformat(sys.argv[4]):
         display_meal_breakdown(meals_df=meals_df)
     else:
-        display_meals_info(date_range=[date.fromisoformat(sys.argv[3]),date.fromisoformat(sys.argv[4])], meals_df=meals_df)
+        display_meals_info(meals_df=meals_df)
