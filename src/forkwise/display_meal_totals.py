@@ -22,6 +22,16 @@ def plot_pie(prop_totals: List[float], recipe_names: List[str]) -> None:
     # Before this function call, choose axies to plot into
     plt.pie(x=prop_totals,labels=recipe_names, autopct=lambda v: round(v*sum(prop_totals)/100,2))
 
+def calc_daily_totals(meals_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Sum each nutrient over all recipes eaten on each date.
+    meals_df is the output of get_meals. Returns a df indexed by date_eaten (sorted),
+    one row per date, with nutrient columns (cal, fat_grams, etc).
+    """
+    # These columns don't make sense summed over a day. Dropped before the sum
+    # rather than after, so pandas doesn't concatenate all the recipe names.
+    return meals_df.drop(columns=["recipe_name", "animal", "white_flour"]).groupby("date_eaten").sum()
+
 def display_meal_breakdown(meals_df: pd.DataFrame, test: bool=False) -> None:
     # Pie charts of nutritional breakdown by recipe for one day
 
@@ -58,19 +68,19 @@ def display_meals_info(meals_df: pd.DataFrame, test: bool=False) -> None:
     TODO add: fraction total protein from animal sources, fraction carbs from white flour
     """
 
+    daily_totals = calc_daily_totals(meals_df)
+
     _, axs = plt.subplots(2, 1)
     plt.subplots_adjust(hspace=0.5) # from claude
 
     # Plot cal per date
-    axs[0].plot(meals_df["date_eaten"].to_list(),meals_df["cal"].to_list(),'ob')
+    axs[0].plot(daily_totals.index.to_list(),daily_totals["cal"].to_list(),'ob')
     axs[0].set_xlabel("Date")
     axs[0].set_ylabel(PROPS_DISPLAY_NAMES["cal"])
     axs[0].tick_params(axis='x', rotation=45) # from claude
 
-    # plot grams of protein, sugar, fiber per day
-    grouped_totals = meals_df.groupby("date_eaten").sum()
-    grouped_totals = grouped_totals.drop(columns=['recipe_name', 'animal', 'white_flour'])
-    pd_ax = grouped_totals.plot.bar(ax=axs[1],rot=0)
+    # plot grams of protein, sugar, fiber per day (cal is plotted above, and isn't in grams)
+    pd_ax = daily_totals.drop(columns=["cal"]).plot.bar(ax=axs[1],rot=0)
     pd_ax.set_xlabel("Date")
     pd_ax.set_ylabel("Grams")
     pd_ax.legend()

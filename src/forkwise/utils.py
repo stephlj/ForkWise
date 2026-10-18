@@ -15,9 +15,9 @@ SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 
 DASHBOARD_TITLE = "ForkWise Dashboard"
 PROPS_DISPLAY_NAMES = {"cal" : "Calories",
-                       "fiber_grams": "Sugar (g)",
+                       "fiber_grams": "Fiber (g)",
                        "sugar_grams" : "Sugar (g)",
-                       "protein_grams" : "Sugar (g)",
+                       "protein_grams" : "Protein (g)",
                         "fat_grams" : "Fat (g)",
                         "animal" : "Animal sources",
                         "white_flour" : "White flour"

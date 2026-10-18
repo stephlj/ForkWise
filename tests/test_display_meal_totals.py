@@ -2,7 +2,7 @@ import unittest
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from forkwise.display_meal_totals import display_meal_breakdown, display_meals_info
+from forkwise.display_meal_totals import calc_daily_totals, display_meal_breakdown, display_meals_info
 
 class DisplayMealTotals(unittest.TestCase):
 
@@ -21,6 +21,21 @@ class DisplayMealTotals(unittest.TestCase):
                                       "white_flour": [0,1,0,1]
                                       })
     
+
+    def test_calc_daily_totals(self):
+        daily_totals = calc_daily_totals(self.meals_df)
+
+        with self.subTest("There is one row per date, sorted by date."):
+            self.assertEqual(daily_totals.index.to_list(), ['2026-06-02', '2026-07-05'])
+
+        with self.subTest("Each nutrient is summed over all recipes eaten that day."):
+            self.assertEqual(daily_totals["cal"].to_list(), [3, 4])
+            self.assertEqual(daily_totals["fiber_grams"].to_list(), [3, 7])
+            self.assertEqual(daily_totals["carb_grams"].to_list(), [3, 7])
+
+        with self.subTest("Columns that don't make sense summed over a day are dropped."):
+            self.assertEqual(set(daily_totals.columns),
+                             {"cal", "fiber_grams", "sugar_grams", "protein_grams", "fat_grams", "carb_grams"})
 
     def test_display_meal_breakdown(self):
         # Implicit test of plot_pie
