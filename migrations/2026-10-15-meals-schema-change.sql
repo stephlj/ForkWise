@@ -8,8 +8,7 @@ Applied to prod: 2026-10-18.
 
 Run with: psql -v ON_ERROR_STOP=1 -d <db> -f <this file>
 
-Safe to re-run: IF EXISTS / IF NOT EXISTS make the drop and create
-do nothing if they've already been done.
+NOT safe to re-run.
 */
 
 BEGIN;
@@ -20,7 +19,7 @@ BEGIN;
 DO $$
 BEGIN
     IF EXISTS (
-        SELECT date, recipe_id, COUNT(*) FROM meals GROUP BY date, recipe_id HAVING COUNT(*) > 1;
+        SELECT date, recipe_id, COUNT(*) FROM meals GROUP BY date, recipe_id HAVING COUNT(*) > 1
     ) THEN
         RAISE EXCEPTION 'meals table has duplicate (date, recipe_id); remove duplicates first';
     END IF;
@@ -28,6 +27,7 @@ END $$;
 
 ALTER TABLE meals RENAME COLUMN date TO date_eaten;
 ALTER TABLE meals RENAME COLUMN recipe_servings TO servings_eaten;
-ALTER TABLE meals ADD CONSTRAINT date_eaten_recipe_id_key UNIQUE (date_eaten, recipe_id)
+/* Same name Postgres gives the unnamed constraint in schema.sql, so prod and new dbs match */
+ALTER TABLE meals ADD CONSTRAINT meals_date_eaten_recipe_id_key UNIQUE (date_eaten, recipe_id);
 
 COMMIT;
