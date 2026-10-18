@@ -246,13 +246,11 @@ v2: GUI for data entry and display
 TODOs:
 v2:
 - FEATURE: UI for data load. May leave meals as csv via CLI, that's not too bad right now.
+Nice to have/later:
+- REFACTOR: Create a view that does nutritional totaling for get_totals_per_date_range and calc_recipe_totals_per_serving
 - FEATURE: Recipe explorer/info display
 - FEATURE: display g protein from animal sources, carbs from white flour per day
-- REFACTOR: Use a db query to do daily totals rather than janky python logic
-- REFACTOR: Refactor add_meals to take more than just a csv, after the totals refactor
-- REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
 - REFACTOR: Remove column-order dependencies and other fragilities for unit conversions and meals, after I've figured out how I'm going to represent meals in the python layer. Use dataclass loading for units so I can catch `c` vs `cup`?
-Nice to have/later:
 - AGENTS.md: `command` that runs the manual tests in README?
 - UPGRADE/SAFETY: commit hook on schema.sql file change reminding to do a prod db migration
 - UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
