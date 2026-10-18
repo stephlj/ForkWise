@@ -15,11 +15,14 @@ from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, PROPS_DISPLAY_NA
 from forkwise.data_getter import DataGetter
 from forkwise.fork_dataclasses import FOODPROPS_COL_NAMES
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level="INFO", format=DEFAULT_LOGGING_FORMAT)
+
 def plot_pie(prop_totals: List[float], recipe_names: List[str]) -> None:
     # Before this function call, choose axies to plot into
     plt.pie(x=prop_totals,labels=recipe_names, autopct=lambda v: round(v*sum(prop_totals)/100,2))
 
-def display_meal_breakdown(meals_df: pd.DataFrame) -> None:
+def display_meal_breakdown(meals_df: pd.DataFrame, test: bool=False) -> None:
     # Pie charts of nutritional breakdown by recipe for one day
 
     # Note the input df should have only one date, check first:
@@ -46,9 +49,10 @@ def display_meal_breakdown(meals_df: pd.DataFrame) -> None:
     plot_pie(prop_totals = meals_df["fat_grams"].to_list(), recipe_names=meals_df["recipe_name"].to_list())
     ax00.set_title(PROPS_DISPLAY_NAMES["fat_grams"])
 
-    plt.show()
+    if not test:
+        plt.show()
 
-def display_meals_info(date_range: List[date], meals_df: pd.DataFrame) -> None:
+def display_meals_info(meals_df: pd.DataFrame, test: bool=False) -> None:
     """
     Plot a scatter of calories per date, and a bar chart of total fat, protein etc per date.
     TODO add: fraction total protein from animal sources, fraction carbs from white flour
@@ -72,7 +76,8 @@ def display_meals_info(date_range: List[date], meals_df: pd.DataFrame) -> None:
     pd_ax.legend()
     pd_ax.tick_params(axis='x', rotation=45)
 
-    plt.show()
+    if not test:
+        plt.show()
 
 def get_meals(date_range: List[date], username: str, pw: str, path_to_config: str=CONFIG_PATH) -> pd.DataFrame:
     with open(path_to_config, "r") as config_file:
@@ -85,12 +90,9 @@ def get_meals(date_range: List[date], username: str, pw: str, path_to_config: st
     return meals_df
 
 if __name__ == "__main__":
-    logger = logging.getLogger(__name__)
 
     if len(sys.argv) != 5:
         raise ValueError("fork_init takes 4 args: (1) user name to connect to the db, (2) user pw, (3) start date to plot, (4) end date")
-    
-    logging.basicConfig(level="INFO", format=DEFAULT_LOGGING_FORMAT)
 
     meals_df = get_meals(date_range=[date.fromisoformat(sys.argv[3]),date.fromisoformat(sys.argv[4])], username=sys.argv[1], pw=sys.argv[2])
     
