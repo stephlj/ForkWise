@@ -23,6 +23,7 @@ GRAM_NUTRIENTS = ["protein_grams", "sugar_grams", "fiber_grams", "fat_grams"]
 
 # Relative widths of each chart and the pie next to it. The pie fills its
 # column, so a narrower column draws a smaller pie and leaves the charts more room.
+# To resize, change the ratio: e.g. [3, 1] makes pies smaller, [1, 1] makes them equal.
 CHART_PIE_WIDTHS = [2, 1]
 
 
