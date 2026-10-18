@@ -6,7 +6,7 @@ import sys
 import logging
 import yaml
 
-from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH, calc_totals_per_serving
+from forkwise.utils import DEFAULT_LOGGING_FORMAT, CONFIG_PATH
 from forkwise.data_getter import DataGetter
 
 def display_recipe_info(recipe_name: str, username: str, pw: str, path_to_config: str=CONFIG_PATH):

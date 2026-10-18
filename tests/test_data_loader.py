@@ -199,7 +199,8 @@ class TestDataLoader(unittest.TestCase):
             db_units = dbconn.execute_scalar("SELECT ingredient_units FROM ingredients WHERE recipe_id=%s AND ingredient_amt=%s;",(recipe_id,1.0))
             self.assertEqual(db_units,'lbs')
         
-    def test_add_meals_via_staging(self):
+    def test_add_meals_from_csv(self):
+        # Implicit test of add_meals_via_staging
         path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals.csv")
 
         # Add everything we need:
@@ -216,7 +217,7 @@ class TestDataLoader(unittest.TestCase):
                                              servings_units='lbs')
         # Test that we can't add meals if one recipe isn't in the db:
         with self.assertRaises(ValueError):
-            self.DataLoader.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv)
+            self.DataLoader.add_meals_from_csv(path_to_meals_csv=path_to_meals_csv)
 
         # Add missing recipe:
         self.DataLoader.add_recipe_from_csv(path_to_recipe_csv=os.path.join(TEST_DATA_PATH, "test_meals_recipe3.csv"),
@@ -226,7 +227,16 @@ class TestDataLoader(unittest.TestCase):
                                          servings_units='pint'
                                          )
         # Now adding meals should run:
-        self.assertEqual(self.DataLoader.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv),3)
+        self.assertEqual(self.DataLoader.add_meals_from_csv(path_to_meals_csv=path_to_meals_csv),3)
+
+        # We can't add the same set of meals again:
+        with self.assertRaises(ValueError):
+            self.DataLoader.add_meals_from_csv(path_to_meals_csv=path_to_meals_csv)
+
+        # And we can't add a meals csv that's malformed (duplicate (date_eaten, recipe_name))
+        path_to_meals_csv_dups = os.path.join(TEST_DATA_PATH,"test_meals_dups.csv")
+        with self.assertRaises(ValueError):
+            self.DataLoader.add_meals_from_csv(path_to_meals_csv=path_to_meals_csv_dups)
 
     def test_add_recipe_to_pantry(self):
         # Add some ingredients - will be skipped if other tests have already run

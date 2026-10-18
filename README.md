@@ -24,19 +24,19 @@ Security: the database is hosted locally, nothing leaves your machine. *IMPORTAN
 
 ### Add ingredients
 
-Ingredients are loaded from a csv. The csv must have columns (in this order, no header):
+Ingredients are loaded from a csv. The csv must have columns (in this order, with this header):
 
-- `Name`: Item name, e.g. "black beans"
-- `Unitary amount`: Amount for which calories, etc are calculated
-- `Units`: Units for amount; e.g. `oz`
-- `Calories`: Calories in the unitary amount of this ingredient
-- `Fiber`: g of fiber in the unitary amount of this ingredient
-- `Sugar`: g of sugar
-- `Protien`: g of protein
-- `Fat`: g of fat
-- `Carbs`: g of carbohydrate, total (incl sugar and dietary fiber)
-- `Animal`: bool, true if any part of the ingredient is derived from animal products.
-- `White flour`: bool, true if the ingredient is predominantly white flour (eg 1 for an english muffin)
+- `name`: Item name, e.g. "black beans"
+- `unitary_amt`: Amount for which calories, etc are calculated
+- `units`: Units for amount; e.g. `oz`
+- `cal`: Calories in the unitary amount of this ingredient
+- `fiber_grams`: g of fiber in the unitary amount of this ingredient
+- `sugar_grams`: g of sugar
+- `protien_grams`: g of protein
+- `fat_grams`: g of fat
+- `carbs_grams`: g of carbohydrate, total (incl sugar and dietary fiber)
+- `animal`: bool, true if any part of the ingredient is derived from animal products.
+- `white_flour `: bool, true if the ingredient is predominantly white flour (eg 1 for an english muffin)
 
 E.g. for a can of black beans, `name` might be "black beans", `unitary amount` might be 24, `units` might be "oz". `Animal` would be True only if the beans were cooked in animal fat, for example.
 
@@ -69,11 +69,11 @@ with ForkDB(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as 
 
 A recipe can only be added if all ingredients are already in the db.
 
-Recipes are added from a csv. *One recipe per csv*. The csv must have the columns (in this order, no header):
+Recipes are added from a csv. *One recipe per csv*. The csv must have the columns (in this order, with this header):
 
-- `Ingredient`: Name of an ingredient already in the db (exact match in v1).
-- `Amount`: Amount added to the recipe for all the servings (not per serving). 
-- `Units`: Units of the ingredient (Tbps, c etc)
+- `ingr_name`: Name of an ingredient already in the db (exact match in v1).
+- `ingredient_amt`: Amount added to the recipe for all the servings (not per serving). 
+- `ingredient_units`: Units of the ingredient (Tbps, c etc)
 
 `Servings` (how many servings does this recipe make), `servings_amt` (amount one serving corresponds to, e.g. 1 if a serving is 1 cup), `servings_units` ('c' if a serving is 1 cup) and `name` (recipe name) must be specified separately on csv load.
 
@@ -119,15 +119,15 @@ with ForkDB(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as 
 
 Meals can only be added for recipes already in the db.
 
-Meals are added from a csv. A meals csv must have the columns (in this order, no header):
+Meals are added from a csv. A meals csv must have the columns (in this order, with this header):
 
-- `date`: date recipe was eaten. Format: mm/dd/yyyy
-- `recipe name`: must match a recipe in the db
-- `servings`: how many servings of this recipe were eaten on this date.
+- `date_eaten`: date recipe was eaten. Format: mm/dd/yyyy
+- `recipe_name`: must match a recipe in the db
+- `servings_eaten`: how many servings of this recipe were eaten on this date.
 
 A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated,
-although I think this will work fine if times-per-day are entered in ISO format - TODO check). One row per recipe eaten,
-but multiple rows for the same date are fine (and multiple dates fine).
+although I think this would work fine if times-per-day are entered in ISO format - TODO check). One row per recipe eaten,
+but multiple rows for the same date are fine (and multiple dates fine). However, duplicate (`date_eaten`, `recipe_name`) rows will be skipped, because they are ambiguous between the user forgetting they'd already logged a meal(s), and two legitimately different entries that should both contribute to daily totals.
 
 In the terminal, run:
 
@@ -244,21 +244,24 @@ v1.0: All functionality of data entry by csv and recipe/daily meal reporting. Us
 v2: GUI for data entry and display
 
 TODOs:
-- FEATURE: start UI for data load
-- REFACTOR: Use a db query to do daily totals rather than janky python logic
-- REFACTOR: Refactor add_meals to take more than just a csv, after the totals refactor
-- REFACTOR: Meal dataclass and data structures in display_meal_totals (Meals as dict with dates as keys(?), named tuple of (recipe, servings eaten); also refactor PropsPerDay). Refactor FoodProps entirely?
+v2:
+- FEATURE: Finish UI for data load (add pantry items). May leave meals as csv via CLI, that's not too bad right now.
+- Check outstanding TODOs. Migrate prod db.
+- Code review of webapp.py.
+Nice to have/later:
+- REFACTOR: Create a view that does nutritional totaling for get_totals_per_date_range and calc_recipe_totals_per_serving
+- FEATURE: Recipe explorer/info display
+- FEATURE: display g protein from animal sources, carbs from white flour per day
+- REFACTOR: Remove column-order dependencies and other fragilities for unit conversions and meals, after I've figured out how I'm going to represent meals in the python layer. Use dataclass loading for units so I can catch `c` vs `cup`?
 - AGENTS.md: `command` that runs the manual tests in README?
-- REFACTOR: Remove column-order dependencies and other fragilities for unit conversions and meals, after I've figured out how I'm going to represent meals in the python layer
+- UPGRADE/SAFETY: commit hook on schema.sql file change reminding to do a prod db migration
 - UPGRADE: take another look at how I'm doing context management now that I've caught the missing ;'s in some select statements in tests?
 - TESTING: Check final cal, etc in plots from testing db data
-- BUG?: If units don't exist on ingredient load, it just silently skips rows
-- BUG?: wont allow recipes that are only partial duplicates
+- TESTING: Make sure I have testing for: If units don't exist on ingredient load, it just silently skips rows
+- TESTING: Make sure I hvae testing for: allow recipes that are only partial duplicates
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
-- FEATURE: display g protein from animal sources, carbs from white flour
 - TESTING: switch to "with self.subTest()" everywhere for independent consecutive tests in one test case
-- REFACTOR: Use dataclass loading for units so I can catch `c` vs `cup`
 
 ## Dev
 

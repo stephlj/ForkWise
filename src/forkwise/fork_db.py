@@ -13,7 +13,14 @@ from typing import List, Any
 from datetime import date
 
 from dbcommons.db_conn import DBConn
-from forkwise.fork_dataclasses import PANTRY_COL_NAMES, INGR_COL_DEFS, FOODPROPS_COL_DEFS, FOODPROPS_COL_NAMES, FoodProps
+from forkwise.fork_dataclasses import (
+    PANTRY_COL_NAMES, 
+    INGR_COL_DEFS, 
+    FOODPROPS_COL_DEFS, 
+    FOODPROPS_COL_NAMES, 
+    FoodProps,
+    Meal
+)
 
 class ForkDB(DBConn):
     def __init__(self, user: str, pw: str, db_name: str):
@@ -28,30 +35,64 @@ class ForkDB(DBConn):
         # For a recipe, returns a (length-one) list of dicts with keys: id, servings, servings_amt, and servings_units
         return self.execute_query(f"SELECT id, servings, servings_amt, servings_units FROM recipes WHERE name=%s;", (recipe_name,))
     
-    def get_recipes_in_dates(self, date_range: tuple[date])->List[dict]:
-        # Returns a list of dicts; each dict has keys date, recipe_servings, name;
-        # length is number of recipes eaten in date range
-        query = """
-            SELECT m.date, m.recipe_servings, r.name
-            FROM meals AS m
-            LEFT JOIN recipes AS r ON
-                r.id = m.recipe_id
-            WHERE date BETWEEN %s AND %s;
-        """
+    def get_totals_per_date_range(self, date_range: tuple[date])->List[dict]:
+        # Returns a list of dicts, with keys 'date_eaten', 'servings_eaten', and PANTRY_COL_NAMES
+        # Each element of the list is a row from the db query.
+        # Values for each PANTRY_COL_NAMES is, e.g, cal from servings eaten of a recipe on that day (per recipe per day)
 
-        return self.execute_query(query, (date_range[0],date_range[1]))
+        # TODO extract this summation logic into a view (shared with calc_recipe_totals_per_serving)
+        totals_statements = [f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor)) AS {c}' for c in FOODPROPS_COL_NAMES if c not in {'white_flour','animal'}]
+        totals_statements.append('SUM(p.animal::int) AS animal')
+        totals_statements.append('SUM(p.white_flour::int) AS white_flour')
+        
+        sum_statements = ", ".join(totals_statements)
+
+        select_statements_list = [f't.{c} / r.servings * m.servings_eaten AS {c}' for c in FOODPROPS_COL_NAMES if c not in {'white_flour','animal'}]
+        select_statements_list.append('t.animal')
+        select_statements_list.append('t.white_flour')
+        select_statements = ", ".join(select_statements_list)
+        
+        query=f"""
+            WITH totals AS (
+                SELECT i.recipe_id,
+                {sum_statements}
+                FROM pantry_items AS p
+                INNER JOIN unit_conversions AS pu ON 
+                    LOWER(pu.unit)=LOWER(p.units) 
+                INNER JOIN ingredients AS i ON 
+                    i.ingredient_id=p.id 
+                INNER JOIN unit_conversions AS iu ON 
+                    LOWER(iu.unit)=LOWER(i.ingredient_units) AND
+                    iu.category=pu.category
+                GROUP BY i.recipe_id
+            )
+            SELECT m.date_eaten, 
+                r.name AS recipe_name,
+                {select_statements}
+            FROM meals AS m
+            INNER JOIN recipes AS r ON
+                r.id = m.recipe_id
+            INNER JOIN totals AS t ON
+                t.recipe_id = r.id
+            WHERE m.date_eaten BETWEEN %s AND %s
+            ;
+            """
+
+        # Nested return classes are currently not supported by dbcommons; so we can't use execute_query_w_class
+        # return self.execute_query_w_class(query, return_class=Totals, vals=(date_range[0],date_range[1]))
+
+        return self.execute_query(query, vals=(date_range[0],date_range[1]))
     
     def calc_recipe_totals_per_serving(self, recipe_id: int, recipe_servings: float)->FoodProps:
         
-        # TODO There has got to be a better way ...
-        totals_dict_keys = list(FOODPROPS_COL_NAMES)
-        totals_dict_keys.append('count')
-        select_statements = ", ".join(f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in totals_dict_keys if c not in {'white_flour','animal', 'count'})
+        totals_per_recipe_statements = [f'SUM(i.ingredient_amt * (p.{c} / p.unitary_amt) * (iu.factor / pu.factor))  AS total_{c}' for c in FOODPROPS_COL_NAMES if c not in {'white_flour','animal'}]
+        totals_per_recipe_statements.append('SUM(p.animal::int) AS animal')
+        totals_per_recipe_statements.append('SUM(p.white_flour::int) AS white_flour')
+        
+        select_statements = ", ".join(totals_per_recipe_statements)
 
         query=f"""
             SELECT {select_statements},
-                SUM(p.animal::int) AS animal,
-                SUM(p.white_flour::int) AS white_flour,
                 COUNT(*)
             FROM pantry_items AS p
             INNER JOIN unit_conversions AS pu ON 
@@ -229,6 +270,34 @@ class ForkDB(DBConn):
         """
         return self.execute_query(check_dup_ingredients)
         
+    def check_dup_meals_in_staging(self)->List[dict]:
+        # Check whether staging has more than one row with the same (date_eaten, recipe_name)
+        # Note that staging for meals will have recipe_name, where the meals table has recipe_id
+        
+        q = f"""
+            SELECT recipe_name, date_eaten, COUNT(*)
+            FROM staging
+            GROUP BY recipe_name, date_eaten
+            HAVING COUNT(*) > 1;
+        """
+
+        return self.execute_query(query=q)
+
+    def check_dup_meals(self)->List[dict]:
+        # Check whether meals in staging already exist in the db (ignoring servings, just matching on date_eaten, recipe_name)
+        # Note that staging for meals will have recipe_name, where the meals table has recipe_id, so we can't use execute_query_w_class
+        
+        q = f"""
+            SELECT s.recipe_name, s.date_eaten
+            FROM staging AS s
+            INNER JOIN meals m ON
+                (SELECT name FROM recipes r WHERE r.id = m.recipe_id) = s.recipe_name AND
+                m.date_eaten = s.date_eaten
+            ;
+        """
+
+        return self.execute_query(query=q)
+    
     def num_pantry_items_per_recipe(self, recipe_id: int)->int:
         q=f"""
                 SELECT COUNT(*)
@@ -238,14 +307,6 @@ class ForkDB(DBConn):
                 WHERE i.recipe_id=%s;
             """
         return self.execute_scalar(q,(recipe_id,))
-    
-    def class_to_staging(self, insert_cls: List[Any]) -> int:
-        # Insert the list of (Ingredient/Recipe/Meal, ie any 
-        # dataclass in forkwise.fork_dataclasses), into staging.
-        # Staging must already be created.
-        # Return num rows inserted into staging.
-
-        return self.insert_many_w_class(tablename='staging', insert_cls=insert_cls)
     
     def staging_to_units(self)->int:
         # We don't allow units with the same name (case insensitive)
@@ -318,9 +379,11 @@ class ForkDB(DBConn):
     def staging_to_meals(self)->int:
         # Add meals from staging to meals table.
         # Return is number of rows added to meals table.
+        # Assumes input handling is done elsewhere - will incur a UniqueViolation if duplicates are attempted to be added, for example.
+
         q = """
-            INSERT INTO meals (date, recipe_id, recipe_servings)
-            SELECT s.date, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.servings
+            INSERT INTO meals (date_eaten, recipe_id, servings_eaten)
+            SELECT s.date_eaten, (SELECT id FROM recipes WHERE LOWER(name) = LOWER(s.recipe_name)), s.servings_eaten
             FROM staging AS s
             RETURNING *;
         """
