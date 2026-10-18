@@ -21,6 +21,10 @@ st.set_page_config(page_title=DASHBOARD_TITLE, layout="wide")
 # bar chart rather than one chart each.
 GRAM_NUTRIENTS = ["protein_grams", "sugar_grams", "fiber_grams", "fat_grams"]
 
+# Relative widths of each chart and the pie next to it. The pie fills its
+# column, so a narrower column draws a smaller pie and leaves the charts more room.
+CHART_PIE_WIDTHS = [2, 1]
+
 
 def login() -> None:
     # Sets st.session_state.logged_in, username, pw, db_name and targets, which dashboard reads.
@@ -80,14 +84,14 @@ def dashboard() -> None:
     # click made against a now-different set of dates.
     range_suffix = f"{start_date.isoformat()}_{end_date.isoformat()}"
 
-    cal_chart_col, cal_pie_col = st.columns(2)
+    cal_chart_col, cal_pie_col = st.columns(CHART_PIE_WIDTHS)
     with cal_chart_col:
         cal_points = calories_chart(daily_totals, key=f"chart_cal_{range_suffix}")
     with cal_pie_col:
         breakdown_pie(meals_df, cal_points, "cal",
                       placeholder="Click a point on the calories chart to see that day's recipe breakdown.")
 
-    grams_chart_col, grams_pie_col = st.columns(2)
+    grams_chart_col, grams_pie_col = st.columns(CHART_PIE_WIDTHS)
     with grams_chart_col:
         grams_points = grams_chart(daily_totals, key=f"chart_grams_{range_suffix}")
     with grams_pie_col:
