@@ -69,9 +69,12 @@ class DataGetter:
                       props = props_per_serving
                       )
     
-    def get_meals_in_dates(self, date_range: List[date]) -> List[Meal]:
+    def get_totals_in_dates(self, date_range: List[date]) -> pd.DataFrame:
         """
-        Return a list of Meals in a date range. date_range is a list of length 2.
+        Return a DataFrame of meals eaten in a date range. date_range is a list of length 2.
+        DataFrame has columns date_eaten, recipe_name, cal, fat_grams, etc.
+        Each row represents the nutritional totals from servings_eaten of a recipe on a date
+        (multiple rows will likely have the same date_eaten).
         """
 
         if len(date_range) != 2:
@@ -87,22 +90,14 @@ class DataGetter:
         
         date_range.sort()
 
-        recipes = self.conn.get_recipes_in_dates(date_range=(date_range[0],date_range[1]))
+        # totals_dict_list will be a list of dicts, each dict having keys "date_eaten", "recipe_name",
+        # and the values of PANTRY_COL_NAMES
+        totals_dict_list = self.conn.get_totals_per_date_range(date_range=(date_range[0],date_range[1]))
 
-        # TODO refactor all of this
-        meal_df = pd.DataFrame({"date_eaten":[r['date'] for r in recipes],
-                                "servings": [r['recipe_servings'] for r in recipes],
-                                "name": [r['name'] for r in recipes]
-                                })
-        grouped = meal_df.groupby("date_eaten")
-        dates = list(grouped.groups.keys())
-        meals = []
-        for d in dates:
-            recipe_list = []
-            for r in grouped.get_group(d).name.to_list():
-                recipe_list.append(self.get_recipe_totals(recipe_name=r)) # get_recipe_totals returns a Recipe
-            meals.append(Meal(date_eaten=grouped.get_group(d).date_eaten.to_list()[0],
-                              recipes=recipe_list,
-                              servings_eaten=grouped.get_group(d).servings.to_list()
-                              ))
-        return meals
+        # Return empty df if no rows matched query
+        if len(totals_dict_list) == 0:
+            return pd.DataFrame()
+
+        # Rearrange into a df
+        df_cols = totals_dict_list[0].keys()
+        return pd.DataFrame({c:[t[c] for t in totals_dict_list] for c in df_cols})

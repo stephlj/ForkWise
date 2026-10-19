@@ -72,7 +72,7 @@ class TestAddData(unittest.TestCase):
 
             self.assertEqual(len(at.exception), 0)
             # db_name set at login (by logged_in_app here) is the one written to
-            self.assertEqual(mock_dataloader.call_args.kwargs["db_name"], "my_db")
+            self.assertEqual(mock_dataloader.call_args.kwargs["db_name"], "test_fork_db")
             loader.add_recipe_via_staging.assert_called_once_with(
                 ingredients=[
                     Ingredient(ingr_name="Soy milk", ingredient_amt=1.5, ingredient_units="c"),

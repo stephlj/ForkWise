@@ -1,9 +1,10 @@
 import unittest
 import os
 
+from datetime import date
+
 from dbcommons.dataclass_utils import csv_to_dataclass
-from forkwise.fork_dataclasses import fix_units
-from forkwise.fork_dataclasses import fix_units, PantryItem, Ingredient
+from forkwise.fork_dataclasses import fix_units, format_date, PantryItem, Ingredient, Meal
 
 from utils_for_tests import TEST_DATA_PATH
 
@@ -20,6 +21,19 @@ class TestForkDataclasses(unittest.TestCase):
         self.assertEqual(fix_units('unit'), 'unit')
         self.assertEqual(fix_units(' unit '), 'unit')
         self.assertEqual(fix_units(' not a real unit but'), 'not a real unit but')
+
+    def test_format_date(self):
+        self.assertEqual(format_date("10/05/26"),date(year=2026, month=10, day=5))
+        self.assertEqual(format_date("10/5/26"),date(year=2026, month=10, day=5))
+        self.assertEqual(format_date("10/5/2026"),date(year=2026, month=10, day=5))
+        self.assertEqual(format_date("2026-10-05"),date(year=2026, month=10, day=5))
+        with self.assertRaises(ValueError):
+            format_date("10-5-26")
+        with self.assertRaises(ValueError):
+            format_date("not a date")
+        with self.assertRaises(ValueError):
+            format_date("10/55/26")
+        
 
     def test_csv_to_pantry_item(self):
         # Tests ForkWise's csv_parser metadata in fork_dataclasses on PantryItem: nested props, bools, fix_units on units.
@@ -45,3 +59,15 @@ class TestForkDataclasses(unittest.TestCase):
         with self.assertRaises(ValueError):                           
             # 'one' (in the csv) isn't a float (expected by the dataclass)
             csv_to_dataclass(path_to_csv=os.path.join(TEST_DATA_PATH, "test_recipe_wrong_type.csv"), cls=Ingredient)
+
+    def test_csv_to_meals(self):
+        # Test parsing of meals csvs (in particular, date handling)
+
+        # We can share fixtures with `test_data_getter` and `test_data_loader` because nothing touches the test db here
+        meals = csv_to_dataclass(path_to_csv=os.path.join(TEST_DATA_PATH, 'test_meals.csv'), cls=Meal)
+        self.assertEqual(meals[0].date_eaten, date(year=2022,month=9,day=2)) # Checks date was handled correctly
+        self.assertEqual(meals[1].recipe_name, 'lemonade')
+        self.assertEqual(meals[2].servings_eaten, 2.0)
+
+        with self.assertRaises(ValueError):
+            csv_to_dataclass(path_to_csv=os.path.join(TEST_DATA_PATH, "test_meals_wrongdatetype.csv"), cls=Meal)

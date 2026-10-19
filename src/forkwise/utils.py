@@ -14,9 +14,18 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yml")
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 
 DASHBOARD_TITLE = "ForkWise Dashboard"
+PROPS_DISPLAY_NAMES = {"cal" : "Calories",
+                       "fiber_grams": "Fiber (g)",
+                       "sugar_grams" : "Sugar (g)",
+                       "protein_grams" : "Protein (g)",
+                        "fat_grams" : "Fat (g)",
+                        "animal" : "Animal sources",
+                        "white_flour" : "White flour"
+                    }
 
 from forkwise.fork_dataclasses import Recipe, FoodProps
 
+# Legacy functions, can probably delete soon
 def calc_totals_per_serving(recipe: Recipe)->FoodProps:
     """
     Given a Recipe, calculate totals per serving, returning as a FoodProps object.

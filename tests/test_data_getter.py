@@ -3,6 +3,8 @@
 import unittest
 import os, subprocess
 
+import pandas as pd
+
 from datetime import date
 
 import dbcommons.testing_utils as utils
@@ -71,7 +73,9 @@ class TestDataGetter(unittest.TestCase):
         # with self.assertRaises(ValueError):
         #     self.conn.get_recipe_totals(recipe_name="wrong cocoa")
 
-    def test_get_meals_in_dates(self):
+    def test_get_totals_in_dates(self):
+        # Implicit test of fork_db.get_totals_per_date_range()
+
         # Add meals, recipes, ingredients unique to this test
         path_to_ingr_csv = os.path.join(TEST_DATA_PATH, "test_meals2_ingr.csv")
         path_to_recipe_csv = os.path.join(TEST_DATA_PATH, "test_meals2_recipe.csv")
@@ -96,22 +100,23 @@ class TestDataGetter(unittest.TestCase):
                                                 servings=1,
                                                 servings_amt=1, 
                                                 servings_units='c')
-            dl.add_meals_via_staging(path_to_meals_csv=path_to_meals_csv)
+            dl.add_meals_from_csv(path_to_meals_csv=path_to_meals_csv)
         
-        # TODO These tests may fail because I need to sort by date in order to index the way I am ... and maybe recipes per date by name?
         # Test date selection:
-        meals = self.DataGetter.get_meals_in_dates(date_range=[date(year=2026,month=5,day=20),date(year=2026,month=7,day=5)])
-        self.assertTrue(meals[0].recipes[1].name=='soy cocoa')
-        self.assertTrue(meals[1].recipes[0].name=='hummus')
-        self.assertTrue(meals[1].servings_eaten[0]==1.5)
+        meals = self.DataGetter.get_totals_in_dates(date_range=[date(year=2026,month=5,day=20),date(year=2026,month=7,day=5)])
+        self.assertEqual(len(meals),4) # 4 recipes eaten over 2 dates in range
+        # ensure no data were scrambled, and calculations are right
+        # Soy cocoa cal = 1.25 c soy milk * (80 cal/1 c) + 0.25 c cocoa * (17.5 cal / 1 Tbsp * 16 Tbsp / c) / 1 serving per recipe * 1.25 servings eaten on 6/2/26
+        self.assertEqual(round(meals[(meals['date_eaten']==date(year=2026,month=6,day=2)) & (meals['recipe_name']=='soy cocoa')].cal.item(),2), round((1.25*80 + 0.25*17.5*16)*1.25,2))
+        # hummus fiber_grams = (30 oz garbonzo * 21 fiber/15.5 oz + 0.67 c oil * 0 fiber/Tbsp + 2 Tbsp lemon * 0.06 fiber / Tbsp + 1 unit garlic * 0.06 fiber/unit) / 8 servings per recipe * 1.5 servings eaten on 7/5/26
+        self.assertEqual(round(meals[(meals['date_eaten']==date(year=2026,month=7,day=5)) & (meals['recipe_name']=='hummus')].fiber_grams.item(),2), round((30*(21/15.5) + 2*0.06 + 1*0.06)/8 * 1.5,2)) 
+        self.assertTrue(meals[(meals['date_eaten']==date(year=2026,month=7,day=5)) & (meals['recipe_name']=='toast')].animal.item()) # Check boolean handling
 
         # Test we can pull just one day:
-        meals = self.DataGetter.get_meals_in_dates(date_range=[date(year=2026,month=5,day=12), date(year=2026,month=5,day=12)])
+        meals = self.DataGetter.get_totals_in_dates(date_range=[date(year=2026,month=5,day=12), date(year=2026,month=5,day=12)])
         self.assertTrue(len(meals)==1)
-        self.assertTrue(meals[0].recipes[0].name=='hummus')
-        self.assertTrue(meals[0].servings_eaten[0]==1)
+        self.assertEqual(meals[meals["date_eaten"]==date(year=2026,month=5,day=12)].recipe_name.to_list(), ['hummus'])
 
-        # Test grouping:
-        meals = self.DataGetter.get_meals_in_dates(date_range=[date(year=2026,month=5,day=12),date(year=2026,month=7,day=5)])
-        self.assertEqual(len(meals),3)
-        self.assertTrue(len(meals[0].recipes)==1)
+        # Test we get an empty df for no meals in range
+        meals = self.DataGetter.get_totals_in_dates(date_range=[date(year=2027,month=10,day=5),date(year=2027,month=10,day=10)])
+        pd.testing.assert_frame_equal(meals, pd.DataFrame())
