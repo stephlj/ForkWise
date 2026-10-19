@@ -6,7 +6,8 @@ Before working in `tests/` or `webapp/`, read the `AGENTS.md` in that directory.
 - Prioritize code readability, not reducing line count, cleverness, etc.
 - Use type hints in function definitions
 - Add comments for design decisions or tradeoffs (e.g., "this implementation is faster but less accurate, acceptable here because ...")
-- Do not proliferate little helper functions. Helper functions can be used to generalize code shared by at least two other calling functions, or for recursion, or if they make code more readable (moving core logic into helper functions makes code less readable, since the human has to scroll around to follow the logic).
+- Structure longer functions as a main function that reads as an outline of the overall flow, calling a few functions that each hold one conceptual chunk (e.g. "fetch the unit lists", "draw the ingredient rows", "validate and save"). A chunk should be big enough to make sense on its own, usually 5–30 lines. Don't split out one- or two-line helpers, or break a single idea across functions so the reader has to jump around to follow it. A helper with only one caller is fine if it's a real chunk.
+- When chunks communicate through shared state rather than arguments and return values (e.g. `st.session_state`, instance attributes), say at the top of each function what it reads or sets, and which function is on the other side.
 - New code or code changes should always be accompanied by new tests or new sub-tests.
 - Docstrings, comments and chat responses should be concise, not verbose. Minimize technical jargon and shorthand (like "no-ops"); when necessary, include a brief parenthetical definition.
 - New files you create (should mostly be in `webapp`): don't put "Copyright (c) Stephanie Johnson" at the top of the file. Put `Written by Claude` (or whichever product you are) instead.
@@ -19,6 +20,7 @@ Before working in `tests/` or `webapp/`, read the `AGENTS.md` in that directory.
 
 # Environment
 - Activate the environment with `source .venv/bin/activate` before running anything (don't use `uv run`).
+- In a worktree (no `.venv` of its own), activate the main checkout's environment and run with `PYTHONPATH=src`, since that environment otherwise imports `forkwise` from the main checkout, which may be on another branch. Don't reinstall packages in it without asking me; it's shared with my other work.
 - Forkwise depends on a package, `dbcommons`, that isn't on PyPI. **Running `uv sync --all-extras` uninstalls it.** After any `uv sync`, reinstall with `uv pip install "git+https://github.com/stephlj/DBCommons"`. This is also how to update it to a new version.
 - Run tests with `pytest` (single test: `pytest tests/test_x.py::TestX::test_y`). Tests that create a test db (currently `test_data_loader.py`, `test_data_getter.py`) need the local Postgres server running.
 - Launch the GUI with `streamlit run webapp/app.py`.

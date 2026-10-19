@@ -10,7 +10,7 @@ from forkwise.fork_init import fork_init
 from forkwise.add_fork_user import add_fork_user
 from forkwise.data_loader import DataLoader
 from forkwise.fork_db import ForkDB
-from forkwise.fork_dataclasses import PantryItem, FoodProps, PANTRY_COL_DEFS, FOODPROPS_COL_DEFS, INGR_COL_DEFS
+from forkwise.fork_dataclasses import PantryItem, FoodProps, Ingredient, PANTRY_COL_DEFS, FOODPROPS_COL_DEFS, INGR_COL_DEFS
 
 from utils_for_tests import TEST_CONFIG_PATH, TEST_DATA_PATH
 
@@ -199,6 +199,47 @@ class TestDataLoader(unittest.TestCase):
             db_units = dbconn.execute_scalar("SELECT ingredient_units FROM ingredients WHERE recipe_id=%s AND ingredient_amt=%s;",(recipe_id,1.0))
             self.assertEqual(db_units,'lbs')
         
+    def test_add_recipe_via_staging(self):
+        # In-memory path (used by the webapp), vs the csv path in test_add_recipe_from_csv.
+        # Pantry items and recipe name are unique to this test, since other tests share the test db.
+        self.DataLoader.add_ingredients_from_csv(path_to_ingr_csv=os.path.join(TEST_DATA_PATH, "test_recipe_via_staging_ingrs.csv"))
+        recipe_name = "overnight oats"
+        # Distinct amounts and units (some differing from the pantry item's units) so swapped values would be caught
+        ingredients = [
+            Ingredient(ingr_name="Rolled oats", ingredient_amt=0.75, ingredient_units="c"),
+            Ingredient(ingr_name="Chia seeds", ingredient_amt=2.0, ingredient_units="tsp"),
+            Ingredient(ingr_name="Maple syrup", ingredient_amt=1.5, ingredient_units="Tbsp"),
+        ]
+
+        num_rows_added = self.DataLoader.add_recipe_via_staging(ingredients=ingredients,
+                                                                name=recipe_name,
+                                                                servings=2,
+                                                                servings_amt=0.5,
+                                                                servings_units="c")
+        self.assertEqual(num_rows_added, 3)
+
+        ingr_query = """
+            SELECT p.name, i.ingredient_amt, i.ingredient_units
+            FROM ingredients AS i
+            INNER JOIN pantry_items p ON p.id = i.ingredient_id
+            INNER JOIN recipes r ON r.id = i.recipe_id
+            WHERE r.name = %s;
+        """
+        with ForkDB(user=self.params["user"], pw=self.params["user_pw"], db_name=self.params["test_db_name"]) as dbconn:
+            ingr_rows = dbconn.execute_query(ingr_query, (recipe_name,))
+            recipe_rows = dbconn.get_recipe_servings(recipe_name=recipe_name)
+
+        with self.subTest("Each ingredient row keeps its own name, amount and units"):
+            # Row order isn't guaranteed by the db, so compare without order
+            self.assertCountEqual(
+                [(r['name'], r['ingredient_amt'], r['ingredient_units']) for r in ingr_rows],
+                [(i.ingr_name, i.ingredient_amt, i.ingredient_units) for i in ingredients])
+
+        with self.subTest("The recipes row has the servings info as entered"):
+            self.assertEqual(len(recipe_rows), 1)
+            self.assertEqual((recipe_rows[0]['servings'], recipe_rows[0]['servings_amt'], recipe_rows[0]['servings_units']),
+                             (2, 0.5, "c"))
+
     def test_add_meals_from_csv(self):
         # Implicit test of add_meals_via_staging
         path_to_meals_csv = os.path.join(TEST_DATA_PATH,"test_meals.csv")

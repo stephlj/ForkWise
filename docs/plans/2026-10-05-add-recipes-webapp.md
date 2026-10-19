@@ -19,8 +19,8 @@ These follow the `list_all_ingredients` pattern (simple methods on `ForkDB`).
 - No tests: both are simple SELECT queries, like `list_all_ingredients`. Checked manually.
 
 ## 2. Navigation ([app.py](webapp/app.py))
-- After login, `st.navigation([st.Page(dashboard, title="Dashboard"), st.Page(add_data, title="Add data")])`.
-- Both pages stay as functions in `app.py`, which keeps "app.py is the single entry point". Splitting into `webapp/pages/` can wait until the ingredient and meal loaders exist.
+- After login, `st.navigation([st.Page("pages/dashboard.py", title="Dashboard"), st.Page("pages/add_data.py", title="Add recipes")])`.
+- Changed during implementation: each page is its own file in `webapp/pages/` (not a function in `app.py`), so tests can open a page with `AppTest.switch_page`. `app.py` is still the single entry point (login, then navigation). The sidebar label is "Add recipes" rather than "Add data".
 
 ## 3. "Add data" page → recipe form
 **Data loading:**
@@ -50,7 +50,8 @@ These follow the `list_all_ingredients` pattern (simple methods on `ForkDB`).
 - Check every field is filled in and the recipe name isn't blank. Checking that fields are filled counts as formatting, which `webapp/AGENTS.md` allows in the webapp.
 - Build `List[Ingredient]` in row order.
 - Call `DataLoader.add_recipe_via_staging(ingredients=..., name=..., servings=..., servings_amt=..., servings_units=...)` inside `with DataLoader(...)`.
-- On success: show `st.success`, clear the form, and refresh the cached lists.
+- On success: show `st.success` and clear the form.
+  - Changed during implementation: the cached unit lists aren't refreshed, since saving a recipe doesn't add pantry items or units. A future page that adds them should delete `st.session_state.compatible_units` so it's refetched.
 - On error: show `st.error`. This covers duplicate recipe names (`UniqueViolation`) and the duplicate-ingredient-set `ValueError`.
 
 **Tradeoffs vs. an editable table:**
