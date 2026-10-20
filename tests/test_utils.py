@@ -2,8 +2,7 @@ import unittest
 
 from dataclasses import fields
 
-from forkwise.utils import (calc_totals_per_serving, calc_totals_eaten, parse_gram_nutrients,
-                            DEFAULT_GRAM_NUTRIENTS, PROPS_DISPLAY_NAMES)
+from forkwise.utils import calc_totals_per_serving, calc_totals_eaten, parse_gram_nutrients, PROPS_DISPLAY_NAMES
 from forkwise.fork_dataclasses import FoodProps, Recipe
 
 class TestUtils(unittest.TestCase):
@@ -56,13 +55,13 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(len(logs.output), 4)
             self.assertIn("salt_grams", logs.output[0])
 
-        with self.subTest("A missing list gives the defaults."):
-            self.assertEqual(parse_gram_nutrients(None), DEFAULT_GRAM_NUTRIENTS)
+        with self.subTest("A missing list gives an empty list."):
+            self.assertEqual(parse_gram_nutrients(None), [])
 
-        with self.subTest("A value that isn't a list gives the defaults with a warning."):
+        with self.subTest("A value that isn't a list gives an empty list with a warning."):
             # e.g. gram_nutrients: fiber_grams (a string, not a one-item list)
             with self.assertLogs("forkwise.utils", level="WARNING"):
-                self.assertEqual(parse_gram_nutrients("fiber_grams"), DEFAULT_GRAM_NUTRIENTS)
+                self.assertEqual(parse_gram_nutrients("fiber_grams"), [])
 
         with self.subTest("An empty list stays empty."):
             self.assertEqual(parse_gram_nutrients([]), [])
