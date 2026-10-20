@@ -1,6 +1,9 @@
 import unittest
 
-from forkwise.utils import calc_totals_per_serving, calc_totals_eaten
+from dataclasses import fields
+
+from forkwise.utils import (calc_totals_per_serving, calc_totals_eaten, parse_gram_nutrients,
+                            DEFAULT_GRAM_NUTRIENTS, PROPS_DISPLAY_NAMES)
 from forkwise.fork_dataclasses import FoodProps, Recipe
 
 class TestUtils(unittest.TestCase):
@@ -41,3 +44,29 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(totals_eaten.cal, 219*1.5)
         self.assertEqual(totals_eaten.carb_grams, 4.5*1.5)
         self.assertFalse(totals_eaten.animal)
+
+    def test_parse_gram_nutrients(self):
+        with self.subTest("Valid gram fields are kept, in the order given."):
+            self.assertEqual(parse_gram_nutrients(["fat_grams", "carb_grams"]), ["fat_grams", "carb_grams"])
+
+        with self.subTest("Unknown names, non-gram fields and duplicates are dropped with a warning each."):
+            with self.assertLogs("forkwise.utils", level="WARNING") as logs:
+                kept = parse_gram_nutrients(["fiber_grams", "salt_grams", "cal", "animal", "fiber_grams"])
+            self.assertEqual(kept, ["fiber_grams"])
+            self.assertEqual(len(logs.output), 4)
+            self.assertIn("salt_grams", logs.output[0])
+
+        with self.subTest("A missing list gives the defaults."):
+            self.assertEqual(parse_gram_nutrients(None), DEFAULT_GRAM_NUTRIENTS)
+
+        with self.subTest("A value that isn't a list gives the defaults with a warning."):
+            # e.g. gram_nutrients: fiber_grams (a string, not a one-item list)
+            with self.assertLogs("forkwise.utils", level="WARNING"):
+                self.assertEqual(parse_gram_nutrients("fiber_grams"), DEFAULT_GRAM_NUTRIENTS)
+
+        with self.subTest("An empty list stays empty."):
+            self.assertEqual(parse_gram_nutrients([]), [])
+
+    def test_props_display_names(self):
+        # Charts look up labels here, so a field missing from it would crash the dashboard if configured
+        self.assertEqual(set(PROPS_DISPLAY_NAMES), {f.name for f in fields(FoodProps)})

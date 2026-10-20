@@ -14,10 +14,6 @@ from forkwise.data_getter import DataGetter
 from forkwise.display_meal_totals import calc_daily_totals, plot_pie
 from forkwise.utils import DASHBOARD_TITLE, PROPS_DISPLAY_NAMES
 
-# These all have units of grams, so they're plotted together as one grouped
-# bar chart rather than one chart each.
-GRAM_NUTRIENTS = ["protein_grams", "sugar_grams", "fiber_grams", "fat_grams"]
-
 # Relative widths of each chart and the pie next to it. The pie fills its
 # column, so a narrower column draws a smaller pie and leaves the charts more room.
 # To resize, change the ratio: e.g. [3, 1] makes pies smaller, [1, 1] makes them equal.
@@ -25,7 +21,7 @@ CHART_PIE_WIDTHS = [2, 1]
 
 
 def dashboard() -> None:
-    # Reads st.session_state.username, pw and db_name, set by login in app.py.
+    # Reads st.session_state.username, pw, db_name and gram_nutrients, set by login in app.py.
     # Streamlit draws widgets in the order they're called, so the calls below
     # are also the page layout, top to bottom.
     st.title(DASHBOARD_TITLE)
@@ -56,6 +52,9 @@ def dashboard() -> None:
         breakdown_pie(meals_df, cal_points, "cal",
                       placeholder="Click a point on the calories chart to see that day's recipe breakdown.")
 
+    if not st.session_state.gram_nutrients:
+        st.info("No valid nutrients listed under display.gram_nutrients in config.yml, so there's no nutrients chart.")
+        return
     grams_chart_col, grams_pie_col = st.columns(CHART_PIE_WIDTHS)
     with grams_chart_col:
         grams_points = grams_chart(daily_totals, key=f"chart_grams_{range_suffix}")
@@ -80,11 +79,14 @@ def calories_chart(daily_totals: pd.DataFrame, key: str) -> list[dict]:
 
 def grams_chart(daily_totals: pd.DataFrame, key: str) -> list[dict]:
     # Grouped bar chart of each gram-based nutrient per day, with a dashed line in the
-    # matching color at each nutrient's target, if it has one.
-    # Reads st.session_state.targets, set by login in app.py. Returns the selected points (empty if none).
+    # matching color at each nutrient's target, if it has one. The nutrients all have
+    # units of grams, so they share one chart rather than getting one chart each.
+    # Reads st.session_state.targets and gram_nutrients, set by login in app.py.
+    # Returns the selected points (empty if none).
+    gram_nutrients = st.session_state.gram_nutrients
 
     # px.bar groups and colors by a column, so reshape to one row per (date, nutrient)
-    grams_df = daily_totals[GRAM_NUTRIENTS].reset_index().melt(
+    grams_df = daily_totals[gram_nutrients].reset_index().melt(
         id_vars="date_eaten", var_name="nutrient", value_name="grams")
     grams_df["label"] = grams_df["nutrient"].map(PROPS_DISPLAY_NAMES)
     # custom_data carries each bar's column name, so a click can be traced back
@@ -93,7 +95,7 @@ def grams_chart(daily_totals: pd.DataFrame, key: str) -> list[dict]:
                  labels={"date_eaten": "Date", "label": "Nutrient"}, title="Nutrients")
 
     colors = {trace.name: trace.marker.color for trace in fig.data}
-    for nutrient in GRAM_NUTRIENTS:
+    for nutrient in gram_nutrients:
         target = st.session_state.targets.get(nutrient)
         if target is not None:
             fig.add_hline(y=target, line_dash="dash", line_color=colors[PROPS_DISPLAY_NAMES[nutrient]])

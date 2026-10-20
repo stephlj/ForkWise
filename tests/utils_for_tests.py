@@ -3,6 +3,8 @@ import yaml
 
 from streamlit.testing.v1 import AppTest
 
+from forkwise.utils import parse_gram_nutrients
+
 TEST_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "test_config.yml")
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), "fixtures")
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "src", "forkwise", "schema.sql")
@@ -19,5 +21,6 @@ def logged_in_app() -> AppTest:
     at.session_state["username"] = "me"
     at.session_state["pw"] = "pw"
     at.session_state["db_name"] = config["db"]["db_name"]
-    at.session_state["targets"] = config["targets"]
+    at.session_state["targets"] = config["display"]["targets"]
+    at.session_state["gram_nutrients"] = parse_gram_nutrients(config["display"]["gram_nutrients"])
     return at

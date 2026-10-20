@@ -146,7 +146,7 @@ class TestDashboard(unittest.TestCase):
         with self.subTest("The calorie target is a dashed line in the same color as the points."):
             shapes = cal_spec["layout"]["shapes"]
             self.assertEqual(len(shapes), 1)
-            self.assertEqual(shapes[0]["y0"], 2000)  # fixtures/test_config.yml targets.cal
+            self.assertEqual(shapes[0]["y0"], 2000)  # fixtures/test_config.yml display.targets.cal
             self.assertEqual(shapes[0]["line"]["dash"], "dash")
             self.assertEqual(shapes[0]["line"]["color"], cal_spec["data"][0]["marker"]["color"])
 
@@ -159,7 +159,7 @@ class TestDashboard(unittest.TestCase):
         grams_spec = json.loads(at.get("plotly_chart")[1].proto.spec)  # calories chart is first
         traces = {trace["name"]: trace for trace in grams_spec["data"]}
 
-        with self.subTest("There is one series per gram-based nutrient (no carbs), each at that day's totals."):
+        with self.subTest("There is one series per configured gram nutrient (not carbs), each at that day's totals."):
             self.assertEqual(set(traces), {"Protein (g)", "Sugar (g)", "Fiber (g)", "Fat (g)"})
             self.assertEqual(self._plotted_values(traces["Fiber (g)"]["y"]), [9.0, 2.5])
             self.assertEqual(self._plotted_values(traces["Sugar (g)"]["y"]), [10.25, 4.0])
@@ -181,6 +181,27 @@ class TestDashboard(unittest.TestCase):
             self.assertEqual(shapes_by_y[30]["line"]["color"], traces["Fiber (g)"]["marker"]["color"])
             for shape in shapes:
                 self.assertEqual(shape["line"]["dash"], "dash")
+
+        with self.subTest("A different gram_nutrients list changes which series are drawn."):
+            at = logged_in_app()
+            at.session_state["gram_nutrients"] = ["carb_grams", "fiber_grams"]
+            at.run()
+            self.assertEqual(len(at.exception), 0)
+            grams_spec = json.loads(at.get("plotly_chart")[1].proto.spec)
+            traces = {trace["name"]: trace for trace in grams_spec["data"]}
+            self.assertEqual(set(traces), {"Carbs (g)", "Fiber (g)"})
+            self.assertEqual(self._plotted_values(traces["Carbs (g)"]["y"]), [38.0, 14.0])
+            # Only fiber has a target among these
+            self.assertEqual([shape["y0"] for shape in grams_spec["layout"]["shapes"]], [30])
+
+        with self.subTest("An empty gram_nutrients list shows a message instead of the nutrients chart and its pie."):
+            at = logged_in_app()
+            at.session_state["gram_nutrients"] = []
+            at.run()
+            self.assertEqual(len(at.exception), 0)
+            self.assertEqual(len(at.get("plotly_chart")), 1)  # calories only
+            self.assertTrue(any("display.gram_nutrients" in i.value for i in at.info))
+            self.assertFalse(any("Click a bar" in i.value for i in at.info))
 
     @patch("forkwise.display_meal_totals.plot_pie")
     @patch("forkwise.data_getter.DataGetter")
