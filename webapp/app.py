@@ -1,6 +1,6 @@
 # app.py
 #
-# Streamlit entry point: login, then navigation between the pages in pages/.
+# Streamlit entry point: login, then navigation between the pages in views/.
 #
 # Written by Claude Code
 
@@ -46,12 +46,15 @@ def login() -> None:
     st.rerun()
 
 
+# The page files are in views/, not pages/: Streamlit treats a pages/ folder as a
+# legacy multipage app, listing its files in the sidebar and letting users open
+# them by URL before logging in.
+# When logged out, login is the only page, so any page URL falls back to it.
 if not st.session_state.get("logged_in"):
-    login()
+    st.navigation([st.Page(login, title="Log in")], position="hidden").run()
 else:
     # Pages are files (not functions) so tests can reach them with AppTest.switch_page.
-    # Using st.navigation means Streamlit doesn't also auto-list pages/ in the sidebar.
     st.navigation([
-        st.Page("pages/dashboard.py", title="Dashboard"),
-        st.Page("pages/add_data.py", title="Add recipes"),
+        st.Page("views/dashboard.py", title="Dashboard"),
+        st.Page("views/add_data.py", title="Add recipes"),
     ]).run()

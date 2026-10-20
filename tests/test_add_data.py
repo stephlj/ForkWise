@@ -1,4 +1,4 @@
-# Tests for webapp/pages/add_data.py using Streamlit's AppTest harness.
+# Tests for webapp/views/add_data.py using Streamlit's AppTest harness.
 #
 # ForkDB and DataLoader are mocked: add_recipe_via_staging's db writes are
 # tested in test_data_loader.py, so these tests check that what's entered in
@@ -19,7 +19,7 @@ class TestAddData(unittest.TestCase):
 
     def _add_data_app(self):
         at = logged_in_app()
-        at.switch_page("pages/add_data.py")
+        at.switch_page("views/add_data.py")
         at.run()
         return at
 
