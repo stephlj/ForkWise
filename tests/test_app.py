@@ -1,5 +1,5 @@
 # Tests for webapp/app.py (login and navigation) using Streamlit's AppTest harness.
-# Each page in webapp/pages/ has its own test module.
+# Each page in webapp/views/ has its own test module.
 #
 # DataGetter is mocked: the db layer has its own integration tests in
 # test_data_getter.py, so these tests only exercise app.py's own logic.
@@ -29,6 +29,16 @@ class TestApp(unittest.TestCase):
             self.assertEqual(at.title[0].value, DASHBOARD_TITLE)
             self.assertEqual(len(at.text_input), 2)  # username, password
             self.assertEqual(len(at.date_input), 0)
+
+        for page in ["views/dashboard.py", "views/add_data.py"]:
+            with self.subTest(f"When logged out, opening {page} shows the login form instead of the page."):
+                at = AppTest.from_file(APP_PATH)
+                at.run()
+                at.switch_page(page).run()
+                self.assertEqual(len(at.exception), 0)
+                self.assertEqual(at.title[0].value, DASHBOARD_TITLE)
+                self.assertEqual(len(at.text_input), 2)  # username, password
+                mock_dg_class.assert_not_called()
 
         with self.subTest("Bad credentials show an error and stay logged out."):
             mock_dg_class.side_effect = Exception("bad credentials")

@@ -1,4 +1,4 @@
-# Tests for webapp/pages/dashboard.py using Streamlit's AppTest harness.
+# Tests for webapp/views/dashboard.py using Streamlit's AppTest harness.
 #
 # DataGetter is mocked throughout: the db layer has its own integration tests
 # in test_data_getter.py, so these tests only exercise the page's own logic
