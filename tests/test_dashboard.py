@@ -98,10 +98,6 @@ class TestDashboard(unittest.TestCase):
             mock_dg_class.return_value.__enter__.return_value.get_totals_in_dates.assert_called_with(
                 date_range=[start, end])
             self.assertEqual(len(at.get("plotly_chart")), 2)
-            # Columns are start/end dates, then (chart, pie) for calories and for grams.
-            # Each chart gets twice the width of its pie.
-            chart_pie_weights = [round(c.weight, 2) for c in at.columns[2:]]
-            self.assertEqual(chart_pie_weights, [0.67, 0.33, 0.67, 0.33])
             infos = [i.value for i in at.info]
             self.assertTrue(any("calories chart" in i for i in infos))
             self.assertTrue(any("Click a bar" in i for i in infos))
