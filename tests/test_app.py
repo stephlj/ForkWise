@@ -51,7 +51,7 @@ class TestApp(unittest.TestCase):
             self.assertNotIn("logged_in", at.session_state)
             mock_dg_class.side_effect = None
 
-        with self.subTest("Good credentials reach the dashboard and store the db name and targets from config."):
+        with self.subTest("Good credentials reach the dashboard and store the db name, targets and checked gram nutrients from config."):
             # The dashboard uses DataGetter as a context manager
             mock_dg_class.return_value.__enter__.return_value.get_totals_in_dates.return_value = pd.DataFrame()
             at = AppTest.from_file(APP_PATH)
@@ -64,5 +64,8 @@ class TestApp(unittest.TestCase):
             # Pages connect with the db_name stored at login, so it must match the config's
             self.assertEqual(at.session_state["db_name"], "test_fork_db")
             self.assertEqual(at.session_state["targets"], {"cal": 2000, "protein_grams": 60, "fiber_grams": 30})
+            # The test config also lists cal, which isn't in grams, so it's dropped
+            self.assertEqual(at.session_state["gram_nutrients"],
+                             ["protein_grams", "sugar_grams", "fiber_grams", "fat_grams"])
             mock_dg_class.assert_any_call(user="me", pw="correct pw", db_name="test_fork_db")
             self.assertEqual(len(at.date_input), 2)  # dashboard is the default page: start/end date now visible

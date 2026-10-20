@@ -8,13 +8,13 @@ import streamlit as st
 import yaml
 
 from forkwise.data_getter import DataGetter
-from forkwise.utils import CONFIG_PATH, DASHBOARD_TITLE
+from forkwise.utils import CONFIG_PATH, DASHBOARD_TITLE, parse_gram_nutrients
 
 st.set_page_config(page_title=DASHBOARD_TITLE, layout="wide")
 
 
 def login() -> None:
-    # Sets st.session_state.logged_in, username, pw, db_name and targets, which the pages read.
+    # Sets st.session_state.logged_in, username, pw, db_name, targets and gram_nutrients, which the pages read.
     st.title(DASHBOARD_TITLE)
     with st.form("login"):
         username = st.text_input("Username")
@@ -39,7 +39,9 @@ def login() -> None:
     st.session_state.pw = pw
     # Config is read once here, rather than on every rerun of a page
     st.session_state.db_name = config["db"]["db_name"]
-    st.session_state.targets = config.get("targets", {})
+    display = config.get("display", {})
+    st.session_state.targets = display.get("targets", {})
+    st.session_state.gram_nutrients = parse_gram_nutrients(display.get("gram_nutrients"))
     # Without this, the pages wouldn't render until some other widget
     # interaction triggered a second run: setting session_state here doesn't
     # retroactively change which branch this run took.

@@ -4,6 +4,7 @@ Constants and utilities used by multiple modules.
 Copyright (c) 2026 Stephanie Johnson
 """
 
+import logging
 import os
 
 DEFAULT_LOGGING_FORMAT = (
@@ -19,11 +20,42 @@ PROPS_DISPLAY_NAMES = {"cal" : "Calories",
                        "sugar_grams" : "Sugar (g)",
                        "protein_grams" : "Protein (g)",
                         "fat_grams" : "Fat (g)",
+                        "carb_grams" : "Carbs (g)",
                         "animal" : "Animal sources",
                         "white_flour" : "White flour"
                     }
 
+from dataclasses import fields
+
 from forkwise.fork_dataclasses import Recipe, FoodProps
+
+def parse_gram_nutrients(requested: list[str] | None) -> list[str]:
+    """
+    Check the gram_nutrients list from config.yml, keeping only names that are
+    FoodProps fields measured in grams (names ending in "_grams"), without duplicates.
+    Anything else is dropped with a logged warning. Returns an empty list (so no
+    nutrients chart) if requested is None.
+    """
+    logger = logging.getLogger(__name__)
+    if requested is None:
+        return []
+    if not isinstance(requested, list):
+        logger.warning(f"gram_nutrients in config should be a list; got {requested!r}. Ignoring it.")
+        return []
+
+    # The "_grams" suffix is a naming convention, not enforced by FoodProps. Simple and
+    # good enough for now; storing units in each field's metadata would be sturdier.
+    gram_fields = {f.name for f in fields(FoodProps) if f.name.endswith("_grams")}
+    kept = []
+    for name in requested:
+        if name not in gram_fields:
+            logger.warning(f"Ignoring {name!r} in gram_nutrients: not a gram-based FoodProps field.")
+        elif name in kept:
+            logger.warning(f"Ignoring duplicate {name!r} in gram_nutrients.")
+        else:
+            kept.append(name)
+    return kept
+
 
 # Legacy functions, can probably delete soon
 def calc_totals_per_serving(recipe: Recipe)->FoodProps:
