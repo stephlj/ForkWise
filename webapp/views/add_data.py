@@ -20,14 +20,18 @@ def add_data() -> None:
     st.title("Add a recipe")
 
     load_units()
-    show_saved_message() # Show a message if a recipe was saved
     name, servings, servings_amt, servings_units = recipe_header_inputs()
     ingrs = ingredient_rows()
 
-    if not st.button("Save recipe", type="primary"):
+    save_col, clear_col, _ = st.columns([1, 1, 4])
+    clear_col.button("Clear form", on_click=clear_form)
+    if not save_col.button("Save recipe", type="primary"):
         return
+    # The form keeps everything entered after a save, so a closely related recipe
+    # can be added by editing it. Saving again unchanged is rejected by
+    # add_recipe_via_staging as a duplicate.
     if save_recipe(name.strip(), servings, servings_amt, servings_units, ingrs):
-        clear_form(name.strip())
+        st.success(f"Added recipe {name.strip()}.")
 
 
 def load_units() -> None:
@@ -45,14 +49,6 @@ def load_units() -> None:
             st.session_state.compatible_units = db.list_compatible_units()
 
 
-def show_saved_message() -> None:
-    # Reads st.session_state.saved_recipe_name, set by clear_form after a successful
-    # save on the previous run (which then cleared the form and reran).
-    saved_name = st.session_state.pop("saved_recipe_name", None)
-    if saved_name is not None:
-        st.success(f"Added recipe {saved_name}.")
-
-
 def recipe_header_inputs() -> tuple[str, float | None, float | None, str | None]:
     # Recipe name and servings info. Returns what's currently entered (None for empty boxes).
     name = st.text_input("Recipe name", key="recipe_name")
@@ -68,7 +64,7 @@ def recipe_header_inputs() -> tuple[str, float | None, float | None, str | None]
 def ingredient_rows() -> list[tuple[str | None, float | None, str | None]]:
     # One row per ingredient (ingredient, amount, units), plus remove and "+ Add ingredient" buttons.
     # Returns (ingredient, amount, units) per row, None for anything not filled in yet.
-    # Keeps the list of row ids in st.session_state.ingr_row_ids (clear_form deletes it to reset to one row).
+    # Keeps the list of row ids in st.session_state.ingr_row_ids.
     st.subheader("Ingredients")
     if "ingr_row_ids" not in st.session_state:
         st.session_state.ingr_row_ids = [0]
@@ -126,18 +122,19 @@ def save_recipe(name: str, servings: float | None, servings_amt: float | None,
     return True
 
 
-def clear_form(saved_name: str) -> None:
-    # Widget values can't be changed after the widget is drawn in this run,
-    # so delete their state and rerun to redraw them empty.
-    # Sets st.session_state.saved_recipe_name for show_saved_message on the rerun.
-    for key in ["recipe_name", "servings", "servings_amt", "servings_units"]:
-        del st.session_state[key]
-    for row_id in st.session_state.ingr_row_ids:
-        for prefix in ["ingr", "amt", "units"]:
-            del st.session_state[f"{prefix}_{row_id}"]
-    del st.session_state.ingr_row_ids
-    st.session_state.saved_recipe_name = saved_name
-    st.rerun()
+def clear_form() -> None:
+    # Callback for "Clear form" (runs before the next rerun, so the form is then drawn empty).
+    # Sets the header fields' values and st.session_state.ingr_row_ids, which
+    # recipe_header_inputs and ingredient_rows read.
+    # Values must be set, not deleted: deleting a field's value on the server
+    # doesn't tell the browser, which keeps showing the old one.
+    st.session_state.recipe_name = ""
+    for key in ["servings", "servings_amt", "servings_units"]:
+        st.session_state[key] = None
+    # A fresh row id makes new ingredient widgets, which start empty. The old rows'
+    # values are dropped by Streamlit once their widgets are no longer drawn.
+    st.session_state.ingr_row_ids = [st.session_state.next_row_id]
+    st.session_state.next_row_id += 1
 
 
 add_data()
