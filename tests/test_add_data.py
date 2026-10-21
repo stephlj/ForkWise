@@ -82,10 +82,40 @@ class TestAddData(unittest.TestCase):
                 name="Pancakes", servings=2.0, servings_amt=1.0, servings_units="c",
             )
             self.assertTrue(any("Pancakes" in s.value for s in at.success))
-            # Form is cleared after a successful save
+
+        with self.subTest("After a successful save, every field keeps its value so a related recipe can be added by editing"):
+            self.assertEqual(at.text_input(key="recipe_name").value, "  Pancakes ")
+            self.assertEqual(at.number_input(key="servings").value, 2.0)
+            self.assertEqual(at.number_input(key="servings_amt").value, 1.0)
+            self.assertEqual(at.selectbox(key="servings_units").value, "c")
+            kept_rows = [(at.selectbox(key=f"ingr_{i}").value, at.number_input(key=f"amt_{i}").value,
+                          at.selectbox(key=f"units_{i}").value) for i in [0, 2, 3]]
+            self.assertEqual(kept_rows, [("Soy milk", 1.5, "c"), ("Carrot", 3.0, "unit"), ("Flour", 7.0, "oz")])
+            self.assertEqual(len(at.selectbox), 7)  # serving units + 3 rows' ingredient and units
+
+        with self.subTest("Saving the kept form again shows the duplicate error instead of a success message"):
+            # The duplicate check itself is tested in test_data_loader.py
+            loader.add_recipe_via_staging.side_effect = ValueError("A recipe with these ingredients already exists")
+            self._click(at, "Save recipe")
+
+            self.assertEqual(len(at.success), 0)
+            self.assertTrue(any("already exists" in e.value for e in at.error))
+            self.assertEqual(at.text_input(key="recipe_name").value, "  Pancakes ")
+            loader.add_recipe_via_staging.side_effect = None
+
+        with self.subTest("Clear form empties every field and leaves one empty ingredient row"):
+            self._click(at, "Clear form")
+
             self.assertEqual(at.text_input(key="recipe_name").value, "")
-            self.assertIsNone(at.selectbox(key="ingr_0").value)
-            self.assertEqual(len(at.selectbox), 3)  # serving units + one empty row's ingredient and units
+            self.assertIsNone(at.number_input(key="servings").value)
+            self.assertIsNone(at.number_input(key="servings_amt").value)
+            self.assertIsNone(at.selectbox(key="servings_units").value)
+            self.assertEqual(len(at.selectbox), 3)  # serving units + one row's ingredient and units
+            self.assertEqual([at.number_input(key="amt_4").value, at.selectbox(key="ingr_4").value,
+                              at.selectbox(key="units_4").value], [None, None, None])
+            # The cleared row can be filled in like any other
+            self._fill_ingr_row(at, 4, "Butter", 2.0, "g")
+            self.assertEqual(at.selectbox(key="units_4").value, "g")
 
         mock_forkdb.reset_mock()
         loader.reset_mock()
