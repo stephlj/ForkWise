@@ -117,7 +117,7 @@ with ForkDB(user='<user_name>',pw='<user_pw>',db_name='<db_name_in_config>') as 
 
 ### Add meals
 
-Meals can only be added for recipes already in the db.
+Meals can only be added for recipes already in the db. Any missing recipe will abort the whole load.
 
 Meals are added from a csv. A meals csv must have the columns (in this order, with this header):
 
@@ -126,8 +126,13 @@ Meals are added from a csv. A meals csv must have the columns (in this order, wi
 - `servings_eaten`: how many servings of this recipe were eaten on this date.
 
 A meal is defined as all the recipes assigned to a particular date (breakfast vs lunch vs dinner etc are not differentiated,
-although I think this would work fine if times-per-day are entered in ISO format - TODO check). One row per recipe eaten,
-but multiple rows for the same date are fine (and multiple dates fine). However, duplicate (`date_eaten`, `recipe_name`) rows will be skipped, because they are ambiguous between the user forgetting they'd already logged a meal(s), and two legitimately different entries that should both contribute to daily totals.
+although I think this would work fine if times-per-day are entered in ISO format - TODO check). 
+
+One row per recipe eaten, but multiple rows for the same date are fine (and multiple dates fine). 
+
+However, any duplicate (`date_eaten`, `recipe_name`) rows will abort the entire load, 
+because they are ambiguous between the user forgetting they'd already logged a meal(s), 
+and two legitimately different entries that should both contribute to daily totals.
 
 In the terminal, run:
 
@@ -246,9 +251,10 @@ v2: GUI for data entry and display
 TODOs:
 v2:
 - FEATURE: Finish UI for data load (add pantry items). May leave meals as csv via CLI, that's not too bad right now.
-- Migrate prod db.
+- change `ingredient_id` to `pantry_id`.
 - Code review of webapp.py.
 - Todos in test_display_meal_totals.py
+- Remove dups from list of recipies missing from db on meals load
 Nice to have/later:
 - REFACTOR: Create a view that does nutritional totaling for get_totals_per_date_range and calc_recipe_totals_per_serving
 - FEATURE: Recipe explorer/info display
