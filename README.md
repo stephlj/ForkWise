@@ -278,7 +278,7 @@ Nice to have/later:
 
 This package uses `uv` for package and virtual environment management, based on the very helpful tutorials at [Sebastia Agramunt Puig's blog](https://agramunt.me/posts/python-virtual-environments-with-uv/).
 
-Create the environment with `uv venv .venv` and then run `uv sync`, which installs the exact versions in `uv.lock`, including the `dev` dependency group (tools only needed for development, like `pytest`). *IMPORTANT NOTE* Running `uv sync` will uninstall DBCommons; see below about how to re-install (or update) it!
+Create the environment with `uv venv .venv` and then run `uv sync`, which installs the exact versions in `uv.lock`, including the `dev` dependency group (tools only needed for development, like `pytest`).
 
 `uv sync` doesn't upgrade packages on its own. To upgrade, run `uv lock --upgrade-package <package>` (or `uv lock --upgrade` for everything), then `uv sync`, run the tests, and commit the updated `uv.lock`.
 
@@ -293,10 +293,7 @@ No solution found when resolving dependencies:
 ```
 you already have the package (e.g. it's a package that comes with all python installs). I love `uv` but its error messages can be quite unhelpful.
 
-DBCommons isn't a declared dependency (it's not published to PyPI), so it needs to be installed separately into the venv. To install or update to the latest version of DBCommons, run:
-```
-uv pip install "git+https://github.com/stephlj/DBCommons"
-```
+DBCommons isn't published to PyPI, so `pyproject.toml` installs it from GitHub, and `uv.lock` pins it to a specific commit. To update to the latest commit on GitHub, run `uv lock --upgrade-package dbcommons`, then `uv sync`.
 
 Use `pytest` to run the tests. (For quick debugging: Add `-s` or `--capture=no` to print print statements to console.)
 
