@@ -256,10 +256,9 @@ wheels = [
 [[package]]
 name = "dbcommons"
 version = "0.1.0"
-source = { git = "https://github.com/stephlj/DBCommons#ab04d8d20f9ecaac950f3ba19ed6e6f24cb8e700" }
+source = { git = "https://github.com/stephlj/DBCommons#3ce78c9a6272f21e27f70c7ae78106dbfa936846" }
 dependencies = [
     { name = "psycopg" },
-    { name = "pytest" },
     { name = "pyyaml" },
 ]
 

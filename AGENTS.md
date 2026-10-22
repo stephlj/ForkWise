@@ -22,6 +22,7 @@ Before working in `tests/` or `webapp/`, read the `AGENTS.md` in that directory.
 - Activate the environment with `source .venv/bin/activate` before running anything (don't use `uv run`).
 - In a worktree (no `.venv` of its own), activate the main checkout's environment and run with `PYTHONPATH=src`, since that environment otherwise imports `forkwise` from the main checkout, which may be on another branch. Don't reinstall packages in it without asking me; it's shared with my other work.
 - Forkwise depends on a package, `dbcommons`, that isn't on PyPI; `pyproject.toml` installs it from GitHub and `uv.lock` pins its commit. Update it with `uv lock --upgrade-package dbcommons`.
+- Don't upgrade dependencies unless I ask. When adding or removing one, check `git diff uv.lock` to make sure no other versions changed.
 - Run tests with `pytest` (single test: `pytest tests/test_x.py::TestX::test_y`). Tests that create a test db (currently `test_data_loader.py`, `test_data_getter.py`) need the local Postgres server running.
 - Launch the GUI with `streamlit run webapp/app.py`.
 
