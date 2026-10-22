@@ -20,8 +20,15 @@ from utils_for_tests import APP_PATH, TEST_CONFIG_PATH
 class TestApp(unittest.TestCase):
 
     @patch("forkwise.utils.CONFIG_PATH", TEST_CONFIG_PATH)
+    @patch("forkwise.fork_db.ForkDB")
     @patch("forkwise.data_getter.DataGetter")
-    def test_login(self, mock_dg_class):
+    def test_login(self, mock_dg_class, mock_forkdb_class):
+        # The dashboard uses DataGetter, and the add-recipe page uses ForkDB, as context managers
+        mock_dg_class.return_value.__enter__.return_value.get_totals_in_dates.return_value = pd.DataFrame()
+        db = mock_forkdb_class.return_value.__enter__.return_value
+        db.list_all_units.return_value = []
+        db.list_compatible_units.return_value = {}
+
         with self.subTest("When logged out, the login form is shown and the dashboard isn't."):
             at = AppTest.from_file(APP_PATH)
             at.run()
@@ -30,15 +37,34 @@ class TestApp(unittest.TestCase):
             self.assertEqual(len(at.text_input), 2)  # username, password
             self.assertEqual(len(at.date_input), 0)
 
-        for page in ["views/dashboard.py", "views/add_data.py"]:
+        # A db call each page makes when it opens, to check that it did open
+        page_db_calls = {
+            "views/dashboard.py": mock_dg_class.return_value.__enter__.return_value.get_totals_in_dates,
+            "views/add_data.py": db.list_all_units,
+        }
+        for page, page_db_call in page_db_calls.items():
             with self.subTest(f"When logged out, opening {page} shows the login form instead of the page."):
+                # switch_page can only open pages that are currently registered, and when
+                # logged out only the login page is. So open the page while logged in, then
+                # log out: the next run requests a page that isn't registered, as when a
+                # logged-out browser opens the page's URL.
                 at = AppTest.from_file(APP_PATH)
                 at.run()
+                at.text_input[0].set_value("me")
+                at.text_input[1].set_value("correct pw")
+                at.button[0].click().run()
+                page_db_call.reset_mock()
                 at.switch_page(page).run()
+                page_db_call.assert_called()
+                at.session_state["logged_in"] = False
+                mock_dg_class.reset_mock()
+                mock_forkdb_class.reset_mock()
+                at.run()
                 self.assertEqual(len(at.exception), 0)
                 self.assertEqual(at.title[0].value, DASHBOARD_TITLE)
                 self.assertEqual(len(at.text_input), 2)  # username, password
                 mock_dg_class.assert_not_called()
+                mock_forkdb_class.assert_not_called()
 
         with self.subTest("Bad credentials show an error and stay logged out."):
             mock_dg_class.side_effect = Exception("bad credentials")
@@ -52,8 +78,6 @@ class TestApp(unittest.TestCase):
             mock_dg_class.side_effect = None
 
         with self.subTest("Good credentials reach the dashboard and store the db name, targets and checked gram nutrients from config."):
-            # The dashboard uses DataGetter as a context manager
-            mock_dg_class.return_value.__enter__.return_value.get_totals_in_dates.return_value = pd.DataFrame()
             at = AppTest.from_file(APP_PATH)
             at.run()
             at.text_input[0].set_value("me")
