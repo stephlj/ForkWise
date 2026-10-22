@@ -251,7 +251,7 @@ v2: GUI for data entry and display
 TODOs:
 v2:
 - FEATURE: Finish UI for data load (add pantry items). May leave meals as csv via CLI, that's not too bad right now.
-- change `ingredient_id` to `pantry_id`.
+- change `ingredient_id` to `pantry_id`. Update schema img (needs updating already!)
 - Code review of webapp.py.
 - Todos in test_display_meal_totals.py
 - Remove dups from list of recipies missing from db on meals load
@@ -269,6 +269,7 @@ Nice to have/later:
 - FEATURE: Edit pantry items, recipes, meals
 - FEATURE: For top ten pantry items by protein for animal=0 vs 1, calculate cal per g protein (and similar)
 - TESTING: switch to "with self.subTest()" everywhere for independent consecutive tests in one test case
+- Look into Dependabot for regular dependency updating (Claude's suggestion, Github thing)
 
 ## Dev
 
