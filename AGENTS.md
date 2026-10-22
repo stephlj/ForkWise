@@ -51,6 +51,6 @@ Before working in `tests/` or `webapp/`, read the `AGENTS.md` in that directory.
     - Add an existing recipe as a `pantry_item` with `add_recipe_to_pantry`
   - Visualizing data:
     - Nutritional totals per serving for a recipe: `get_recipe_totals` in `data_getter.py` (CLI in `display_recipe_totals.py`)
-    - List of `Meal` dataclasses in a date range: `get_meals_in_dates`. Each `Meal` has a list of Recipes, including recipe name and nutritional info per recipe per serving
+    - Meals eaten in a date range: `get_totals_in_dates` in `data_getter.py` returns a DataFrame with one row per recipe eaten per date (`date_eaten`, `recipe_name`, and that row's nutritional totals for the servings eaten)
     - `display_meal_totals.py` has utilities to calculate and plot daily nutritional totals
   - Additional utilities like `list_all_recipes` (lists all recipe names alphabetically), `list_all_ingredients` (list all names of what the db calls `pantry_items` but the UI calls `ingredients` - ie recipe components - alphabetically by name) in `fork_db.py`
