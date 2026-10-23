@@ -250,7 +250,7 @@ v2: GUI for data entry and display
 
 TODOs:
 v2:
-- FEATURE: Finish UI for data load (add pantry items). May leave meals as csv via CLI, that's not too bad right now.
+- FEATURE: Finish UI for data load (add pantry items). May leave meals as csv via CLI, that's not too bad right now. Currently reviewing the plan.
 - Code review of webapp.py.
 - Todos in test_display_meal_totals.py
 - Remove dups from list of recipies missing from db on meals load
