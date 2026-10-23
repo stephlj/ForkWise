@@ -75,7 +75,7 @@ class TestDataLoader(unittest.TestCase):
         with self.subTest("every FoodProps column exists in pantry_items"):
             self.assertLessEqual(dict(FOODPROPS_COL_DEFS).items(), pantry.items())
 
-        with self.subTest("Ingredient columns exist in ingredients (ingr_name is stored as ingredient_id)"):
+        with self.subTest("Ingredient columns exist in ingredients (ingr_name is stored as pantry_id)"):
             self.assertLessEqual({c: t for c, t in INGR_COL_DEFS if c != 'ingr_name'}.items(), ingr.items())
     
     def test_add_ingredients_from_csv(self):
@@ -221,7 +221,7 @@ class TestDataLoader(unittest.TestCase):
         ingr_query = """
             SELECT p.name, i.ingredient_amt, i.ingredient_units
             FROM ingredients AS i
-            INNER JOIN pantry_items p ON p.id = i.ingredient_id
+            INNER JOIN pantry_items p ON p.id = i.pantry_id
             INNER JOIN recipes r ON r.id = i.recipe_id
             WHERE r.name = %s;
         """

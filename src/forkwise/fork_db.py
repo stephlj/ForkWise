@@ -60,7 +60,7 @@ class ForkDB(DBConn):
                 INNER JOIN unit_conversions AS pu ON 
                     LOWER(pu.unit)=LOWER(p.units) 
                 INNER JOIN ingredients AS i ON 
-                    i.ingredient_id=p.id 
+                    i.pantry_id=p.id 
                 INNER JOIN unit_conversions AS iu ON 
                     LOWER(iu.unit)=LOWER(i.ingredient_units) AND
                     iu.category=pu.category
@@ -98,7 +98,7 @@ class ForkDB(DBConn):
             INNER JOIN unit_conversions AS pu ON 
                 LOWER(pu.unit)=LOWER(p.units) 
             INNER JOIN ingredients AS i ON 
-                i.ingredient_id=p.id 
+                i.pantry_id=p.id 
             INNER JOIN unit_conversions AS iu ON 
                 LOWER(iu.unit)=LOWER(i.ingredient_units) AND
                 iu.category=pu.category
@@ -147,7 +147,7 @@ class ForkDB(DBConn):
             SELECT p.name
             FROM pantry_items AS p
             INNER JOIN ingredients i ON
-                i.ingredient_id = p.id
+                i.pantry_id = p.id
             INNER JOIN recipes r ON
                 r.id = i.recipe_id
             WHERE r.name = %s;
@@ -261,7 +261,7 @@ class ForkDB(DBConn):
                 SELECT j.*, i.recipe_id
                 FROM joined1 AS j
                 INNER JOIN ingredients i ON
-                    i.ingredient_id = j.id AND
+                    i.pantry_id = j.id AND
                     {join_statements}
             )
             SELECT recipe_id, COUNT(*)
@@ -303,7 +303,7 @@ class ForkDB(DBConn):
                 SELECT COUNT(*)
                 FROM pantry_items AS p
                 INNER JOIN ingredients i ON
-                    i.ingredient_id=p.id
+                    i.pantry_id=p.id
                 WHERE i.recipe_id=%s;
             """
         return self.execute_scalar(q,(recipe_id,))
@@ -368,7 +368,7 @@ class ForkDB(DBConn):
 
         # then insert into ingredients table
         ingredient_query = """
-            INSERT INTO ingredients (recipe_id, ingredient_id, ingredient_amt, ingredient_units)
+            INSERT INTO ingredients (recipe_id, pantry_id, ingredient_amt, ingredient_units)
             SELECT %s, (SELECT id FROM pantry_items WHERE LOWER(name) = LOWER(s.ingr_name)), s.ingredient_amt, s.ingredient_units
             FROM staging AS s
             RETURNING *;
